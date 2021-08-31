@@ -1034,6 +1034,7 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	
 	}	//for total events
 	
+	free(event_array_total);
 	
 	GThread *thread_speak;   
 	if(m_talk) {	
@@ -1454,7 +1455,7 @@ g_date_time_unref (time_start);
 g_date_time_unref (time_end);		
 		
 } //for i <event_number	
-  
+ free(event_array_total); 
 }
 
 //---------------------------------------------------------------------
@@ -2568,7 +2569,9 @@ add_to_list(list_widget,e3.id,e3.title);
 gtk_text_buffer_set_text (text_buffer, output_str, -1);	
 gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);		
 
-} //for i <row_number		
+} //for i <row_number
+
+free(event_array_total);		
 reload_events(window, year,month+1, day);
 calendar_month_changed_callbk(calendar,NULL); 
 g_date_time_unref (time_start);
