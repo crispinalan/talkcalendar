@@ -72,7 +72,7 @@ Desktop theming has been tested using Ubuntu Mate and some screenshot examples  
 
 ![Ambiant MATE-DARK](talkcalendar-ubuntu-mate-ambiant-dark.png) 
 ![Blue-Submarine](talkcalendar-ubuntu-mate-blue-submarine.png)
-![High Contrast](talkcalendar-high-contrast)
+![High Contrast](talkcalendar-high-contrast.png)
 
 ## Build From Source
 
