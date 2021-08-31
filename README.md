@@ -9,7 +9,7 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 
 ## Deployment
 
-Talk Calendar binary can be built from source using the instructions below. However, a binary package for 64-bit Debian based distributions can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar-gtk/tree/main/bin-packages). Use the chmod command to ensure there is execute permission to run the Talk Calendar binary.
+Talk Calendar binary can be built from source using the instructions below. However, a binary package for 64-bit Debian based distributions can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). Use the chmod command to ensure there is execute permission to run the Talk Calendar binary.
 
 You need to install the eSpeak speech synthesizer.
 
