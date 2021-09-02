@@ -84,6 +84,8 @@ You need the following dependencies:
 sudo apt install build-essential
 sudo apt install libgtk-3-dev
 sudo apt install libsqlite3-dev
+sudo apt install libasound2-dev
+sudo apt install meson
 sudo apt install ninja-build
 sudo apt install espeak
 ```
