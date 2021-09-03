@@ -29,6 +29,7 @@ static int m_talk_priority =1;
 static int m_talk_description =1;
 static int m_holidays=0; //show holidays
 static int m_talk_at_startup=1;
+static int m_talk_synthesiser=1;
 
 static int m_speed = 160; //espeak words per minute
 
@@ -50,6 +51,7 @@ static void mark_holidays_on_calendar(GtkCalendar *calendar, gint month, gint ye
 static void config_load_default()
 {		
 	if(!m_talk) m_talk=1;
+	if(!m_talk_synthesiser) m_talk_synthesiser=0;
 	if(!m_talk_at_startup) m_talk_at_startup=1;
 	if(!m_talk_title) m_talk_title =1;
 	if(!m_talk_time) m_talk_time =1;
@@ -63,6 +65,7 @@ static void config_read()
 {
 	// Clean up previously loaded configuration values	
 	m_talk = 1;
+	m_talk_synthesiser=0;
 	m_talk_at_startup=1;
 	m_talk_title =1;
 	m_talk_time =1;
@@ -74,6 +77,7 @@ static void config_read()
 	GKeyFile * kf = g_key_file_new();
 	g_key_file_load_from_file(kf, m_config_file, G_KEY_FILE_NONE, NULL);
 	m_talk = g_key_file_get_integer(kf, "calendar_settings", "talk", NULL);
+	m_talk_synthesiser = g_key_file_get_integer(kf, "calendar_settings", "talk_synthesiser", NULL);
 	m_talk_at_startup=g_key_file_get_integer(kf, "calendar_settings", "talk_startup", NULL);
 	m_talk_title = g_key_file_get_integer(kf, "calendar_settings", "talk_title", NULL);
 	m_talk_time = g_key_file_get_integer(kf, "calendar_settings", "talk_time", NULL);
@@ -91,6 +95,7 @@ void config_write()
 	
 	//(key-file, group, key, value)	
 	g_key_file_set_integer(kf, "calendar_settings", "talk", m_talk);
+	g_key_file_set_integer(kf, "calendar_settings", "talk_synthesiser", m_talk_synthesiser);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_startup", m_talk_at_startup);	
 	g_key_file_set_integer(kf, "calendar_settings", "talk_title", m_talk_title);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_time", m_talk_time);
@@ -495,7 +500,56 @@ static void options_close_callbk(GtkDialog *dialog,
 	
 } 
 
-
+static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
+{
+ 	
+ 	GtkWidget *check_button_talk_startup; //enable startup talk  
+ 	GtkWidget *check_button_talk_title; //enable  talk title
+ 	GtkWidget *check_button_talk_time; //enable  talk  time
+ 	GtkWidget *check_button_talk_description; //enable talk description 
+ 	GtkWidget *check_button_talk_priority; //enable  talk priority 
+ 	
+ 	//select synthesier	
+ 	GtkWidget *label_synth;
+ 	GtkWidget *combo_box_synth;
+ 	 	
+ 	check_button_talk_startup =g_object_get_data(G_OBJECT(user_data), "cb_talk_startup_key");	
+	check_button_talk_title =g_object_get_data(G_OBJECT(user_data), "cb_talk_title_key"); 	
+	check_button_talk_time= g_object_get_data(G_OBJECT(user_data), "cb_talk_time_key");	
+	check_button_talk_description= g_object_get_data(G_OBJECT(user_data), "cb_talk_desc_key");
+	check_button_talk_priority= g_object_get_data(G_OBJECT(user_data), "cb_talk_priority_key");
+	
+	label_synth= g_object_get_data(G_OBJECT(user_data), "cb_talk_label_synth_key");
+	combo_box_synth= g_object_get_data(G_OBJECT(user_data), "cb_talk_combo_synth_key");
+	 	
+ 	if (gtk_toggle_button_get_active(toggle_button)){		
+	//g_print("Toggled callbk: Talk TRUE\n");
+		
+	gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_time,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_description,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
+	
+	gtk_widget_set_sensitive(label_synth,TRUE);
+	gtk_widget_set_sensitive(combo_box_synth,TRUE);
+	
+	}     
+	else{	
+	//g_print("Toggled callbk: Talk FALSE\n");
+	
+	gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_time,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_description,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_priority,FALSE);
+	
+	gtk_widget_set_sensitive(label_synth,FALSE);
+	gtk_widget_set_sensitive(combo_box_synth,FALSE);	
+	
+	}
+  
+}
 //--------------------------------------------------------------
 
 static void talkcalendar_options_dialog(GtkWidget *widget) {
@@ -518,7 +572,17 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
   GtkWidget *check_button_talk_description; //enable talk description 
   GtkWidget *check_button_talk_priority; //enable priority talk  
   GtkWidget *check_button_holidays; //show public holidays on calendar
-      
+    
+  //select synthesier	
+  GtkWidget *label_synth;
+  GtkWidget *combo_box_synth;
+  GtkWidget *box_synth;
+  
+  //select what to talk box
+  GtkWidget *box_title_time;
+  GtkWidget *box_desc_priority;
+  
+     
   gint response;
   
   //Create dialog
@@ -527,23 +591,44 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
     g_signal_connect_swapped(dialog,"close",G_CALLBACK(options_close_callbk),dialog);//escape close
     gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
    
-    gtk_widget_set_size_request(dialog, 200,100);
+    gtk_widget_set_size_request(dialog, 300,200); //200,100
     gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
     gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
     gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
 
 	
-	check_button_talk = gtk_check_button_new_with_label ("Enable Talking");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk); 
+	label_synth =gtk_label_new("Select Speech Synthesiser: ");  
+	/* Create the combo box and append your string values to it. */
+    combo_box_synth = gtk_combo_box_text_new ();
+    const char* synth_options[] = { 
+	"eSpeak", 
+	"Pico"
+	};
 	
+	
+	/* G_N_ELEMENTS is a macro which determines the number of elements in an array.*/ 
+	for (int i = 0; i < G_N_ELEMENTS (synth_options); i++){
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo_box_synth), synth_options[i]);
+	}
+	
+	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_synth),m_talk_synthesiser);	
+	//g_signal_connect (combo_box_ahead,"changed", G_CALLBACK (callbk_combo_box_ahead_on_changed), NULL);
+	box_synth=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_synth),label_synth,FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(box_synth),combo_box_synth,TRUE, TRUE, 0);
+		
 	check_button_talk_startup = gtk_check_button_new_with_label ("Talk At Startup");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_startup), m_talk_at_startup); 
-	
+			
 	check_button_talk_title = gtk_check_button_new_with_label ("Talk Title");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_title), m_talk_title);
 	
 	check_button_talk_time = gtk_check_button_new_with_label ("Talk Time");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_time), m_talk_time);
+	
+	box_title_time=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_title_time),check_button_talk_title,FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_title_time),check_button_talk_time,TRUE, TRUE, 0);
 	
 	check_button_talk_description = gtk_check_button_new_with_label ("Talk Description");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_description), m_talk_description);
@@ -551,20 +636,83 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
 	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_priority), m_talk_priority); 
 	
+	box_desc_priority = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_desc_priority),check_button_talk_description, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_desc_priority),check_button_talk_priority,TRUE, TRUE, 0);
+	
+	
 	check_button_holidays = gtk_check_button_new_with_label ("Show Public Holidays");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_holidays), m_holidays);
+		
+	check_button_talk = gtk_check_button_new_with_label ("Enable Talking");
+	
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk); 
+    
+    if(m_talk) {
+		gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_time,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_description,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
+	    
+	    gtk_widget_set_sensitive(label_synth,TRUE);
+	    gtk_widget_set_sensitive(combo_box_synth,TRUE);
+	}
+	else {
+		gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_time,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_description,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_priority,FALSE);
+	    
+	    gtk_widget_set_sensitive(label_synth,FALSE);
+	    gtk_widget_set_sensitive(combo_box_synth,FALSE);
+	}
+	
+	
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_startup_key",check_button_talk_startup);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_title_key",check_button_talk_title);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_time_key",check_button_talk_time);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_desc_key",check_button_talk_description);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_priority_key",check_button_talk_priority);
+	
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_combo_synth_key",combo_box_synth); 
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_label_synth_key",label_synth);
+	
+	//g_signal_connect (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", G_CALLBACK (check_button_talk_toggled_callbk), NULL);
+	g_signal_connect_swapped (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", 
+						G_CALLBACK (check_button_talk_toggled_callbk), check_button_talk);
+	
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk);
+	
+	
+	
+	
+	
 	
 	//--------------------------------------------------------------
 	// Dialog PACKING
 	//--------------------------------------------------------------  
 	container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));			
-	gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
+	
 	gtk_container_add(GTK_CONTAINER(container),check_button_talk);
+	
+	gtk_container_add(GTK_CONTAINER(container),box_synth);
+	
+	
+	
+	//gtk_container_add(GTK_CONTAINER(container),check_button_talk_title);
+	//gtk_container_add(GTK_CONTAINER(container),check_button_talk_time);
+	//gtk_container_add(GTK_CONTAINER(container),check_button_talk_description);
+	//gtk_container_add(GTK_CONTAINER(container),check_button_talk_priority);
+	
+	gtk_container_add(GTK_CONTAINER(container),box_title_time);	
+	gtk_container_add(GTK_CONTAINER(container),box_desc_priority);	
+	
 	gtk_container_add(GTK_CONTAINER(container),check_button_talk_startup);	
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk_title);
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk_time);
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk_description);
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk_priority);			
+	
+	gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
+			
     gtk_widget_show_all(GTK_WIDGET(dialog));      
     response = gtk_dialog_run(GTK_DIALOG(dialog));  
    
@@ -572,13 +720,34 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
   switch (response)
   {
   case 1: //ok  
-  m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
+  
   m_talk =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk));
+  
+  gint active_id = gtk_combo_box_get_active (GTK_COMBO_BOX(combo_box_synth));
+  
+	  switch (active_id)
+	  {
+		  case 0:
+		  m_talk_synthesiser=0; //espeak
+		  break;
+		  case 1:
+		  m_talk_synthesiser=1; //pico
+		  break;		  
+	  }
+    
+  m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
+       
+  
+  
   m_talk_at_startup=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_startup));
   m_talk_title =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_title));
   m_talk_time =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_time));  
   m_talk_description =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_description));   
-  m_talk_priority =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_priority));  
+  m_talk_priority =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_priority)); 
+  
+  
+  m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
+   
   config_write();  
   gtk_widget_destroy(GTK_WIDGET(dialog));	 
   break;	 
@@ -613,6 +782,9 @@ return ret_val;
 }
 
 
+//------------------------------------------------------------------
+// thread speak  -pico
+//------------------------------------------------------------------
 
 static void callbk_gotoday(GSimpleAction *action, G_GNUC_UNUSED  GVariant  *parameter,	gpointer window)
 {
@@ -640,11 +812,38 @@ g_date_time_unref (dt);
 
 }
 
+static gpointer thread_speak_func_pico(gpointer user_data)
+{        
+    
+    gchar *text =user_data;
+    //g_print("speaking message = %s\n", text);
+    gchar * command_str ="pico2wave";
+    gchar* lang_str ="-l en-GB";
+	//gchar* lang_str ="-l en-US";
+    gchar* out_file ="--wave /tmp/talkpico.wav";
+   
+
+    command_str= g_strconcat(command_str," ",out_file," ",lang_str," '",text,"' ", NULL);
+    system(command_str);
+    
+    
+    if (g_file_test(g_build_filename ("/tmp","talkpico.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	
+	char input[50];		
+	strcpy(input, "/tmp/talkpico.wav");
+	wavplay(input);	
+	}
+	
+    g_mutex_unlock (&lock); //thread mutex unlock 
+    return NULL;  
+      
+}
+
 //------------------------------------------------------------------
-// thread speak 
+// thread speak  -espeak
 //------------------------------------------------------------------
 
-static gpointer thread_speak_func(gpointer user_data)
+static gpointer thread_speak_func_espeak(gpointer user_data)
 {     
     gchar *text =user_data;
     
@@ -653,15 +852,15 @@ static gpointer thread_speak_func(gpointer user_data)
     gchar *speed_str ="-s ";    
     speed_str= g_strconcat(speed_str,m_str, NULL); 
     gchar* wav_str ="-w "; 
-    gchar* file_str="/tmp/talkout.wav"; 
+    gchar* file_str="/tmp/talkespeak.wav"; 
     wav_str= g_strconcat(wav_str,file_str, NULL);  
    
     command_str= g_strconcat(command_str," '",speed_str,"' "," '",text,"' ", " '", wav_str,"' ", NULL);
     system(command_str);
     
-    if (g_file_test(g_build_filename ("/tmp","talkout.wav", NULL), G_FILE_TEST_IS_REGULAR)) {	
+    if (g_file_test(g_build_filename ("/tmp","talkespeak.wav", NULL), G_FILE_TEST_IS_REGULAR)) {	
 	char input[50];		
-	strcpy(input, "/tmp/talkout.wav");
+	strcpy(input, "/tmp/talkespeak.wav");
 	wavplay(input);
     }
        
@@ -679,16 +878,25 @@ static void audio_callbk(GSimpleAction *action,
 							G_GNUC_UNUSED  GVariant      *parameter,
 							  gpointer       user_data){
 	
-	GThread *thread_speak; 
-	
-	gchar* message_speak ="Talk Calendar version 1.0";  
+	if(!m_talk) return;	
 		
-	if(m_talk) {	
+	GThread *thread_speak;
+	gchar* message_speak ="Talk Calendar version 1.1";
+	  
 	g_mutex_lock (&lock);
-    thread_speak = g_thread_new(NULL, thread_speak_func, message_speak);   
+	
+	if (m_talk_synthesiser==0) {
+	thread_speak = g_thread_new(NULL, thread_speak_func_espeak, message_speak);
+	}
+	if (m_talk_synthesiser==1) {
+    thread_speak = g_thread_new(NULL, thread_speak_func_pico, message_speak);
 	}
 	
-	g_thread_unref (thread_speak);	
+	g_thread_unref (thread_speak);		
+	
+
+	
+	
  	
 		
 }
@@ -873,43 +1081,43 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	
 	switch (month_enum) {
 	case G_DATE_JANUARY:
-	month_str="January";		
+	month_str="January. ";		
 	break;
 	case G_DATE_FEBRUARY:		
-	month_str="February";
+	month_str="February. ";
 	break;
 	case G_DATE_MARCH:		
-	month_str=" March";
+	month_str=" March. ";
 	break;
 	case G_DATE_APRIL:		
-	month_str="April";
+	month_str="April. ";
 	break;
 	case G_DATE_MAY:		
-	month_str="May";
+	month_str="May. ";
 	break;
 	case G_DATE_JUNE:		
 	month_str=" June";
 	break;
 	case G_DATE_JULY:		
-	month_str="July";
+	month_str="July. ";
 	break;
 	case G_DATE_AUGUST:		
-	month_str="August";
+	month_str="August. ";
 	break;
 	case G_DATE_SEPTEMBER:		
-	month_str="September";
+	month_str="September. ";
 	break;
 	case G_DATE_OCTOBER:		
-	month_str="October";
+	month_str="October. ";
 	break;
 	case G_DATE_NOVEMBER:		
-	month_str="November";
+	month_str="November. ";
 	break;
 	case G_DATE_DECEMBER:		
-	month_str="December";
+	month_str="December.";
 	break;
 	default:
-	month_str=" Unknown Month";
+	month_str=" Unknown Month. ";
 	
 	break;
 	} //month switch
@@ -938,26 +1146,26 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	gchar* event_num_str;
 	
 	if (total_number_events ==0) {	
-	event_num_str="no events";  
+	event_num_str="no events. ";  
 	} //if
 	
 	else if(total_number_events ==1){
-	event_num_str="one event"; 
+	event_num_str="one event. "; 
 	}
 	else if(total_number_events ==2){
-	event_num_str="two events"; 
+	event_num_str="two events. "; 
 	}
 	else if(total_number_events ==3){
-	event_num_str="three events"; 
+	event_num_str="three events. "; 
 	}
 	else if(total_number_events ==4){
-	event_num_str="four events"; 
+	event_num_str="four events. "; 
 	}
 	else if(total_number_events ==5){ 
-	event_num_str="five events"; 	
+	event_num_str="five events. "; 	
 	}		
 	else {
-	event_num_str="many events today"; 
+	event_num_str="many events today. "; 
 	}
 	
 	speak_str= g_strconcat(speak_str, event_num_str, " ", NULL); 
@@ -1013,10 +1221,10 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	time_end_str = g_date_time_format (time_end, "%l:%M %P");
 	
 	if(evt.isAllday) {
-	speak_str= g_strconcat(speak_str, "This is an all day event\n", NULL);			
+	speak_str= g_strconcat(speak_str, "This is an all day event. ", NULL);			
 	}
 	else {			
-	speak_str= g_strconcat(speak_str, time_start_str, " to ", time_end_str, "\n", NULL); 			
+	speak_str= g_strconcat(speak_str, time_start_str, ". to ", time_end_str, ". ", NULL); 			
 	}			
 	}//if talk time
 	
@@ -1026,9 +1234,9 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	
 	if (m_talk_priority){
 	gchar* priority_str="";
-	if (evt.priority ==1) priority_str="low priority event";
-	if (evt.priority ==2) priority_str="medium priority event";
-	if (evt.priority ==3) priority_str="high priority event";
+	if (evt.priority ==1) priority_str="low priority event. ";
+	if (evt.priority ==2) priority_str="medium priority event.  ";
+	if (evt.priority ==3) priority_str="high priority event. ";
 	speak_str= g_strconcat(speak_str, priority_str, ".  ", NULL);
 	} //if talk priority
 	
@@ -1039,8 +1247,15 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	GThread *thread_speak;   
 	if(m_talk) {	
 	g_mutex_lock (&lock);
-	thread_speak = g_thread_new(NULL, thread_speak_func, speak_str);   
+	
+	if (m_talk_synthesiser==0) {
+	thread_speak = g_thread_new(NULL, thread_speak_func_espeak, speak_str);
+	}
+	if (m_talk_synthesiser==1) {
+    thread_speak = g_thread_new(NULL, thread_speak_func_pico, speak_str);
 	}	
+	
+	} //m_talk	
 	g_thread_unref (thread_speak);	
 }
 
@@ -1103,9 +1318,9 @@ static void callbk_about(GtkWindow *window){
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.0.0");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.1.0");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
-	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 	
+	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Talking Calendar"); 	
 	//gtk_about_dialog_set_wrap_license(GTK_ABOUT_DIALOG(about_dialog),TRUE);	
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_dialog),"https://github.com/crispinalan/"); 

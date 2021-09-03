@@ -2,20 +2,23 @@
 
 Talk Calendar is a Linux desktop calendar with speech capability. 
 
-![](talkcalendar-gtk.png)
+![](talkcalendar.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). It uses the espeak speech synthesiser.
-
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). 
 
 ## Deployment
 
-Talk Calendar binary can be built from source using the instructions below. However, a binary package for 64-bit Debian based distributions can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). Use the chmod command to ensure there is execute permission to run the Talk Calendar binary.
+A binary package for 64-bit Debian based distributions can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages).  Alternatively, Talk Calendar can be built from source using the instructions below. 
 
-You need to install the eSpeak speech synthesizer.
+You need to install a speech synthesizer. Both eSpeak and Pico TTS are supported and can be installed on a Ubuntu distribution using the commands below.
 
 ```
 sudo apt install espeak
+sudo apt install libttspico-utils
 ```
+<ins>Note: </ins>  The `libttspico-utils` package is available on [Debian Bullseye]( 
+https://packages.debian.org/bullseye/libttspico-utils)
+
 
 To run Talk Calendar from the terminal use: 
 
@@ -23,15 +26,22 @@ To run Talk Calendar from the terminal use:
 ./talkcalendar
 ```
 
-Add a launcher (Mate desktop) or use the  menu editor (Cinnamon desktop) to start up Talk Calendar. Add to your start up applications to read out day events when the computer is switched on.
+<ins>Note: </ins> If this fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename).
 
-To check that audio is working use the Talk Calendar menu option 
+You can add a launcher (Mate desktop) or use the  menu editor (Cinnamon desktop) to open and run Talk Calendar. If you add Talk Calendar to your start-up applications you can read out day events when the computer is switched on.
+
+To check that audio is working (with talk enabled in the options) use the Talk Calendar menu option 
 ```
 Help->Audio_Test 
 ```
 which reads out the current version.
 
-Talk Calendar has been tested using Debian 11 (Bullseye) Mate Edition, Ubuntu Mate (Focal Fossa 20.04.3 LTS) and Linux Mint 20.2 Cinnamon Edition all 64 bit. 
+Talk Calendar has been tested using the following 64-bit distributions.
+```
+Ubuntu Mate (Focal Fossa 20.04.3 LTS)
+Debian 11 (Bullseye) Mate Edition
+Linux Mint 20.2 Cinnamon Edition  
+```
 
 ## Usage
 
@@ -53,6 +63,8 @@ Talk Calendar has been tested using Debian 11 (Bullseye) Mate Edition, Ubuntu Ma
 ### Preferences
 
 * The options dialog can be accessed from the Edit menu.
+
+![](talkcalendar-options.png)
 
 ### Keyboard Bindings
 
@@ -88,13 +100,13 @@ sudo apt install libasound2-dev
 sudo apt install meson
 sudo apt install ninja-build
 sudo apt install espeak
+sudo apt install libttspico-utils
 ```
 The [meson](https://mesonbuild.com/Quick-guide.html) build system is used. At the top level directory the build steps are:
 ```
 meson build  (run once only)
 ninja -C build
 ```
-
 I used Geany as the IDE for developing the project as it has an integrated terminal and other features helpful for coding a Gtk3.0 project (see below). 
 
 The Gtk3.0 reference manual can be viewed locally on a Linux computer using a program called Devhelp. Devhelp is a tool for browsing and searching Gtk API documentation. Having a local copy of the Gtk help documentation is very helpful when developing an application.
@@ -113,21 +125,21 @@ sudo apt install devhelp
 
 ## License
 
-This software is licensed under version 3 of the GNU General Public License and so is compatible with the espeak license.
+This software is licensed under version 3 of the GNU General Public License.
 
+## License Note
 
-## Project History
+The eSpeak speech synthesiser is licensed under GPLv3 and the Pico TTS library under the Apache License 2.0. The Apache License 2.0 is compatible with GPLv3 as discussed in the [Top 10 Apache License Questions Answered ](https://www.whitesourcesoftware.com/resources/blog/top-10-apache-license-questions-answered/#5_Is_the_Apache_License_compatible_with_the_GNU_GPL). The resulting software, however, must be released under GPLv3.
 
-C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits such as Gtk. See the Gtk3.0 [documentation](https://docs.gtk.org/gtk3/).
+Talk Calendar has been developed using the Gtk3.0 library which is released under LGPL v2.1. A library released with this license much always be maintained under this license and if you copy code from the library you must use the same license but if you only link to this library (as is the case with Talk Calendar) then the code can have any other license. This allows a GPLv3 license to be used with Talk Calendar which is compatible with both the eSpeak and Pico TTS licenses.
 
-Since developing this project Gtk 4.0 has been released. At the time of writing, Gtk4.0 is not yet available in mainstream Linux package systems (except Fedora). Gtk say: "GTK 4 is a major new version of GTK that breaks both API and ABI compared to GTK 3.x" [Gtk4](https://docs.gtk.org/gtk4/migrating-3to4.html).
 
 ## Releases
 
 Talk Calendar Version 1.0
 ```
 built with Gtk3.0
-uses the espeak speech synthesiser
+speech synthesiser espeak
 sqlite used to store events locally
 speaks date, event titles, time, description, priority 
 options to change speak preferences
@@ -138,15 +150,22 @@ import events from csv file
 meson build system
 binary for 64-bit Debian based distributions
 ```
-Minor bugs will be fixed with future releases.
+
+Talk Calendar Version 1.1
+```
+built with Gtk3.0
+speech synthesiser pico TTS 
+speech synthesiser selection option (espeak or Pico TTS)
+binary for 64-bit Debian based distributions
+```
 
 ## Roadmap
 ```
 deb package installer
-dbus messaging
-move to using Gtk4 (longer term goal)
+reminder notifications
+add language speech options
+migrate to using Gtk4 (longer term goal)
 ```
-
 
 ## Acknowledgements
 
@@ -165,5 +184,8 @@ move to using Gtk4 (longer term goal)
 
 * [espeak](http://espeak.sourceforge.net/)
 * eSpeak is a software speech synthesizer for English, and some other languages. The eSpeak project is licensed under version 3 of the GNU General Public License.
+
+* [pico TTS] (https://github.com/naggety/picotts)
+* The SVOX Pico engine is a software speech synthesizer for German, English (GB and US), Spanish, French and Italian. It produces a clear and distinct speech output made possible by the use of Hidden Markov Model (HMM) algorithms. License Apache-2.0 (see pico_resources/NOTICE)
 
 
