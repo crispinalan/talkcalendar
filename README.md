@@ -185,7 +185,7 @@ migrate to using Gtk4 (longer term goal)
 * [espeak](http://espeak.sourceforge.net/)
 * eSpeak is a software speech synthesizer for English, and some other languages. The eSpeak project is licensed under version 3 of the GNU General Public License.
 
-* [pico TTS] (https://github.com/naggety/picotts)
+* [pico TTS](https://github.com/naggety/picotts)
 * The SVOX Pico engine is a software speech synthesizer for German, English (GB and US), Spanish, French and Italian. It produces a clear and distinct speech output made possible by the use of Hidden Markov Model (HMM) algorithms. License Apache-2.0 (see pico_resources/NOTICE)
 
 
