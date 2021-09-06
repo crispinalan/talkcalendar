@@ -1,7 +1,8 @@
 
 talkcalendar_src = [  
   'dbmanager.c', 
-  'wavplay.c',      
+  'wavplay.c', 
+  'wavcat.c',    
   'main.c',  
 ]
 compiler = meson.get_compiler('c')

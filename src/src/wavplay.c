@@ -1,5 +1,5 @@
 /***************************************************************************
- * wavplay.c
+ * GPL v2.0 license (see license document distributed with this software)
  * Alsa player 
  * Author: crispinalan@gmail.com
  ***************************************************************************/

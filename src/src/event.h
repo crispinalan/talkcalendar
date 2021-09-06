@@ -1,5 +1,5 @@
 /***************************************************************************
- event.h
+ GPL v2.0 license (see license document distributed with this software)
  Author: crispinalan@gmail.com
  ***************************************************************************/
 

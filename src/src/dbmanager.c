@@ -1,5 +1,5 @@
 /***************************************************************************
- * dbmanager.c
+ * GPL v2.0 license (see license document distributed with this software)
  * SQlite db manager 
  * Author: crispinalan@gmail.com
  ***************************************************************************/
