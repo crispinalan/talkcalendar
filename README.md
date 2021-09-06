@@ -65,8 +65,8 @@ Linux Mint 20.2 Cinnamon Edition
 
 Desktop theming has been tested using Ubuntu Mate and some screenshot examples  are shown below for the Ambient MATE-DARK, Blue-Submarine and High-Contrast themes.
 
-![Ambient MATE-DARK](talkcalendar-ubuntu-mate-ambiant-dark.png) 
-![Blue-Submarine](talkcalendar-ubuntu-mate-blue-submarine.png)
+![Ambiant MATE-DARK](talkcalendar-ambiant-mate-dark.png) 
+![Blue-Submarine](talkcalendar-blue-submarine.png)
 ![High Contrast](talkcalendar-high-contrast.png)
 
 ## Build From Source
