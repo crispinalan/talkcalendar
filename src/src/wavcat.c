@@ -151,8 +151,50 @@ void merge_wav_files(char *merge_filename, int num_files, char *filenames[])
 		}
     }	
 	}		
-	uint32_t s_rate=8000; //fix sample rate to talk calendar audio format		
+	uint32_t s_rate=8000; //fix sample rate to talk calendar audio format
+	//uint32_t s_rate=16000;		
 	write_wav(merge_filename, merge_size, data_store, s_rate);
+	free(data_store);
+	return;	
+}	
+
+
+void merge_wav_files2(char *merge_filename, int num_files, char *filenames[],int32_t sample_rate)
+{	
+	WaveData_t* data;	 //data pointer
+	int32_t merge_size;	// merge size	
+	merge_size = get_merge_data_size(num_files, filenames);		
+	
+	//create data array using malloc and merge_size	
+	int16_t* data_store = NULL;
+	// allocate enough memory for merge_size integers
+	data_store = malloc(merge_size * sizeof(int16_t));
+	// if the return from malloc is NULL, an error occurred
+	// and so print an error message and exit (clean up)
+	if(data_store == NULL) {
+		fprintf(stderr,"Error allocating memory!\n");
+		exit(1); //clean up
+	}
+  
+	//Fill data_store with merge data
+	int count=0;  //data_store count  
+    for (int i = 0; i < num_files; i++) {  
+    char* file_name =filenames[i];	   
+    data = read_wav(file_name,strlen(file_name)); //get data samples for each file  
+    //capture mono samples only i.e. data->size /2
+	for (int k = 0; k < data->size/2; ++k) {     
+    data_store[count] = data->samples[k];
+    count =count+1; 
+		if(count>merge_size)
+		{
+		printf("fatal error: malloc over run\n");
+		break;
+		}
+    }	
+	}		
+	//uint32_t s_rate=8000; //fix sample rate to talk calendar audio format
+			
+	write_wav(merge_filename, merge_size, data_store, sample_rate);
 	free(data_store);
 	return;	
 }	

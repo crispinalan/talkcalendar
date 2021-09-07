@@ -54,7 +54,7 @@ void write_wav(char * filename, uint32_t num_samples, int16_t * data, uint32_t s
 void write_little_endian(uint32_t word, uint32_t num_bytes, FILE *wav_file);
 int32_t get_merge_data_size(int num_files, char *filenames[]);
 void merge_wav_files(char *merge_filename, int num_files, char *filenames[]);
-
+void merge_wav_files2(char *merge_filename, int num_files, char *filenames[],int32_t sample_rate);
 
 
 

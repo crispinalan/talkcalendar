@@ -108,17 +108,16 @@ sudo apt install devhelp
 
 ## Note on Dictionary
 
-The dictionary supplied is one that I have made for development purposes and is not intended to be of a professional standard. The dictionary consists of pre-recorded words stored as wav files in the relevant directories (e.g. a-words in the a-directory, b-words in the b-directory etc.).
+The dictionary supplied is one that I have made for development purposes only. The dictionary consists of pre-recorded words stored as wav files in the relevant directories (e.g. a-words in the a-directory, b-words in the b-directory etc.).
 
-The internal audio concatenation algorithm requires words to be recorded using the following format specification
+You can create your own audio word dictionary by recording voice words. Currently, the internal audio concatenation algorithm requires words to be recorded using the following format specification
 ```
 Number of channels: 1
-Sample rate: 8000
+Sample rate: 16000
 Bits per sample: 16
 ```
-A low sample rate is used to keep the pre-recorded audio files small. 
- 
-There are some additional words in the dictionary not used at present but needed for future features under development. The word dictionary should be located in the current directory is running Talk Calendar from the terminal or the home directory if using a launcher.
+
+The word dictionary should be located in the current directory if running Talk Calendar from the terminal or the home directory if using a launcher.
 
 ## How is speech generated?
 

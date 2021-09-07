@@ -712,6 +712,7 @@ static void audio_callbk(GSimpleAction *action,
 	GList *wavlist=NULL;
 	gchar *cur_dir;
 	cur_dir = g_get_current_dir ();
+	int32_t sample_rate=16000;
 			
 	g_print("Locate talk dictionary in directory: %s\n",cur_dir); 
 
@@ -769,7 +770,7 @@ static void audio_callbk(GSimpleAction *action,
 	
 	}
 	
-	merge_wav_files(merge_file, num_files, file_names);
+	merge_wav_files2(merge_file, num_files, file_names,sample_rate);
 	
 	g_list_free(wavlist);
 	g_free (cur_dir);	
@@ -796,6 +797,7 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	GDate *date;
 	GDateWeekday weekday; 
 	GDateMonth month_enum;
+	int32_t sample_rate=16000;
 	
 	gchar *cur_dir;
 	cur_dir = g_get_current_dir ();
@@ -1986,8 +1988,9 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	//printf("main: locate file_names[%d] = '%s'\n",i,file_names[i]);
 	}
 	
-	merge_wav_files(merge_file, num_files, file_names);
+	//merge_wav_files(merge_file, num_files, file_names);
     
+	merge_wav_files2(merge_file, num_files, file_names,sample_rate);
 	
 	g_list_free(wavlist);	
     g_free (cur_dir);	
