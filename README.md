@@ -210,6 +210,9 @@ improve calendar interface
 deb package installer
 migrate to using Gtk4 (longer term goal)
 ```
+## Project History
+
+C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.)  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Tiki Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
 
 ## Acknowledgements
 
