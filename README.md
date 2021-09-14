@@ -4,7 +4,7 @@ Talk Calendar is a Linux desktop calendar with some speech capability.
 
 ![](talkcalendar.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). It can be run by using the Debian binary  provided.
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). It can be run by using the Debian binary  provided. Talk Calendar has been designed with assistive technologies in mind. This not only includes providing some speech capability but also allowing the system font size to be overridden to enlarge text when needed.
 
 ## Deployment
 
@@ -23,8 +23,8 @@ If adding a launcher (Mate desktop) or using a menu editor (Cinnamon desktop) to
 
 Talk Calendar has been tested using the following 64-bit distributions.
 ```
-Ubuntu Mate (Focal Fossa 20.04.3 LTS)
 Debian 11 (Bullseye) Mate Edition
+Ubuntu Mate (Focal Fossa 20.04.3 LTS)
 Linux Mint 20.2 Cinnamon Edition  
 ```
 
@@ -59,15 +59,10 @@ Linux Mint 20.2 Cinnamon Edition
 * Enable talking in options 
 * Click on a calendar date
 * Select Menu->Tools->Talk Selected Date 
-* Alternatively press the spacebar to speak 
+* Alternatively just press the spacebar to speak 
 
-## Desktop Themes
-
-Desktop theming has been tested using Ubuntu Mate and some screenshot examples  are shown below for the Ambient MATE-DARK, Blue-Submarine and High-Contrast themes.
-
-![Ambiant MATE-DARK](talkcalendar-ambiant-mate-dark.png) 
-![Blue-Submarine](talkcalendar-blue-submarine.png)
-![High Contrast](talkcalendar-high-contrast.png)
+### Set Alarm
+* Select Menu->Tools->Set Alarm
 
 ## Build From Source
 
@@ -186,7 +181,7 @@ As I am using the Gtk 3.0 GUI toolkit which is licensed using LGPLv2.1 then this
 
 ## Releases
 
-Talk Calendar Version 1.1.1
+Talk Calendar Version 1.1
 ```
 built with Gtk3.0
 uses own internal word concatenation speech synthesiser
@@ -201,18 +196,27 @@ meson build system
 binary for 64-bit Debian based distributions
 ```
 
+Talk Calendar Version 1.2
+```
+built with Gtk3.0
+option to change font family and font size
+option to talk event start-time
+clock
+clock talk alarm
+clock alarm notification 
+binary for 64-bit Debian based distributions
+```
+
+
 ## Roadmap
 ```
-add reminder notifications
-improve audio concatenation
-improve speech synthesis
-improve calendar interface
+review speech synthesis and dictionary
 deb package installer
 migrate to using Gtk4 (longer term goal)
 ```
 ## Project History
 
-C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.)  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Tiki Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
+C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.)  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
 
 ## Acknowledgements
 

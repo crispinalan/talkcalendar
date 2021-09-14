@@ -9,11 +9,11 @@
 WaveData_t* read_wav(char fileName[],size_t fileNameSize) {
         
     if (fileName[fileNameSize] != '\0') {       
-        printf("read_wave: Invalid string format.\n");
+        printf("wavcat: read_wave: Invalid string format.\n");
     } else {
         FILE* filePtr = fopen(fileName, "r");
         if (filePtr == NULL) {
-			printf("unable to open file\n");          
+			printf("wavcat: unable to open file %s\n",fileName);          
             return NULL;
         } else {
 			// Read header

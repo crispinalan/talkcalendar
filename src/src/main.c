@@ -12,10 +12,13 @@
 #include "event.h"
 #include "wavplay.h"
 #include "wavcat.h"
+#include <gdk/gdk.h>
+#include<libnotify/notify.h>
 
 // Definitions
 #define CONFIG_DIRNAME "talkcalendar-gtk"
-#define CONFIG_FILENAME "talkcalendar-gtk"
+#define CONFIG_FILENAME "talkcalendar-config"
+//export GDK_DPI_SCALE=1.5;
 
 //Static variables (configuration variables)
 static char * m_config_file = NULL;
@@ -24,15 +27,24 @@ static GMutex lock;
 gint debug=0;
 static int m_talk =0;
 static int m_talk_title =0;
+static int m_talk_time =0;
 static int m_talk_priority =0;
 static int m_talk_at_startup=1;
+static int m_font_size=22;
+static gchar* m_font_str="sans;";
 static int m_holidays=0; //show holidays
+static int m_alarm_notification=1;
+static int m_alarm_hour=0;
+static int m_alarm_min=0;
 
 //Prototypes
-
+static void show_notification(gchar *message);
+static gboolean timer_update_cb(gpointer data);
+void change_calendar_font_size(GtkWidget *window);
 static void reload_events(GtkWidget *widget, int year, int month, int day);
 static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, guint day);
 static void talkcalendar_update_event(GtkWidget *widget, gpointer data);
+static void talkcalendar_alarm_dialog(GtkWidget *widget);
 static void calendar_day_selected_callbk(GtkCalendar *calendar, gpointer user_data);
 
 
@@ -48,8 +60,14 @@ static void config_load_default()
 	if(!m_talk) m_talk=1;
 	if(!m_talk_at_startup) m_talk_at_startup=1;
 	if(!m_talk_title) m_talk_title =1;
-	if(!m_talk_priority) m_talk_priority =0;   
+	if(!m_talk_time) m_talk_time =1;
+	if(!m_talk_priority) m_talk_priority =0;
+	m_font_str="sans;";
+	if(!m_font_size) m_font_size=22;  
 	if(!m_holidays) m_holidays=0;
+	if(!m_alarm_notification) m_alarm_notification=0;
+	if(!m_alarm_hour) m_alarm_hour=0;
+	if(!m_alarm_min) m_alarm_min=0;
 	
 }
 
@@ -58,9 +76,15 @@ static void config_read()
 	// Clean up previously loaded configuration values	
 	m_talk = 1;
 	m_talk_title =1;
+	m_talk_time =1;
 	m_talk_at_startup=1;
-	m_talk_priority =0;  
+	m_talk_priority =0;
+	m_font_str="sans;"; 
+	m_font_size=22; 
 	m_holidays=0;
+	m_alarm_notification=1;
+	m_alarm_hour=0;
+	m_alarm_min=0;
 	
 	// Load keys from keyfile
 	GKeyFile * kf = g_key_file_new();
@@ -68,8 +92,16 @@ static void config_read()
 	m_talk = g_key_file_get_integer(kf, "calendar_settings", "talk", NULL);
 	m_talk_at_startup=g_key_file_get_integer(kf, "calendar_settings", "talk_startup", NULL);
 	m_talk_title = g_key_file_get_integer(kf, "calendar_settings", "talk_title", NULL);
+	m_talk_time = g_key_file_get_integer(kf, "calendar_settings", "talk_time", NULL);
 	m_talk_priority = g_key_file_get_integer(kf, "calendar_settings", "talk_priority", NULL);	
 	m_holidays = g_key_file_get_integer(kf, "calendar_settings", "holidays", NULL);	
+	m_font_str=g_key_file_get_string(kf, "calendar_settings", "font_str", NULL);	
+	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font-size", NULL);	
+	
+	m_alarm_notification=g_key_file_get_integer(kf, "calendar_settings", "alarm-notification", NULL);	
+	m_alarm_hour=g_key_file_get_integer(kf, "calendar_settings", "alarm-hour", NULL);	
+	m_alarm_min=g_key_file_get_integer(kf, "calendar_settings", "alarm-min", NULL);
+	
 	g_key_file_free(kf);	
 	//config_load_default();	
 }
@@ -83,9 +115,15 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "talk", m_talk);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_startup", m_talk_at_startup);	
 	g_key_file_set_integer(kf, "calendar_settings", "talk_title", m_talk_title);
+	g_key_file_set_integer(kf, "calendar_settings", "talk_time", m_talk_time);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_priority", m_talk_priority);
 	g_key_file_set_integer(kf, "calendar_settings", "holidays", m_holidays);
+	g_key_file_set_string(kf, "calendar_settings", "font_str", m_font_str);
+	g_key_file_set_integer(kf, "calendar_settings", "font-size", m_font_size);
 	
+	g_key_file_set_integer(kf, "calendar_settings", "alarm-notification", m_alarm_notification);
+	g_key_file_set_integer(kf, "calendar_settings", "alarm-hour", m_alarm_hour);
+	g_key_file_set_integer(kf, "calendar_settings", "alarm-min", m_alarm_min);
 	
 	gsize length;
 	gchar * data = g_key_file_to_data(kf, &length, NULL);
@@ -472,7 +510,9 @@ static void exit_callbk(GSimpleAction * action,
 	g_application_quit(G_APPLICATION(user_data));
 	
 }
-
+//----------------------------------------------------------
+// close call back
+//-----------------------------------------------------------
 
 static void options_close_callbk(GtkDialog *dialog,
 					     G_GNUC_UNUSED gpointer   user_data)  
@@ -487,12 +527,14 @@ static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gp
 {
  	
  	GtkWidget *check_button_talk_startup; //enable startup talk  
- 	GtkWidget *check_button_talk_title; //enable  talk title 	
+ 	GtkWidget *check_button_talk_title; //enable  talk title 
+ 	GtkWidget *check_button_talk_time; //enable  talk time	
  	GtkWidget *check_button_talk_priority; //enable  talk priority 
  	
  		
  	check_button_talk_startup =g_object_get_data(G_OBJECT(user_data), "cb_talk_startup_key");	
-	check_button_talk_title =g_object_get_data(G_OBJECT(user_data), "cb_talk_title_key"); 
+	check_button_talk_title =g_object_get_data(G_OBJECT(user_data), "cb_talk_title_key");
+	check_button_talk_time =g_object_get_data(G_OBJECT(user_data), "cb_talk_time_key");  
 	check_button_talk_priority= g_object_get_data(G_OBJECT(user_data), "cb_talk_priority_key");
 	
 		 	
@@ -500,7 +542,8 @@ static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gp
 	//g_print("Toggled callbk: Talk TRUE\n");
 		
 	gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
-	gtk_widget_set_sensitive(check_button_talk_title,TRUE);	
+	gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_time,TRUE);	
 	gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
 	
 	
@@ -509,18 +552,230 @@ static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gp
 	//g_print("Toggled callbk: Talk FALSE\n");
 	
 	gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
-	gtk_widget_set_sensitive(check_button_talk_title,FALSE);	
+	gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_time,FALSE);	
 	gtk_widget_set_sensitive(check_button_talk_priority,FALSE);
 		
 	}
   
+}
+//--------------------------------------------------------------
+
+
+//---------------------------------------------------------------------
+// spin button show leading zeros
+//---------------------------------------------------------------------
+static gboolean on_output_alarm_spins (GtkSpinButton *spin, gpointer data)
+{
+   GtkAdjustment *adjustment;
+   gchar *text;
+   int value;
+   adjustment = gtk_spin_button_get_adjustment (spin);
+   value = (int)gtk_adjustment_get_value (adjustment);
+   text = g_strdup_printf ("%02d", value);
+   gtk_entry_set_text (GTK_ENTRY (spin), text);
+   g_free (text);
+   return TRUE;
+}
+
+static void alarm_close_callbk(GtkDialog *dialog,
+					     G_GNUC_UNUSED gpointer   user_data)  
+{
+	if( !GTK_IS_DIALOG(dialog)) { 
+	return;
+	}	
+	
+} 
+
+
+
+static void talkcalendar_alarm_dialog(GtkWidget *widget) {
+	
+  GtkWidget *window = (GtkWidget *) widget;
+   
+   
+  if( !GTK_IS_WINDOW(window)) {	  	 
+	  return;
+  }
+  config_read();
+  
+  GtkWidget *dialog;    
+  GtkWidget *container;	
+  gint response;
+  GtkWidget *label_alarm_info;
+  
+  GtkWidget *label_alarm_time;
+  GtkWidget *label_alarm_colon;
+  GtkWidget *spin_button_alarm_hour;
+  GtkWidget *spin_button_alarm_minutes;
+  GtkWidget *box_alarm_time;
+  GtkWidget *check_button_alarm_notification;
+  
+  //Create dialog
+  dialog= gtk_dialog_new();   
+  gtk_window_set_title (GTK_WINDOW (dialog), "Talk Calendar"); 
+  g_signal_connect_swapped(dialog,"close",G_CALLBACK(alarm_close_callbk),dialog);//escape close
+  gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
+   
+  gtk_widget_set_size_request(dialog, 200,150);
+  gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
+   
+  gchar* alarm_str ="Set Alarm Time ";  
+  label_alarm_info =gtk_label_new(alarm_str); 
+  
+  label_alarm_time =gtk_label_new("Alarm Time (24 hour) ");
+  label_alarm_colon=gtk_label_new(" : ");
+  
+  spin_button_alarm_hour = gtk_spin_button_new_with_range(0.0,23.0,1.0); //23 hours	
+  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_hour),0);
+  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_hour),1.0,23.0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_hour),m_alarm_hour);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_hour),TRUE);		
+  g_signal_connect(spin_button_alarm_hour, "output", G_CALLBACK (on_output_alarm_spins), NULL);
+  
+  
+  spin_button_alarm_minutes=gtk_spin_button_new_with_range(0.0,59.0,1.0);
+  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_minutes),0);
+  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_minutes),1.0,10.0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_minutes),m_alarm_min);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_minutes),TRUE);		
+  g_signal_connect(spin_button_alarm_minutes, "output", G_CALLBACK (on_output_alarm_spins), NULL);	
+  
+   
+  box_alarm_time=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_time,FALSE, FALSE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_hour,TRUE, TRUE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_colon,FALSE, FALSE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_minutes,TRUE, TRUE, 5);
+ 
+ check_button_alarm_notification = gtk_check_button_new_with_label ("System Notification");
+ gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_alarm_notification), m_alarm_notification); 
+	
+//---------------------------------------------------------------
+// Font size
+//----------------------------------------------------------------
+
+GtkCssProvider *cssProvider;
+
+GtkStyleContext *context_dialog;
+ 
+GtkStyleContext *context_label_alarm_info;
+GtkStyleContext *context_label_alarm_time;
+GtkStyleContext *context_label_alarm_colon;
+GtkStyleContext *context_spin_button_alarm_hour;
+GtkStyleContext *context_spin_button_alarm_minutes; 
+GtkStyleContext *context_box_alarm_time; 
+GtkStyleContext *context_check_button_alarm_notification;
+//new css provider 
+cssProvider = gtk_css_provider_new(); 
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_info), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_time), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_minutes), "cssView");
+gtk_widget_set_name (GTK_WIDGET(box_alarm_time), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_alarm_notification), "cssView");
+
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+  
+// get GtkStyleContext from widget 
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));  
+context_label_alarm_info = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_info)); 
+context_label_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_time)); 
+context_label_alarm_colon= gtk_widget_get_style_context(GTK_WIDGET(label_alarm_colon)); 
+context_spin_button_alarm_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_hour));
+context_spin_button_alarm_minutes= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_minutes));
+context_box_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(box_alarm_time));
+context_check_button_alarm_notification= gtk_widget_get_style_context(GTK_WIDGET(check_button_alarm_notification));
+
+
+gtk_style_context_add_provider(context_dialog,    
+							GTK_STYLE_PROVIDER(cssProvider), 
+							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+ 
+gtk_style_context_add_provider(context_label_alarm_info,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_alarm_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_alarm_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_spin_button_alarm_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                           
+
+gtk_style_context_add_provider(context_spin_button_alarm_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+             
+gtk_style_context_add_provider(context_box_alarm_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_check_button_alarm_notification,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+  
+//--------------------------------------------------------------
+// Dialog PACKING
+//--------------------------------------------------------------  
+container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));
+gtk_container_add(GTK_CONTAINER(container),label_alarm_info);
+gtk_container_add(GTK_CONTAINER(container),box_alarm_time);			
+gtk_container_add(GTK_CONTAINER(container),check_button_alarm_notification);	
+gtk_widget_show_all(GTK_WIDGET(dialog));      
+
+response = gtk_dialog_run(GTK_DIALOG(dialog));  
+   
+  
+  switch (response)
+  {
+  case 1: //OK
+  //get alarm time
+  //g_print("OK pressed\n");
+ 
+ 
+  m_alarm_hour=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_hour));
+  m_alarm_min=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_minutes));  
+  //g_print("Alarm Time = %d:%d\n",m_alarm_hour, m_alarm_min);
+  
+  m_alarm_notification =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_alarm_notification));
+    
+  config_write();
+  
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;	 
+  
+  case 2: //cancel pressed 
+  //g_print("Cancel pressed\n");
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	  
+  default:
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;
+  
+  } //switch
+  
+ 
 }
 
 //--------------------------------------------------------------
 
 static void talkcalendar_options_dialog(GtkWidget *widget) {
 	
-	GtkWidget *window = (GtkWidget *) widget;
+  GtkWidget *window = (GtkWidget *) widget;
    
    
   if( !GTK_IS_WINDOW(window)) {	  	 
@@ -533,11 +788,22 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
   
   GtkWidget *check_button_talk; //enable talk 
   GtkWidget *check_button_talk_startup; //enable talk startup   
-  GtkWidget *check_button_talk_title; //enable title talk  
+  GtkWidget *check_button_talk_title; //enable title talk
+  GtkWidget *check_button_talk_time; //enable title talk  
   GtkWidget *check_button_talk_priority; //enable priority talk  
   GtkWidget *check_button_holidays; //show public holidays on calendar
       
+  //calendar font selector	
+  GtkWidget *label_font;
+  GtkWidget *combo_box_font;
+    
+  GtkWidget *label_font_size;
+  GtkWidget *spin_button_font_size; 
+  
+  GtkWidget *box_font;
+  
   gint response;
+  
   
   //Create dialog
     dialog= gtk_dialog_new(); 
@@ -545,12 +811,58 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
     g_signal_connect_swapped(dialog,"close",G_CALLBACK(options_close_callbk),dialog);//escape close
     gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
    
-    gtk_widget_set_size_request(dialog, 200,100);
+    gtk_widget_set_size_request(dialog, 300,200);
     gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
     gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
     gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
 
-	GtkWidget *box_title_priority;
+	label_font =gtk_label_new("Font: ");  
+	/* Create the combo box and append your string values to it. */
+    combo_box_font = gtk_combo_box_text_new ();
+    const char* font_options[] = { 
+	"Courier", 
+	"Sans",	
+	"Serif",
+	};
+	
+	
+	/* G_N_ELEMENTS is a macro which determines the number of elements in an array.*/ 
+	for (int i = 0; i < G_N_ELEMENTS (font_options); i++){
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo_box_font), font_options[i]);
+	}
+	
+		gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),0);	
+	
+	
+	if (g_strcmp0(m_font_str,"courier;")==0) {		
+	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),0);
+	}
+	if (g_strcmp0(m_font_str,"sans;")==0) {		
+	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),1);
+	}
+	if (g_strcmp0(m_font_str,"serif;")==0) {		
+	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),2);
+	}
+	
+	//Font size
+	label_font_size =gtk_label_new("Font Size:");
+	
+	spin_button_font_size = gtk_spin_button_new_with_range(12.0,40.0,1.0); //12-40px	
+	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_font_size),0);
+	gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_font_size),1.0,2.0);
+	//gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_font_size),22.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_font_size),m_font_size);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_font_size),TRUE);		
+	
+	
+	box_font=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_font),label_font,FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(box_font),combo_box_font,TRUE, TRUE, 5);
+	
+	gtk_box_pack_start(GTK_BOX(box_font),label_font_size,FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(box_font),spin_button_font_size,TRUE, TRUE, 5);	
+	
+	GtkWidget *box_talk_options;
 	
 	check_button_talk_startup = gtk_check_button_new_with_label ("Talk At Startup");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_startup), m_talk_at_startup); 
@@ -558,55 +870,187 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
 	check_button_talk_title = gtk_check_button_new_with_label ("Talk Title");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_title), m_talk_title); 
 	
+	check_button_talk_time = gtk_check_button_new_with_label ("Talk Time");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_time), m_talk_time); 
+			
 	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_priority), m_talk_priority); 
 	
 	check_button_holidays = gtk_check_button_new_with_label ("Show Public Holidays");
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_holidays), m_holidays);
 	
-	box_title_priority = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-	gtk_box_pack_start(GTK_BOX(box_title_priority),check_button_talk_title, FALSE, FALSE, 10);
-	gtk_box_pack_start(GTK_BOX(box_title_priority),check_button_talk_priority,TRUE, TRUE, 0);	
+	box_talk_options = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_title, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_time, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_priority,TRUE, TRUE, 0);	
 	
 	check_button_talk = gtk_check_button_new_with_label ("Enable Talking");	
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk); 
 	
 	if(m_talk) {
 		gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
-	    gtk_widget_set_sensitive(check_button_talk_title,TRUE);	    
+	    gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_time,TRUE);	    
 	    gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
 	    
 	}
 	else {
 		gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
-	    gtk_widget_set_sensitive(check_button_talk_title,FALSE);	    
+	    gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_time,FALSE);	    
 	    gtk_widget_set_sensitive(check_button_talk_priority,FALSE);	    
 	  
 	}
 	
 	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_startup_key",check_button_talk_startup);
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_title_key",check_button_talk_title);	
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_title_key",check_button_talk_title);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_time_key",check_button_talk_time);	
 	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_priority_key",check_button_talk_priority);
 		
 	//g_signal_connect (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", G_CALLBACK (check_button_talk_toggled_callbk), NULL);
 	g_signal_connect_swapped (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", 
 						G_CALLBACK (check_button_talk_toggled_callbk), check_button_talk);
 	
-		
-	//--------------------------------------------------------------
-	// Dialog PACKING
-	//--------------------------------------------------------------  
-	container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));			
 	
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk);
-	gtk_container_add(GTK_CONTAINER(container),check_button_talk_startup);	
-	gtk_container_add(GTK_CONTAINER(container),box_title_priority);		
-	gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
-			
-    gtk_widget_show_all(GTK_WIDGET(dialog));      
-    response = gtk_dialog_run(GTK_DIALOG(dialog));  
-	 
+//---------------------------------------------------------------
+// Font size
+//----------------------------------------------------------------
+
+GtkCssProvider *cssProvider;
+
+GtkStyleContext *context_dialog;
+ 
+GtkStyleContext *context_label_font;
+GtkStyleContext *context_combo_box_font;
+GtkStyleContext *context_label_font_size;
+GtkStyleContext *context_spin_button_font_size;
+GtkStyleContext *context_box_font;
+
+//check buttons
+GtkStyleContext *context_check_button_talk; //enable talk 
+GtkStyleContext *context_check_button_talk_startup; //enable talk startup 
+GtkStyleContext *context_box_talk_options;  
+GtkStyleContext *context_check_button_talk_title; //enable title talk
+GtkStyleContext *context_check_button_talk_time; //enable title talk  
+GtkStyleContext *context_check_button_talk_priority; //enable priority talk  
+GtkStyleContext *context_check_button_holidays; //show public holidays on calendar
    
+    
+//new css provider 
+cssProvider = gtk_css_provider_new(); 
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_font), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(combo_box_font), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_font_size), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_font_size), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_font), "cssView");
+
+
+//check buttons
+gtk_widget_set_name (GTK_WIDGET(check_button_talk), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_startup), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_talk_options), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_time), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_holidays), "cssView"); 
+
+
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+ 
+// get GtkStyleContext from widget 
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));  
+context_label_font = gtk_widget_get_style_context(GTK_WIDGET(label_font)); 
+context_combo_box_font= gtk_widget_get_style_context(GTK_WIDGET(combo_box_font)); 
+context_label_font_size= gtk_widget_get_style_context(GTK_WIDGET(label_font_size));
+context_spin_button_font_size= gtk_widget_get_style_context(GTK_WIDGET(spin_button_font_size));
+context_box_font = gtk_widget_get_style_context(GTK_WIDGET(box_font));
+
+
+context_check_button_talk= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk));  
+context_check_button_talk_startup = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_startup));
+context_box_talk_options= gtk_widget_get_style_context(GTK_WIDGET(box_talk_options)); 
+context_check_button_talk_title = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_title));
+context_check_button_talk_time = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_time));
+context_check_button_talk_priority= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_priority));
+context_check_button_holidays= gtk_widget_get_style_context(GTK_WIDGET(check_button_holidays));;
+
+
+
+// finally load style provider 
+gtk_style_context_add_provider(context_dialog,    
+							GTK_STYLE_PROVIDER(cssProvider), 
+							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+ 
+gtk_style_context_add_provider(context_label_font,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_combo_box_font,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_font_size,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_spin_button_font_size,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                           
+
+gtk_style_context_add_provider(context_box_font,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+//checkboxes
+gtk_style_context_add_provider(context_check_button_talk,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_check_button_talk_startup,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_box_talk_options,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+                             
+gtk_style_context_add_provider(context_check_button_talk_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
+
+gtk_style_context_add_provider(context_check_button_talk_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+             
+gtk_style_context_add_provider(context_check_button_talk_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_check_button_holidays,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                
+	
+
+		
+//--------------------------------------------------------------
+// Dialog PACKING
+//--------------------------------------------------------------  
+container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));			
+
+gtk_container_add(GTK_CONTAINER(container),check_button_talk);
+gtk_container_add(GTK_CONTAINER(container),check_button_talk_startup);	
+gtk_container_add(GTK_CONTAINER(container),box_talk_options);
+gtk_container_add(GTK_CONTAINER(container),box_font);		
+gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
+		
+gtk_widget_show_all(GTK_WIDGET(dialog));      
+response = gtk_dialog_run(GTK_DIALOG(dialog));  
+    
   
   switch (response)
   {
@@ -616,6 +1060,24 @@ static void talkcalendar_options_dialog(GtkWidget *widget) {
   m_talk_at_startup=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_startup));
   m_talk_title =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_title));     
   m_talk_priority =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_priority));
+  
+  gint active_id = gtk_combo_box_get_active (GTK_COMBO_BOX(combo_box_font));
+  
+	  switch (active_id)
+	  {
+		  case 0:
+		  m_font_str="courier;"; 
+		  break;
+		  case 1:
+		  m_font_str="sans;";
+		  break;
+		  case 2:
+		  m_font_str="serif;";
+		  break;		 	  
+	  }
+  m_font_size =gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_font_size));
+ 
+  change_calendar_font_size(window);
   
   m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
   
@@ -653,7 +1115,9 @@ g_string_free(s, FALSE);
 return ret_val; 
 }
 
-
+//--------------------------------------------------------
+// Go to today
+//---------------------------------------------------------
 
 static void callbk_gotoday(GSimpleAction *action, G_GNUC_UNUSED  GVariant  *parameter,	gpointer window)
 {
@@ -683,7 +1147,9 @@ g_date_time_unref (dt);
 
 }
 
-
+//---------------------------------------------------------------
+// play wav file thread
+//---------------------------------------------------------------
 
 
 static gpointer thread_playwav(gpointer user_data)
@@ -745,15 +1211,14 @@ static void audio_callbk(GSimpleAction *action,
 	if (g_file_test(g_build_filename (cur_dir,"talk/p/point.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
 		wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/point.wav",NULL));
 	}
-	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/one.wav", NULL));
+	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/two.wav", NULL));
 	}
 	
 	if (g_file_test(g_build_filename (cur_dir, "talk/f/fullstop.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
 		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/f/fullstop.wav", NULL));	//wait
 	}
 	
-			
 	//use wavcat for concatenation (see audio limitations)
 	gpointer pt_data;
 	gchar* list_str;
@@ -798,6 +1263,8 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	GDateWeekday weekday; 
 	GDateMonth month_enum;
 	int32_t sample_rate=16000;
+	gpointer pt_data;
+	gchar* list_str;
 	
 	gchar *cur_dir;
 	cur_dir = g_get_current_dir ();
@@ -1038,13 +1505,19 @@ static void speak_events_at_date(GtkCalendar *calendar) {
        
             
     // Now deal with events
+    
+    Event* event_array_total = NULL;
+    
     //regular events
     gint n_regular_events = db_get_number_of_rows_year_month_day(year, month+1, day);    
     
     //repeat yearly events
     gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month+1);    
+    
     Event isyearly_array[n_isyearly_month_events];	 
+    
     db_get_isyearly_events_month(isyearly_array, month+1, n_isyearly_month_events);
+	
 	Event evty;	
 	gint n_isyearly_day_events=0;
 	for(int i=0; i<n_isyearly_month_events; i++) {		
@@ -1064,10 +1537,40 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	 }	 
 	  if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	  wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL));
-	  }      
-	} //if
+	  }  
+	  
+	  //speak and return
+	  
+	 char* merge_file ="/tmp/talkout.wav";
+	int num_files = g_list_length(wavlist);
+	char* file_names[g_list_length(wavlist)];
+	
+	for(int i=0;i<g_list_length(wavlist);i++) //iterate through GList wavlist 
+	{	  
+	pt_data=g_list_nth_data(wavlist,i);
+	list_str=(char *)pt_data;	
+	file_names[i] = list_str;	//populate char* array
+	//printf("main: locate file_names[%d] = '%s'\n",i,file_names[i]);
+	}
+	
+	//merge_wav_files(merge_file, num_files, file_names);
+    
+	merge_wav_files2(merge_file, num_files, file_names,sample_rate);
+	
+	g_list_free(wavlist);	
+    g_free (cur_dir);	
+	
+	//play audio in a thread
+	GThread *thread_audio; 	
+	gchar* wav_file ="/tmp/talkout.wav"; 
+	g_mutex_lock (&lock);
+    thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
+	g_thread_unref (thread_audio);	 
+	 
+	  return;    
+	} //if no events
 		
-	else {
+	//else { //have events
 	
 	if(total_number_events ==1){
 	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
@@ -1119,9 +1622,8 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	}
 	
 	//Get total event array i.e. regular plus isyearly events
-	
-	
-	Event* event_array_total = NULL;	
+		
+		
 	event_array_total = malloc(total_number_events * sizeof(Event));
 	Event event_array[n_regular_events]; //regular event array
     db_get_all_events_year_month_day(event_array, year, month+1, day, n_regular_events);
@@ -1151,13 +1653,12 @@ static void speak_events_at_date(GtkCalendar *calendar) {
     }
 	}
 	
+	//-----------------------------------------------------------------
 	//TALK event details
-    
-    if(m_talk_title) {
-    //Now get event titles
-    GList *event_title_list=NULL;	
-    
+       
+    // event title word list
    	
+       	
 	Event evt;	
 	gchar* str;
 	gchar** words;
@@ -1165,47 +1666,14 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	gint j=0;
 	
 	for(int i=0; i<total_number_events; i++) {	
+	
 	evt=event_array_total[i];	
-	
-	if(m_talk_priority) {
-		gint p = evt.priority;
 		
-		if (p==1) {			
-			if (g_file_test(g_build_filename (cur_dir,"talk/l/low.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/low.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
-	        }			
-		}
-		if (p==2) {			
-			if (g_file_test(g_build_filename (cur_dir,"talk/m/medium.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/medium.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
-	        }
-		}
-		if (p==3) {			
-			if (g_file_test(g_build_filename (cur_dir,"talk/h/high.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/high.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
-	        }
-	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
-				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
-	        }			
-		}
-	}
 	
-		
+	
+	//title
+	if(m_talk_title) {
+	GList *event_title_list=NULL;	 
 	str=evt.title;
 	//split title words	
 	words = g_strsplit (str, " ", 0); //split on space
@@ -1215,8 +1683,8 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	event_title_list = g_list_append(event_title_list, words[j]);
 	j++;
 	} //while loop words
-	} //for events 
-	free(event_array_total);
+	//} //for events 
+	
 	//cycle through the event title word list
 	gpointer pt_event_title_list;
 	gchar* event_title_list_str;
@@ -1227,8 +1695,11 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	 pt_event_title_list=g_list_nth_data(event_title_list,i);
 	 event_title_list_str=(gchar *)pt_event_title_list;
 	 event_title_list_str_lower= g_ascii_strdown(event_title_list_str, -1);
+	 //g_print("event_title_list_str_lower = %s\n",event_title_list_str_lower);
+	
+	 //add words to wavlist
 	 
-	 //a words	
+	  //a words	
 	 if (g_strcmp0(event_title_list_str_lower,"agent")==0) {		  
 	 if (g_file_test(g_build_filename (cur_dir,"talk/a/agent.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
 	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/agent.wav", NULL));
@@ -1446,6 +1917,11 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	 if (g_file_test(g_build_filename (cur_dir,"talk/d/day.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
 	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/day.wav", NULL));
 	 }		  
+	 }
+	 if (g_strcmp0(event_title_list_str_lower,"deadline")==0) {
+	 if (g_file_test(g_build_filename (cur_dir,"talk/d/deadline.wav", NULL), G_FILE_TEST_IS_REGULAR)) { 
+	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/deadline.wav", NULL));
+	 }	  
 	 }
 	 if (g_strcmp0(event_title_list_str_lower,"decorate")==0) {
 	 if (g_file_test(g_build_filename (cur_dir,"talk/d/decorate.wav", NULL), G_FILE_TEST_IS_REGULAR)) { 
@@ -1716,6 +2192,11 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	 }
 	 //n words
 	 //o words
+	 if (g_strcmp0(event_title_list_str_lower,"order")==0) {
+	 if (g_file_test(g_build_filename (cur_dir,"talk/o/order.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/order.wav", NULL));  
+	 }  		  
+	 }
 	
 	 //p words
 	 if (g_strcmp0(event_title_list_str_lower,"party")==0) {
@@ -1958,23 +2439,663 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	 if (g_file_test(g_build_filename (cur_dir,"talk/y/year.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
 	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/y/year.wav", NULL));
 	 }		  
-	 }
-	 
-	 }//glist
-	} //m_title_speaking
-	   
-	} //else
-	
+	 }	 
 		 
-	 if (g_build_filename (cur_dir,"talk/f/fullstop.wav", NULL), G_FILE_TEST_IS_REGULAR) {
-	  wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/fullstop.wav", NULL));
-	  }
+	 }//glist	 	 
+	g_list_free(event_title_list); 	 
+	} //m_talk_title
+	
+	if(m_talk_time) {
+		//g_print("Talk time\n");
+		
+		if(evt.isAllday) {
+			//g_print("All day event\n");
+			if (g_file_test(g_build_filename (cur_dir,"talk/a/all.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/all.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/d/day.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/day.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
+	        }			
+			
+		}
+		else {
+			//speak start time		
+			gint start_hour =evt.startHour;
+			gint start_min =evt.startMin;			
+			//g_print("Start time: %d:%d\n",start_hour, start_min);
+			
+			
+     switch(start_hour)
+     {
+         case 1: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     } 			 
+		 break;
+		 case 2: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     } 			 
+		 break;
+		  case 3: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     } 			 
+		 break;
+		  case 4: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     } 			 
+		 break;
+		  case 5: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     } 			 
+		 break;
+		  case 6: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     } 			 
+		 break;
+		  case 7: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     } 			 
+		 break;
+		  case 8: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     } 			 
+		 break;
+		  case 9: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     } 			 
+		 break;
+		 case 10: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL));
+	     } 			 
+		 break;
+		 case 11: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL));
+	     } 			 
+		 break;
+		  case 12: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twleve.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twelve.wav", NULL));
+	     } 			 
+		 break;
+		  case 13: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     } 			 
+		 break;
+		  case 14: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     } 			 
+		 break;
+		  case 15: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     } 			 
+		 break;
+		  case 16: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     } 			 
+		 break;
+		  case 17: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     } 			 
+		 break;
+		  case 18: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     } 			 
+		 break;
+		  case 19: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     } 			 
+		 break;
+		  case 20: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     } 			 
+		 break;
+		  case 21: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     } 			 
+		 break;
+		  case 22: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL));
+	     } 			 
+		 break;
+		 case 23: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL));
+	     } 			 
+		 break; 
+         // default:
+           //g_print ("default: start_hour Value is: %d\n", start_hour);   
+	 }//switch start hour
+	 
+	 
+	 switch(start_min)
+     {
+	    case 1: 
+	     //g_print("o wav");
+	     if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL)); }	    
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     } 
+		break;
+		case 2:
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     }  
+		break;
+		case 3: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL)); }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     } 
+		break; 		
+		case 4:
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     }  
+		break; 
+		case 5:
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     }  
+		break;
+		case 6: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     } 
+		break; 
+		case 7: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     } 
+		break; 
+		case 8:
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     }  
+		break; 
+		case 9: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));}
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     } 
+		break; 
+		case 10: 
+		 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL));
+	     } 
+		break; 
+		case 11: 		
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL));
+	     } 
+		break;
+		case 12:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twelve.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twelve.wav", NULL));
+	     } 
+		break;
+		case 13: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirteen.wav", NULL));
+	     }
+		break;
+		case 14: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fourteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fourteen.wav", NULL));
+	     }
+		break; 
+		case 15: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifteen.wav", NULL));
+	     }
+		break; 
+		case 16: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/sixteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/sixteen.wav", NULL));
+	     }
+		break;
+		case 17: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seventeen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seventeen.wav", NULL));
+	     }
+		break; 
+		case 18: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eighteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eighteen.wav", NULL));
+	     }
+		break;
+		case 19: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nineteen.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nineteen.wav", NULL));
+	     }
+		break; 
+		case 20: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+		break; 
+		case 21: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     }		
+		break;
+		case 22: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     }	
+		break;
+		case 23:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     }	 
+		break; 
+		case 24: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     }	
+		break;
+		case 25: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     }	
+		break; 
+		case 26: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     }	
+		break; 
+		case 27: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     }	
+		break; 
+		case 28:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     }	 
+		break;
+		case 29: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twenty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     }	
+		break;
+		case 30: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }	   	
+		break; 
+		case 31: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     }	
+		break;
+		case 32:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     }	 
+		break; 
+		case 33: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     }	
+		break;
+		case 34:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     }	 
+		break; 
+		case 35: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     }	
+		break;
+		case 36: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     }	
+		break;
+		case 37: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     }	
+		break; 
+		case 38:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     }	 
+		break; 
+		case 39: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/thirty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     }	
+		break; 
+		case 40: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }	    	
+		break; 
+		case 41: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     }	
+		break; 
+		case 42:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     }	 
+		break;
+		case 43:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     }	  
+		break; 
+		case 44: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     }	 
+		break; 
+		case 45:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     }	  
+		break; 
+		case 46: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     }	 
+		break; 
+		case 47: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     }	 
+		break;
+		case 48: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     }	 
+		break; 
+		case 49: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/forty.wav", NULL));
+	     }
+	      if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     }	    	 
+		break; 
+		case 50: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }	    
+		break; 
+		case 51:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
+	     }	  
+		break; 
+		case 52: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	    if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
+	     }	 
+		break;
+		case 53: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	     }	
+		break; 
+		case 54:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	     }	 
+		break;
+		case 55:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	     }	 
+		break;
+		case 56: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
+	     }	
+		break;
+		case 57: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
+	     }	
+		break;
+		case 58:
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
+	     }	 
+		break;
+		case 59: 
+		if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/fifty.wav", NULL));
+	     }
+	     if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
+	     }	
+		break;                        
+		
+		default:
+           //g_print ("default: start_min value is: %d", start_min);    
+		 break;
+     } //switch start min
+	 
+				
+	if(start_hour >=1 && start_hour<=12) {
+	if (g_file_test(g_build_filename (cur_dir,"talk/a/am.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/am.wav", NULL));
+	}
+	}
+	
+	if (start_hour >=13 && start_hour<=23) {	
+	if (g_file_test(g_build_filename (cur_dir,"talk/p/pm.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/pm.wav", NULL));
+	}
+	}	
+			
+	} //else speak start time
+		
+	} //m_talk_time
 	
 	
-    
+	
+	
+	//priority
+	 if(m_talk_priority) {
+		gint p = evt.priority;
+		g_print("prority = %d\n",p);
+		
+		if (p==1) {			
+			if (g_file_test(g_build_filename (cur_dir,"talk/l/low.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/low.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
+	        }			
+		}
+		if (p==2) {			
+			if (g_file_test(g_build_filename (cur_dir,"talk/m/medium.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/medium.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
+	        }
+		}
+		if (p==3) {			
+			if (g_file_test(g_build_filename (cur_dir,"talk/h/high.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/high.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
+	        }			
+		}
+	}//m_talk_priority
+	
+	 //if (g_build_filename (cur_dir,"talk/f/fullstop.wav", NULL), G_FILE_TEST_IS_REGULAR) {
+	  //wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/fullstop.wav", NULL));
+	 //}
+		   
+	} //for events loop
+	
+	
+	
+	//} //else
+	
+	
+	
+    free(event_array_total);
     //use wavcat for concatenation (see audio limitations) 
-	gpointer pt_data;
-	gchar* list_str;
+	
 			  
 	char* merge_file ="/tmp/talkout.wav";
 	int num_files = g_list_length(wavlist);
@@ -2068,7 +3189,7 @@ static void callbk_about(GtkWindow *window){
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.1.1");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.2");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 	
 	//gtk_about_dialog_set_wrap_license(GTK_ABOUT_DIALOG(about_dialog),TRUE);	
@@ -2078,6 +3199,26 @@ static void callbk_about(GtkWindow *window){
 	gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(about_dialog), authors);
 	//gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), NULL);	
 	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), "x-office-calendar");
+	
+	//Font size
+	GtkCssProvider *cssProvider;
+	GtkStyleContext *context_about_dialog;	
+	cssProvider = gtk_css_provider_new();	
+	gtk_widget_set_name (GTK_WIDGET(about_dialog), "cssView");  
+	
+	char *size_str = g_strdup_printf("%i", m_font_size); 
+	size_str =g_strconcat(size_str,"px;", NULL);
+	gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+	gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+	
+	// get GtkStyleContext from widget
+	context_about_dialog = gtk_widget_get_style_context(GTK_WIDGET(about_dialog));	
+	//finally load style provider 
+	gtk_style_context_add_provider(context_about_dialog,    
+	GTK_STYLE_PROVIDER(cssProvider), 
+	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	
+	
 	gtk_widget_show(about_dialog);	
 		
 }
@@ -2191,12 +3332,33 @@ void remove_item(GtkWidget *list, gpointer selection) {
   }
 }
 
+//---------------------------------------------------------------
+// notifications
+//----------------------------------------------------------------
+
+static void show_notification(gchar *message)
+{
+ NotifyNotification *notify;
+ notify_init("calendar-notification"); 
+ notify = notify_notification_new("Talk Calendar", message, NULL);
+ 
+ //notify_notification_set_category (notify, "GTimeUtils");
+ //NOTIFY_URGENCY
+ //CRITICAL - Critical urgency.
+ //LOW - Low urgency.
+ //NORMAL - Normal urgency. 
+ notify_notification_set_urgency (notify, NOTIFY_URGENCY_NORMAL);
+ notify_notification_show(notify,NULL);
+}
+
 //------------------------------------------------------------------
 // Start up
 //------------------------------------------------------------------
 
 static void startup (GtkApplication *application)
 {
+	
+	
 	GMenu *main_menu;
 	GMenu *file_menu;
 	GMenu *edit_menu;
@@ -2242,12 +3404,16 @@ static void startup (GtkApplication *application)
 	item = g_menu_item_new("Goto Today (Home Key)", "app.gotoday");
     g_menu_append_item(tools_menu,item);
 	g_object_unref(item);
+	
+	item = g_menu_item_new("Set Alarm", "app.alarm");
+    g_menu_append_item(tools_menu,item);
+	g_object_unref(item);
 		
 	item = g_menu_item_new("About", "app.about");
     g_menu_append_item(help_menu,item);
 	g_object_unref(item); 
 	
-	item = g_menu_item_new("Audio Test", "app.audio");
+	item = g_menu_item_new("About Audio", "app.audio");
     g_menu_append_item(help_menu,item);
 	g_object_unref(item);
         
@@ -2260,10 +3426,16 @@ static void startup (GtkApplication *application)
     //create_actions(application);
         
     gtk_application_set_menubar(application, G_MENU_MODEL(main_menu));
+    
+    //change menu font size?
+    
+    
     g_object_unref(main_menu);
     g_object_unref(file_menu);
     g_object_unref(tools_menu);
-    g_object_unref(help_menu);     
+    g_object_unref(help_menu);   
+    
+    // load_css(); 
 	
 }
 
@@ -2425,6 +3597,13 @@ else {
    //Two new lines for spacing -option?	
 } //else
 output_str= g_strconcat(output_str, e3.description, "\n", "\n", NULL);
+
+
+//GtkTextIter start;
+//GtkTextIter end;
+//gtk_text_buffer_get_selection_bounds (text_buffer, &start, &end);
+//gchar* tag_name="bold";
+//gtk_text_buffer_apply_tag_by_name (text_buffer, tag_name, &start, &end);
 
 gtk_text_buffer_set_text (text_buffer, output_str, -1);	
 gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);
@@ -2596,13 +3775,12 @@ static void talkcalendar_update_event(GtkWidget *widget, gpointer data) {
    if( !GTK_IS_WINDOW(window)) { 
 	  return;
   }
- 
-    //GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association  
     GtkWidget *list = g_object_get_data(G_OBJECT(window), "list-key"); //object-key association
         
     GtkWidget *dialog;    
     GtkWidget *container;	
 	
+	GtkWidget *label_date;
 	//Title Entry
 	GtkWidget *label_title;
 	GtkWidget *entry_title;	
@@ -2612,9 +3790,7 @@ static void talkcalendar_update_event(GtkWidget *widget, gpointer data) {
 	GtkWidget *label_priority;
 	GtkWidget *combo_box_priority;
 	GtkWidget *box_priority;
-	
-	
-	
+		
 	//Description
 	GtkWidget *label_description;
 	GtkWidget *text_view_description;
@@ -2656,7 +3832,10 @@ static void talkcalendar_update_event(GtkWidget *widget, gpointer data) {
     
     gchar *update_event_str;  
 	update_event_str= g_strconcat("Update Event on ",date_str, NULL);
-        
+    
+    label_date =gtk_label_new(update_event_str);  
+    
+    gtk_label_set_xalign(GTK_LABEL(label_date),0.5);  
     
     //Create dialog
     dialog= gtk_dialog_new();
@@ -2664,7 +3843,7 @@ static void talkcalendar_update_event(GtkWidget *widget, gpointer data) {
     g_signal_connect(dialog,"response",G_CALLBACK(callbk_talkcalendar_update_event_response),event);
     //g_signal_connect(dialog,"close",G_CALLBACK(callbk_event_dialog_close),NULL); 
         
-    gtk_window_set_title (GTK_WINDOW (dialog), update_event_str);  
+    gtk_window_set_title (GTK_WINDOW (dialog), "Talk Calendar");  
     
     gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
     //gtk_window_set_title(GTK_WINDOW(dialog),"Update Event");
@@ -2849,21 +4028,240 @@ static void talkcalendar_update_event(GtkWidget *widget, gpointer data) {
      g_object_set_data(G_OBJECT(dialog), "check-button-isyearly-key",check_button_isyearly);
      g_object_set_data(G_OBJECT(dialog), "check-button-delete-key",check_button_delete);
      g_object_set_data(G_OBJECT(dialog), "dialog-list-key",list);
-     // GtkWidget *list = g_object_get_data(G_OBJECT(window), "list-key");
      
      g_object_set_data(G_OBJECT(dialog), "dialog-year-key",GINT_TO_POINTER(event->year)); 
      g_object_set_data(G_OBJECT(dialog), "dialog-month-key",GINT_TO_POINTER(event->month));  
      g_object_set_data(G_OBJECT(dialog), "dialog-day-key",GINT_TO_POINTER(event->day));  
     
-     //g_object_set_data(G_OBJECT(dialog), "year-key",event->year); 
-     //g_object_set_data(G_OBJECT(dialog), "month-key",event->month);  
-     //g_object_set_data(G_OBJECT(dialog), "day-key",event->day);  
-	 
-	
+   
+//---------------------------------------------------------------
+// Font size
+//----------------------------------------------------------------
+
+GtkCssProvider *cssProvider;
+ 
+GtkStyleContext *context_dialog;
+
+GtkStyleContext *context_label_date;
+ 
+GtkStyleContext *context_label_title;
+GtkStyleContext *context_entry_title;
+GtkStyleContext *context_box_title;
+
+GtkStyleContext *context_label_priority;
+GtkStyleContext *context_combo_box_priority;
+GtkStyleContext *context_box_priority;
+
+GtkStyleContext *context_label_description;
+GtkStyleContext *context_text_view_description;
+GtkStyleContext *context_scrolled_window_description;
+GtkStyleContext *context_box_description;
+  
+GtkStyleContext *context_check_button_allday;
+GtkStyleContext *context_check_button_isyearly;
+GtkStyleContext *context_check_button_delete;
+  
+GtkStyleContext *context_label_start_time; 
+GtkStyleContext *context_label_start_colon; 
+GtkStyleContext *context_spin_button_start_hour;  
+GtkStyleContext *context_spin_button_start_minutes; 
+GtkStyleContext *context_box_start_time; 
+
+GtkStyleContext *context_label_end_time; 
+GtkStyleContext *context_label_end_colon;  
+GtkStyleContext *context_spin_button_end_hour;  
+GtkStyleContext *context_spin_button_end_minutes; 
+GtkStyleContext *context_box_end_time; 
+
+    
+//new css provider 
+cssProvider = gtk_css_provider_new(); 
+
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_date), "cssView"); 
+
+//title
+gtk_widget_set_name (GTK_WIDGET(label_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(entry_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_title), "cssView");
+//priority
+gtk_widget_set_name (GTK_WIDGET(label_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(combo_box_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_priority), "cssView");
+//description
+gtk_widget_set_name (GTK_WIDGET(label_description), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(text_view_description), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(scrolled_window_description), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_description), "cssView");
+
+//check buttons
+gtk_widget_set_name (GTK_WIDGET(check_button_allday), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_isyearly), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_delete), "cssView");
+//spin buttons
+gtk_widget_set_name (GTK_WIDGET(label_start_time), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(label_start_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_start_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_start_minutes), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_start_time), "cssView"); 
+
+gtk_widget_set_name (GTK_WIDGET(label_end_time), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(label_end_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_end_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_end_minutes), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_end_time), "cssView"); 
+
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+ 
+  
+// get GtkStyleContext from widget 
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));
+
+context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date)); 
+//title  
+context_label_title = gtk_widget_get_style_context(GTK_WIDGET(label_title)); 
+context_entry_title= gtk_widget_get_style_context(GTK_WIDGET(entry_title)); 
+context_box_title= gtk_widget_get_style_context(GTK_WIDGET(box_title));
+//priority
+context_label_priority = gtk_widget_get_style_context(GTK_WIDGET(label_priority)); 
+context_combo_box_priority= gtk_widget_get_style_context(GTK_WIDGET(combo_box_priority)); 
+context_box_priority= gtk_widget_get_style_context(GTK_WIDGET(box_priority));
+//description
+context_label_description= gtk_widget_get_style_context(GTK_WIDGET(label_description));  
+context_text_view_description = gtk_widget_get_style_context(GTK_WIDGET(text_view_description));
+context_scrolled_window_description= gtk_widget_get_style_context(GTK_WIDGET(scrolled_window_description)); 
+context_box_description = gtk_widget_get_style_context(GTK_WIDGET(box_description));
+//checkbuttons
+context_check_button_allday = gtk_widget_get_style_context(GTK_WIDGET(check_button_allday));
+context_check_button_isyearly= gtk_widget_get_style_context(GTK_WIDGET(check_button_isyearly));
+context_check_button_delete= gtk_widget_get_style_context(GTK_WIDGET(check_button_delete));
+//spin buttons
+context_label_start_time= gtk_widget_get_style_context(GTK_WIDGET(label_start_time));  
+context_label_start_colon = gtk_widget_get_style_context(GTK_WIDGET(label_start_colon));
+context_spin_button_start_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_start_hour)); 
+context_spin_button_start_minutes = gtk_widget_get_style_context(GTK_WIDGET(spin_button_start_minutes));
+context_box_start_time = gtk_widget_get_style_context(GTK_WIDGET(box_start_time));
+
+context_label_end_time= gtk_widget_get_style_context(GTK_WIDGET(label_end_time));  
+context_label_end_colon = gtk_widget_get_style_context(GTK_WIDGET(label_end_colon));
+context_spin_button_end_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_end_hour)); 
+context_spin_button_end_minutes = gtk_widget_get_style_context(GTK_WIDGET(spin_button_end_minutes));
+context_box_end_time = gtk_widget_get_style_context(GTK_WIDGET(box_end_time));
+
+
+//finally load style provider 
+gtk_style_context_add_provider(context_dialog,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//date
+gtk_style_context_add_provider(context_label_date,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+//title
+gtk_style_context_add_provider(context_label_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_entry_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_box_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//priority                             
+gtk_style_context_add_provider(context_label_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_combo_box_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_box_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//description
+gtk_style_context_add_provider(context_label_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_text_view_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                              
+gtk_style_context_add_provider(context_scrolled_window_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);   
+
+gtk_style_context_add_provider(context_box_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+//checkbuttons
+gtk_style_context_add_provider(context_check_button_allday,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_check_button_isyearly,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_check_button_delete,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//spinbuttons start
+gtk_style_context_add_provider(context_label_start_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_start_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_spin_button_start_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                             
+gtk_style_context_add_provider(context_spin_button_start_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                                                                                                                  
+gtk_style_context_add_provider(context_box_start_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+
+//spinbuttons end
+
+gtk_style_context_add_provider(context_label_end_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_end_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_spin_button_end_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                             
+gtk_style_context_add_provider(context_spin_button_end_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                                                                                                                  
+gtk_style_context_add_provider(context_box_end_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+         	
 	//--------------------------------------------------------------
 	// Dialog PACKING
 	//--------------------------------------------------------------  
-	container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));	
+	container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));
+	gtk_container_add(GTK_CONTAINER(container),label_date);	
 	gtk_container_add(GTK_CONTAINER(container),box_title);
 	gtk_container_add(GTK_CONTAINER(container),box_priority);			
 	gtk_container_add (GTK_CONTAINER (container), box_description);	
@@ -3036,13 +4434,11 @@ static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, g
 	  return;
   }
  
-    //GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association  
-   // GtkWidget *list = g_object_get_data(G_OBJECT(window), "list-key"); //object-key association
-    //GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-    
+  
     GtkWidget *dialog;    
     GtkWidget *container;	
-	
+	//Event date
+	GtkWidget *label_date;
 	//Title Entry
 	GtkWidget *label_title;
 	GtkWidget *entry_title;	
@@ -3094,10 +4490,15 @@ static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, g
     
     gchar *new_event_str;  
 	new_event_str= g_strconcat("New Event on ",date_str, NULL);
-        
+    label_date =gtk_label_new(new_event_str);  
+    
+    gtk_label_set_xalign(GTK_LABEL(label_date),0.5);
+	//gtk_label_set_text(GTK_LABEL(label_date), dt_format); 
+    
+       
     //Create dialog
     dialog= gtk_dialog_new(); 
-    gtk_window_set_title (GTK_WINDOW (dialog), new_event_str); 
+    gtk_window_set_title (GTK_WINDOW (dialog), "Talk Calendar"); 
    
    //dialog new event callbacks   
     g_signal_connect(dialog,"response",G_CALLBACK(callbk_talkcalendar_new_event_response),event);
@@ -3260,12 +4661,234 @@ static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, g
      g_object_set_data(G_OBJECT(dialog), "dialog-year-key",GINT_TO_POINTER(year)); 
      g_object_set_data(G_OBJECT(dialog), "dialog-month-key",GINT_TO_POINTER(month));  
      g_object_set_data(G_OBJECT(dialog), "dialog-day-key",GINT_TO_POINTER(day));  
+ 
+ 
+//---------------------------------------------------------------
+// Font size
+//----------------------------------------------------------------
+
+GtkCssProvider *cssProvider;
+ 
+GtkStyleContext *context_dialog;
+
+GtkStyleContext *context_label_date;
+
+GtkStyleContext *context_label_title;
+GtkStyleContext *context_entry_title;
+GtkStyleContext *context_box_title;
+
+GtkStyleContext *context_label_priority;
+GtkStyleContext *context_combo_box_priority;
+GtkStyleContext *context_box_priority;
+
+GtkStyleContext *context_label_description;
+GtkStyleContext *context_text_view_description;
+GtkStyleContext *context_scrolled_window_description;
+GtkStyleContext *context_box_description;
+  
+GtkStyleContext *context_check_button_allday;
+GtkStyleContext *context_check_button_isyearly;
+  
+GtkStyleContext *context_label_start_time; 
+GtkStyleContext *context_label_start_colon; 
+GtkStyleContext *context_spin_button_start_hour;  
+GtkStyleContext *context_spin_button_start_minutes; 
+GtkStyleContext *context_box_start_time; 
+
+GtkStyleContext *context_label_end_time; 
+GtkStyleContext *context_label_end_colon;  
+GtkStyleContext *context_spin_button_end_hour;  
+GtkStyleContext *context_spin_button_end_minutes; 
+GtkStyleContext *context_box_end_time; 
+	
+ 
     
+//new css provider 
+cssProvider = gtk_css_provider_new();
+
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+
+gtk_widget_set_name (GTK_WIDGET(label_date), "cssView");  
+
+gtk_widget_set_name (GTK_WIDGET(label_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(entry_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_title), "cssView");
+
+gtk_widget_set_name (GTK_WIDGET(label_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(combo_box_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_priority), "cssView");
+
+gtk_widget_set_name (GTK_WIDGET(label_description), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(text_view_description), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(scrolled_window_description), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_description), "cssView");
+
+//check buttons
+gtk_widget_set_name (GTK_WIDGET(check_button_allday), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_isyearly), "cssView"); 
+//spin buttons
+gtk_widget_set_name (GTK_WIDGET(label_start_time), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(label_start_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_start_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_start_minutes), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_start_time), "cssView"); 
+
+gtk_widget_set_name (GTK_WIDGET(label_end_time), "cssView");  
+gtk_widget_set_name (GTK_WIDGET(label_end_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_end_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_end_minutes), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_end_time), "cssView"); 
+
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+ 
+  
+// get GtkStyleContext from widget
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));
+
+context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date)); 
+   
+context_label_title = gtk_widget_get_style_context(GTK_WIDGET(label_title)); 
+context_entry_title= gtk_widget_get_style_context(GTK_WIDGET(entry_title)); 
+context_box_title= gtk_widget_get_style_context(GTK_WIDGET(box_title));
+
+context_label_priority = gtk_widget_get_style_context(GTK_WIDGET(label_priority)); 
+context_combo_box_priority= gtk_widget_get_style_context(GTK_WIDGET(combo_box_priority)); 
+context_box_priority= gtk_widget_get_style_context(GTK_WIDGET(box_priority));
+
+context_label_description= gtk_widget_get_style_context(GTK_WIDGET(label_description));  
+context_text_view_description = gtk_widget_get_style_context(GTK_WIDGET(text_view_description));
+context_scrolled_window_description= gtk_widget_get_style_context(GTK_WIDGET(scrolled_window_description)); 
+context_box_description = gtk_widget_get_style_context(GTK_WIDGET(box_description));
+
+context_check_button_allday = gtk_widget_get_style_context(GTK_WIDGET(check_button_allday));
+context_check_button_isyearly= gtk_widget_get_style_context(GTK_WIDGET(check_button_isyearly));
+
+//spin buttons
+context_label_start_time= gtk_widget_get_style_context(GTK_WIDGET(label_start_time));  
+context_label_start_colon = gtk_widget_get_style_context(GTK_WIDGET(label_start_colon));
+context_spin_button_start_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_start_hour)); 
+context_spin_button_start_minutes = gtk_widget_get_style_context(GTK_WIDGET(spin_button_start_minutes));
+context_box_start_time = gtk_widget_get_style_context(GTK_WIDGET(box_start_time));
+
+context_label_end_time= gtk_widget_get_style_context(GTK_WIDGET(label_end_time));  
+context_label_end_colon = gtk_widget_get_style_context(GTK_WIDGET(label_end_colon));
+context_spin_button_end_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_end_hour)); 
+context_spin_button_end_minutes = gtk_widget_get_style_context(GTK_WIDGET(spin_button_end_minutes));
+context_box_end_time = gtk_widget_get_style_context(GTK_WIDGET(box_end_time));
+
+
+//finally load style provider 
+
+gtk_style_context_add_provider(context_dialog,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//date
+gtk_style_context_add_provider(context_label_date,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+ 
+                             
+//title
+gtk_style_context_add_provider(context_label_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_entry_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_box_title,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//priority                             
+gtk_style_context_add_provider(context_label_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_combo_box_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_box_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+//description
+gtk_style_context_add_provider(context_label_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_text_view_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                              
+gtk_style_context_add_provider(context_scrolled_window_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);   
+
+gtk_style_context_add_provider(context_box_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+//checkbuttons
+gtk_style_context_add_provider(context_check_button_allday,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_check_button_isyearly,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+//spinbuttons start
+gtk_style_context_add_provider(context_label_start_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_start_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_spin_button_start_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                             
+gtk_style_context_add_provider(context_spin_button_start_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                                                                                                                  
+gtk_style_context_add_provider(context_box_start_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+
+//spinbuttons end
+
+gtk_style_context_add_provider(context_label_end_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_end_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_spin_button_end_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                             
+gtk_style_context_add_provider(context_spin_button_end_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+                                                                                                                  
+gtk_style_context_add_provider(context_box_end_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
 		
 	//--------------------------------------------------------------
 	// Dialog PACKING
 	//--------------------------------------------------------------  
 	container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));	
+	gtk_container_add(GTK_CONTAINER(container),label_date);
 	gtk_container_add(GTK_CONTAINER(container),box_title);
 	gtk_container_add(GTK_CONTAINER(container),box_priority);			
 	gtk_container_add (GTK_CONTAINER (container), box_description);	
@@ -3372,6 +4995,7 @@ static void calendar_month_changed_callbk(GtkCalendar *calendar, gpointer user_d
 }
 
 
+
 static void calendar_day_selected_double_click_callbk(GtkCalendar *calendar, gpointer user_data)
 {
    guint day, month, year;
@@ -3390,7 +5014,6 @@ static void calendar_day_selected_double_click_callbk(GtkCalendar *calendar, gpo
   calendar_month_changed_callbk(calendar, NULL);
   
 }
-
 
 
 static void calendar_day_selected_callbk(GtkCalendar *calendar, gpointer user_data)
@@ -3518,8 +5141,13 @@ else {
 output_str= g_strconcat(output_str, e3.description, "\n", "\n", NULL);		
 
 add_to_list(list_widget,e3.id,e3.title);
-gtk_text_buffer_set_text (text_buffer, output_str, -1);	
-gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);		
+
+
+gtk_text_buffer_set_text (text_buffer, output_str, -1);
+
+gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);	
+//update_text_vew	(text_view, text_buffer);
+//gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);		
 
 } //for i <row_number
 free(event_array_total);		
@@ -3594,6 +5222,30 @@ static void delete_events_callbk(GtkWidget *window){
 		
 }
 
+
+static void callbk_alarm(GSimpleAction *action,
+							G_GNUC_UNUSED  GVariant      *parameter,
+							  gpointer       user_data){
+	
+	g_print("set alarm dialog\n");
+	
+	GtkWidget *window = (GtkWidget *) user_data;
+   
+   if( !GTK_IS_WINDOW(window)) { 
+	   g_print("not a gtkWindow\n");	
+	  return;
+  }
+	
+	talkcalendar_alarm_dialog(window);	
+	//talkcalendar_options_dialog(window);
+	
+		
+}
+
+
+
+
+
 static void new_event_menu_callbk(GtkWidget *window){	
 
 	if( !GTK_IS_WINDOW(window)) { 
@@ -3661,6 +5313,214 @@ gboolean callbk_window_on_key_press(GtkWidget * widget, GdkEvent * event,
 return TRUE;
 	
 }
+//---------------------------------------------------------------------
+// change calendar font size
+//---------------------------------------------------------------------
+void change_calendar_font_size(GtkWidget *window){
+	
+	if( !GTK_IS_WINDOW(window)) { 
+	return;
+	}
+	
+	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
+	GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key");
+	GtkWidget *label_time =g_object_get_data(G_OBJECT(window), "label-time-key");
+	GtkWidget *text_view =g_object_get_data(G_OBJECT(window), "textview-key");
+	GtkWidget *list =g_object_get_data(G_OBJECT(window), "list-key");
+	
+	//GtkWidget *box_pane1 =g_object_get_data(G_OBJECT(window), "box-pane1-key");
+	//GtkWidget *box_pane2 =g_object_get_data(G_OBJECT(window), "box-pane2-key");
+	
+	
+ GtkCssProvider *cssProvider;
+ //GtkSourceView *view;
+ //GError *error = NULL;
+ GtkStyleContext *context_window;
+ GtkStyleContext *context_text_view;
+ GtkStyleContext *context_label_date;
+ GtkStyleContext *context_label_time;
+ GtkStyleContext *context_list;
+ GtkStyleContext *context_calendar;
+ 
+ //GtkStyleContext *context_box_pane1;
+ //GtkStyleContext *context_box_pane2;
+ 
+ /* new css provider */
+ cssProvider = gtk_css_provider_new(); 
+ gtk_widget_set_name (GTK_WIDGET(window), "cssView"); 
+ gtk_widget_set_name (GTK_WIDGET(text_view), "cssView");   
+ gtk_widget_set_name (GTK_WIDGET(label_date), "cssView");
+ gtk_widget_set_name (GTK_WIDGET(label_time), "cssView");  
+ gtk_widget_set_name (GTK_WIDGET(list), "cssView"); 
+ gtk_widget_set_name (GTK_WIDGET(calendar), "cssView"); 
+ 
+ //gtk_widget_set_name (GTK_WIDGET(box_pane1), "cssView");
+ //gtk_widget_set_name (GTK_WIDGET(box_pane2), "cssView");
+ 
+ //g_print("m_font_str=%s;\n", m_font_str);
+ //g_print("m_font_size = %d;\n", m_font_size); 
+ gchar *size_str = g_strdup_printf("%i", m_font_size); 
+ size_str =g_strconcat(size_str,"px;", NULL); 
+ //g_print("size_str = %s\n",size_str);
+ 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+ 
+/* get GtkStyleContext from widget   */
+context_window = gtk_widget_get_style_context(GTK_WIDGET(window)); 
+context_text_view = gtk_widget_get_style_context(GTK_WIDGET(text_view));  
+context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date));
+context_label_time = gtk_widget_get_style_context(GTK_WIDGET(label_time));
+context_list = gtk_widget_get_style_context(GTK_WIDGET(list));
+context_calendar = gtk_widget_get_style_context(GTK_WIDGET(calendar));
+
+//context_box_pane1= gtk_widget_get_style_context(GTK_WIDGET(box_pane1));
+//context_box_pane2= gtk_widget_get_style_context(GTK_WIDGET(box_pane2));
+ 
+ /* finally load style provider */
+gtk_style_context_add_provider(context_window,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_text_view,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_label_date,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_list,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
+
+gtk_style_context_add_provider(context_calendar,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);     
+	
+//gtk_style_context_add_provider(context_box_pane1,    
+                             //GTK_STYLE_PROVIDER(cssProvider), 
+                             //GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+//gtk_style_context_add_provider(context_box_pane2,    
+                             //GTK_STYLE_PROVIDER(cssProvider), 
+                             //GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+                             
+	
+}
+
+//-----------------------------------------------------------------
+// timer update
+//------------------------------------------------------------------
+static gboolean timer_update_cb(gpointer data)
+{
+	GtkLabel *label = (GtkLabel*)data;
+	
+	// need events_array of day events
+	
+    //object-key association
+    GDateTime *date_time;
+    //gchar *dt_format;
+    date_time = g_date_time_new_now_local(); // get local time
+    //gint year = g_date_time_get_year(date_time);
+	//gint month =g_date_time_get_month(date_time);    
+	//gint day = g_date_time_get_day_of_month(date_time); 
+	gint hour =g_date_time_get_hour(date_time);
+	gint min =g_date_time_get_minute (date_time);
+	gint sec = g_date_time_get_second (date_time);
+	
+    //get events for date (do this outside timer function)
+    // check reminder times
+        
+    gchar *dt_format_time;                         
+    dt_format_time = g_date_time_format(date_time, "%H:%M:%S");   // 24hr time format
+    gtk_label_set_text(GTK_LABEL(label), dt_format_time);   // update label
+    //g_print("%s\n",dt_format);        
+    g_free (dt_format_time);
+    
+    gchar* message ="Alarm Reminder ";
+    
+    if(hour==m_alarm_hour && min==m_alarm_min && sec==0)
+	{
+		//g_print(" Alarm Notification\n");
+		
+		
+	GList *wavlist=NULL;
+	gchar *cur_dir;
+	cur_dir = g_get_current_dir ();
+	int32_t sample_rate=16000;
+			
+	//g_print("Locate talk dictionary in directory: %s\n",cur_dir); 
+
+	//Check if talk directory exists
+	gchar* talk_directory = g_build_filename(cur_dir, "talk", NULL);
+	
+	if (g_file_test(talk_directory, G_FILE_TEST_IS_DIR)==FALSE){
+		g_print("talk directory does not exists\n");
+		g_date_time_unref (date_time);
+	    return FALSE;
+	}
+	
+			 
+	if (g_file_test(g_build_filename (cur_dir,"talk/t/talk.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/talk.wav",NULL));
+	}	
+	if (g_file_test(g_build_filename (cur_dir, "talk/c/calendar.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/c/calendar.wav",NULL));		
+	}
+	if (g_file_test(g_build_filename(cur_dir, "talk/a/alarm.wav", NULL), G_FILE_TEST_IS_REGULAR)) {		
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/a/alarm.wav", NULL));		
+	}
+	if (g_file_test(g_build_filename(cur_dir, "talk/r/reminder.wav", NULL), G_FILE_TEST_IS_REGULAR)) {		
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/r/reminder.wav", NULL));		
+	}
+	
+	gpointer pt_data;
+	gchar* list_str;
+			  
+	char* merge_file ="/tmp/alarm.wav";
+	int num_files = g_list_length(wavlist);
+	char* file_names[g_list_length(wavlist)];
+	
+	for(int i=0;i<g_list_length(wavlist);i++) //iterate through GList wavlist 
+	{	  
+	pt_data=g_list_nth_data(wavlist,i);
+	list_str=(char *)pt_data;	
+	file_names[i] = list_str;	//populate char* array
+	
+	}
+	
+	merge_wav_files2(merge_file, num_files, file_names,sample_rate);
+	
+	g_list_free(wavlist);
+	g_free (cur_dir);	
+	
+	//play audio in a thread
+	GThread *thread_audio; 	
+	gchar* wav_file ="/tmp/alarm.wav"; 
+	g_mutex_lock (&lock);
+    thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
+	g_thread_unref (thread_audio);
+	
+	if(m_alarm_notification) show_notification(message);
+	
+	g_date_time_unref (date_time);
+	return TRUE;
+	}
+    
+    
+    
+    
+    g_date_time_unref (date_time);    
+    return TRUE;
+}
+
+
 
 //---------------------------------------------------------------------
 // activate
@@ -3668,107 +5528,125 @@ return TRUE;
 
 static void activate (GtkApplication *app, gpointer user_data)
 {
-  GtkWidget *window;
-  GtkWidget *calendar;
-  GtkWidget *label_date;
-  GtkWidget *paned;
-  GtkWidget *text_view;
-  GtkWidget *scrolled_window;
-  GtkTextBuffer *buffer_text_view;
-  
-  GtkWidget *box_pane1;
-  GtkWidget *box_pane2;
-  
-  GtkWidget *list;
-  
-  GDateTime *dt;
-  gchar *dt_format;
-  dt = g_date_time_new_now_local();   // get local time     
-  dt_format = g_date_time_format(dt, "%a %e %b %Y");
-  
- 
-  //----------------------------------------------------------------
-  //set up window
-  //------------------------------------------------------------------
-  window = gtk_application_window_new (app);
-  gtk_window_set_title (GTK_WINDOW (window), "Talk Calendar");
-  gtk_window_set_default_size (GTK_WINDOW (window), 800, 400);
-  gtk_window_set_icon_name (GTK_WINDOW (window), "x-office-calendar");
-  //gtk_window_set_resizable (GTK_WINDOW (window), 0); window not resizable
-  
-  g_signal_connect(G_OBJECT (window), "key_press_event", G_CALLBACK(callbk_window_on_key_press), NULL);
-  
-  //Set up list view    
-  list = gtk_tree_view_new(); // a widget for displaying both trees and lists    
-  gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);    
-  g_object_set(G_OBJECT(list), "activate-on-single-click", FALSE, NULL);
-  g_signal_connect(GTK_TREE_VIEW(list), "row-activated", G_CALLBACK(list_row_activated_callbk), window);    
-  init_list(list);
- 
- 
-  //-------------------------------------------------------------------
-  // set up text view
-  //-------------------------------------------------------------------
-  
-  buffer_text_view = gtk_text_buffer_new (NULL); //text being edited  
-  text_view = gtk_text_view_new_with_buffer (buffer_text_view);
-  gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view),FALSE); 
-  
-  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD);   
- 
-  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), 
-                                  GTK_POLICY_AUTOMATIC, 
-                                  GTK_POLICY_AUTOMATIC); 
-  
-  gtk_container_add (GTK_CONTAINER (scrolled_window), text_view); //put textview inside scrolled window
-  gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
- 
-  
-  //-------------------------------------------------------------------
-  // Set up calendar
-  //--------------------------------------------------------------------
-  
-  //set up calendar
-  calendar = gtk_calendar_new();
- // gtk_calendar_set_display_options(calendar,GTK_CALENDAR_SHOW_DAY_NAMES); 
-   
-  //calendar clicked
-  g_signal_connect(GTK_CALENDAR(calendar), "day-selected", G_CALLBACK(calendar_day_selected_callbk), window);
-  //calendar double clicked
-  g_signal_connect(GTK_CALENDAR(calendar), "day-selected-double-click", G_CALLBACK(calendar_day_selected_double_click_callbk), window);
-  g_signal_connect(GTK_CALENDAR(calendar), "month-changed", G_CALLBACK(calendar_month_changed_callbk), NULL);
-  
- 
-  //g_signal_connect(GTK_CALENDAR(calendar), "day-selected", G_CALLBACK(calendar_day_selected_callbk), list);
-  //g_signal_connect(GTK_CALENDAR(calendar), "day-selected-double-click", G_CALLBACK(calendar_day_selected_double_click_callbk), window);
-  //g_signal_connect(GTK_CALENDAR(calendar), "month-changed", G_CALLBACK(calendar_month_changed_callbk), NULL);
-   //---------------------------------------------------------------
-	// Date label
-	//--------------------------------------------------------------
+	GtkWidget *window;
+	GtkWidget *calendar;
 	
+	GtkWidget *label_date;
+	GtkWidget *label_time;
+	
+	
+	GtkWidget *paned;
+	GtkWidget *text_view;
+	GtkWidget *scrolled_window;
+	GtkTextBuffer *buffer_text_view;
+	
+	GtkWidget *box_pane1;
+	GtkWidget *box_pane2;
+	
+	GtkWidget *list;
+	
+	GDateTime *date_time;
+	
+	date_time = g_date_time_new_now_local();   // get local time     
+	
+	
+	//---------------------------------------------------------------
+	// Date time labels
+	//--------------------------------------------------------------
+	gchar *dt_format_date;
+	dt_format_date = g_date_time_format(date_time, "%a %e %b %Y");
 	label_date=gtk_label_new("");	
 	gtk_label_set_xalign(GTK_LABEL(label_date),0.5);
-	gtk_label_set_text(GTK_LABEL(label_date), dt_format); 	
+	gtk_label_set_text(GTK_LABEL(label_date), dt_format_date); 	
+	g_free (dt_format_date);	
 	
- 
-	 //----------------------------------------------------------------
-	 // Set up connections
-	 //-----------------------------------------------------------------
-	 //g_object_set_data() makes a connection between two objects
-	 g_object_set_data(G_OBJECT(window), "textview-key",text_view);  
-     g_object_set_data(G_OBJECT(window), "list-key",list);  
-     g_object_set_data(G_OBJECT(window), "calendar-key",calendar);
-     g_object_set_data(G_OBJECT(window), "label-date-key",label_date);
-     
-     g_object_set_data(G_OBJECT(text_view), "text-view-window-key",window);
-     
-	 g_object_set_data(G_OBJECT(calendar), "calendar-list-key",list);
-	 g_object_set_data(G_OBJECT(calendar), "calendar-textview-key",text_view); 
-	 g_object_set_data(G_OBJECT(calendar), "calendar-label-date-key",label_date);   
-	 
-	 g_object_set_data(G_OBJECT(list), "treeview-textview-key",text_view);
-	 g_object_set_data(G_OBJECT(list), "treeview-calendar-key",calendar);   	
+	gchar *dt_format_time;                         
+	dt_format_time = g_date_time_format(date_time, "%H:%M:%S");  // 24hr time format
+	label_time=gtk_label_new("");	
+	gtk_label_set_xalign(GTK_LABEL(label_time),0.5);	 
+	gtk_label_set_text(GTK_LABEL(label_time), dt_format_time);   // update label        
+	g_free (dt_format_time);	
+	
+	
+	
+	//----------------------------------------------------------------
+	//set up window
+	//------------------------------------------------------------------
+	
+	gchar* title ="Talk Calendar";
+	
+	window = gtk_application_window_new (app);
+	gtk_window_set_title (GTK_WINDOW (window), title);
+	gtk_window_set_default_size (GTK_WINDOW (window), 950, 450);
+	gtk_window_set_icon_name (GTK_WINDOW (window), "x-office-calendar");
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+	
+	gtk_container_set_border_width(GTK_CONTAINER(window), 3);
+	
+	
+	g_signal_connect(G_OBJECT (window), "key_press_event", G_CALLBACK(callbk_window_on_key_press), NULL);
+	
+	//Set up list view    
+	list = gtk_tree_view_new(); // a widget for displaying both trees and lists    
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);    
+	g_object_set(G_OBJECT(list), "activate-on-single-click", FALSE, NULL);
+	g_signal_connect(GTK_TREE_VIEW(list), "row-activated", G_CALLBACK(list_row_activated_callbk), window);    
+	init_list(list);
+	
+	
+	//-------------------------------------------------------------------
+	// set up text view
+	//-------------------------------------------------------------------
+	
+	buffer_text_view = gtk_text_buffer_new (NULL); //text being viewed  
+	text_view = gtk_text_view_new_with_buffer (buffer_text_view); 
+	gtk_text_view_set_left_margin(GTK_TEXT_VIEW(text_view),6);
+	gtk_text_view_set_right_margin(GTK_TEXT_VIEW(text_view),6);  
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view),FALSE);   
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD);   
+	
+	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), 
+	GTK_POLICY_AUTOMATIC, 
+	GTK_POLICY_AUTOMATIC); 
+	
+	gtk_container_add (GTK_CONTAINER (scrolled_window), text_view); //put textview inside scrolled window
+	gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
+	
+	
+	//-------------------------------------------------------------------
+	// Set up calendar
+	//--------------------------------------------------------------------
+	
+	//set up calendar
+	calendar = gtk_calendar_new();
+	
+	//calendar clicked
+	g_signal_connect(GTK_CALENDAR(calendar), "day-selected", G_CALLBACK(calendar_day_selected_callbk), window);
+	//calendar double clicked
+	g_signal_connect(GTK_CALENDAR(calendar), "day-selected-double-click", G_CALLBACK(calendar_day_selected_double_click_callbk), window);
+	g_signal_connect(GTK_CALENDAR(calendar), "month-changed", G_CALLBACK(calendar_month_changed_callbk), NULL);
+	
+	
+	
+	//----------------------------------------------------------------
+	// Set up connections
+	//-----------------------------------------------------------------
+	//g_object_set_data() makes a connection between two objects
+	g_object_set_data(G_OBJECT(window), "textview-key",text_view);  
+	g_object_set_data(G_OBJECT(window), "list-key",list);  
+	g_object_set_data(G_OBJECT(window), "calendar-key",calendar);
+	g_object_set_data(G_OBJECT(window), "label-date-key",label_date);
+	g_object_set_data(G_OBJECT(window), "label-time-key",label_time);
+	
+	g_object_set_data(G_OBJECT(text_view), "text-view-window-key",window);
+	
+	g_object_set_data(G_OBJECT(calendar), "calendar-list-key",list);
+	g_object_set_data(G_OBJECT(calendar), "calendar-textview-key",text_view); 
+	g_object_set_data(G_OBJECT(calendar), "calendar-label-date-key",label_date);   
+	
+	g_object_set_data(G_OBJECT(list), "treeview-textview-key",text_view);
+	g_object_set_data(G_OBJECT(list), "treeview-calendar-key",calendar);   	
 	
 	//------------------------------------------------------------------
 	// Menu Actions
@@ -3821,6 +5699,11 @@ static void activate (GtkApplication *app, gpointer user_data)
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(action_read_events)); //make visible	
 	g_signal_connect(action_read_events, "activate",  G_CALLBACK(callbk_read_events), window);
 	
+	GSimpleAction *alarm_action;		
+	alarm_action=g_simple_action_new("alarm",NULL); 
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(alarm_action)); //make visible	
+	g_signal_connect(alarm_action, "activate",  G_CALLBACK(callbk_alarm), window);
+	
 	
 	GSimpleAction *about_action;	
 	about_action=g_simple_action_new("about",NULL); //app.about
@@ -3832,36 +5715,48 @@ static void activate (GtkApplication *app, gpointer user_data)
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(audio_action)); //make visible	
 	g_signal_connect(audio_action, "activate",  G_CALLBACK(audio_callbk), window);
 	
-	  
-    box_pane1=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
-    gtk_box_pack_start(GTK_BOX(box_pane1),calendar,FALSE, FALSE, 2);
-    gtk_box_pack_start(GTK_BOX(box_pane1),list,FALSE, FALSE, 2);
-    
-    box_pane2=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);    
-    gtk_box_pack_start(GTK_BOX(box_pane2),label_date,FALSE, FALSE, 5);
-    //textview inside scrolled window
-	gtk_box_pack_start(GTK_BOX(box_pane2),scrolled_window,TRUE, TRUE, 5);	
+	
+	box_pane1=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
+	gtk_box_pack_start(GTK_BOX(box_pane1),calendar,FALSE, FALSE, 2);
+	gtk_box_pack_start(GTK_BOX(box_pane1),list,FALSE, FALSE, 2);
+	
+	box_pane2=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);    
+	gtk_box_pack_start(GTK_BOX(box_pane2),label_date,FALSE, FALSE, 5);
+	//textview inside scrolled window
+	gtk_box_pack_start(GTK_BOX(box_pane2),scrolled_window,TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box_pane2),label_time,FALSE, FALSE, 5);	
 	
 	paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);	
 	gtk_paned_add1 (GTK_PANED (paned), box_pane1);
 	gtk_paned_add2 (GTK_PANED (paned), box_pane2);
 	
-	//GtkAllocation allocation;
-	//gtk_widget_get_allocation (window, &allocation);
-    gtk_paned_set_position(GTK_PANED (paned), 450); //window 800x400
-    
+	gtk_paned_set_position(GTK_PANED (paned), 600); //window 950x400
+	
 	gtk_container_add (GTK_CONTAINER (window), paned);	
 	calendar_month_changed_callbk(GTK_CALENDAR(calendar),NULL);
 	
 	//call calendar day clicked directly at startup
 	calendar_day_selected_callbk(GTK_CALENDAR(calendar), GTK_WINDOW(window));
-	//mark_holidays_on_calendar(calendar);
-	if(m_talk_at_startup) speak_events_at_date(GTK_CALENDAR(calendar));
-	g_date_time_unref(dt); 
-	//calendar_day_selected_callbk(calendar, list);
-  //gtk_widget_show(calendar);
-    
-  gtk_widget_show_all (window);
+	change_calendar_font_size(window);
+	
+	
+	PangoAttrList *attrs;
+	attrs = pango_attr_list_new ();
+	pango_attr_list_insert (attrs, pango_attr_weight_new (PANGO_WEIGHT_BOLD));
+	gtk_label_set_attributes (GTK_LABEL (label_date), attrs);
+	pango_attr_list_unref (attrs);
+	
+	
+	if(m_talk && m_talk_at_startup) speak_events_at_date(GTK_CALENDAR(calendar));
+	
+	g_date_time_unref(date_time);	
+	
+	gtk_widget_show_all (window);
+	
+	//Timer
+	g_timeout_add_seconds(1, timer_update_cb, label_time);
+	
+	notify_uninit();
   
 }
 
@@ -3879,13 +5774,10 @@ int main (int argc, char **argv)
   app = gtk_application_new ("org.gtk.talkcalendar", G_APPLICATION_FLAGS_NONE);
   
   g_signal_connect_swapped(app, "startup", G_CALLBACK (startup),app);
-  g_signal_connect_swapped(app, "activate", G_CALLBACK (activate),app);
-  
+  g_signal_connect_swapped(app, "activate", G_CALLBACK (activate),app);  
   
   status = g_application_run (G_APPLICATION (app), argc, argv);
   g_object_unref(app);
   
-  
-
   return status;
 }
