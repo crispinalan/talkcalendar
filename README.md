@@ -210,7 +210,7 @@ binary for 64-bit Debian based distributions
 
 ## Roadmap
 ```
-review speech synthesis and dictionary
+review speech synthesis approach
 deb package installer
 migrate to using Gtk4 (longer term goal)
 ```
