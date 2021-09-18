@@ -16,7 +16,7 @@ To run Talk Calendar from the terminal use:
 ./talkcalendar
 ```
 
-Create a launcher (Mate desktop) or use a menu editor (Cinnamon desktop) to launch Talk Calendar and add Talk Calendaer to your start-up programs to read out events when the computer is switched on.
+Create a launcher (Mate desktop) or use a menu editor (Cinnamon desktop) to launch Talk Calendar and add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
 Talk Calendar has been tested using the following 64-bit distributions.
 ```
@@ -159,13 +159,14 @@ binary for 64-bit Debian based distributions
 
 ## Roadmap
 ```
-review user interface
+user interface review
+code review
 deb package installer
 migrate to using Gtk4 (longer term goal)
 ```
 ## Project History
 
-C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.)  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
+C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.).  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
 
 The internal word concatenation based speech engine which had limited scope has been replaced with the Flite speech synthesis system since version 1.3. 
 
