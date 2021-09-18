@@ -15,15 +15,6 @@ To run Talk Calendar from the terminal use:
 ```
 ./talkcalendar
 ```
-<ins>Note: </ins> If this fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename).
-
-For speech, you need to install the Flite speech sythesiser and the ALSA (Advanced Linux Sound Architecture) utilities using
-
-```
-sudo apt install flite
-sudo apt install alsa-utils 
-
-```
 
 Create a launcher (Mate desktop) or use a menu editor (Cinnamon desktop) to launch Talk Calendar and add Talk Calendaer to your start-up programs to read out events when the computer is switched on.
 
@@ -33,6 +24,9 @@ Debian 11 (Bullseye) Mate Edition
 Ubuntu Mate (Focal Fossa 20.04.3 LTS)
 Linux Mint 20.2 Cinnamon Edition  
 ```
+
+<ins>Note: </ins> If ./talkcalendar fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename). Speech requires the libraries libflite1 and libasound2 which should be installed by default on a fresh Debian 11 install. If not install these libraries.
+
 
 ## Usage
 
@@ -83,7 +77,6 @@ sudo apt install libsqlite3-dev
 sudo apt install meson
 sudo apt install ninja-build
 sudo apt install flite1-dev
-sudo apt install libflite1
 sudo apt install libasound2-dev
 sudo apt install libnotify-dev 
 ```
@@ -92,6 +85,8 @@ The [meson](https://mesonbuild.com/Quick-guide.html) build system is used. At th
 meson build  (run once only)
 ninja -C build
 ```
+
+
 I used Geany as the IDE for developing the project as it has an integrated terminal and other features helpful for coding a Gtk3.0 project (see below). 
 
 The Gtk3.0 reference manual can be viewed locally on a Linux computer using a program called Devhelp. Devhelp is a tool for browsing and searching Gtk API documentation. Having a local copy of the Gtk help documentation is very helpful when developing an application.
