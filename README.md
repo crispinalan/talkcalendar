@@ -4,7 +4,7 @@ Talk Calendar is a Linux desktop calendar with speech capability.
 
 ![](talkcalendar.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). It can be run by using the Debian binary  provided. Talk Calendar has been designed with assistive technologies in mind. This not only includes providing speech capability but also allowing the system font size to be overridden to enlarge text when needed.
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). It can be run by using the Debian binary  provided. Talk Calendar has been designed with assistive technologies in mind. This not only includes providing speech capability but also allows the system font size to be overridden to enlarge text when needed.
 
 ## Deployment
 
@@ -78,7 +78,6 @@ sudo apt install meson
 sudo apt install ninja-build
 sudo apt install flite1-dev
 sudo apt install libasound2-dev
-sudo apt install libnotify-dev 
 ```
 The [meson](https://mesonbuild.com/Quick-guide.html) build system is used. At the top level directory the build steps are:
 ```
@@ -156,19 +155,46 @@ replaced internal speech generator with Flite
 internal code changes
 binary for 64-bit Debian based distributions
 ```
+<ins>Note: </ins> Export events before updating and then import.
+
+Talk Calendar Version 1.4
+```
+built with Gtk3.0
+new user interface using treeview display 
+title bar replaced with headerbar
+menu bar replaced with hamburger menu
+replaced libnotify dependency with GNotification
+font chooser dialog
+alarm revealer
+shortcut keys
+binary for 64-bit Debian based distributions
+```
 
 ## Roadmap
 ```
-user interface review
-code review
+full code review
 deb package installer
-migrate to using Gtk4 (longer term goal)
+migrate to using Gtk4 
 ```
-## Project History
+## Project History and Notes
 
-C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.).  It seemed to be the best alternative to Qt for open source Linux development and so the old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
+C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.).  It seemed to be the best alternative to Qt for open source Linux development. However, since the Qt Company moved Qt 5.15 LTS to a commercial-only phase KDE is now maintaining set of [patches](https://dot.kde.org/2021/04/06/announcing-kdes-qt-5-patch-collection) for Qt 5 [news](https://www.phoronix.com/scan.php?page=news_item&px=KDE-Qt-5-Patch-Collection). This has been welcomed by distributions such as KaOS who say in their recent [release](https://distrowatch.com/?newsid=11326) "Qt 5.15 does not receive updates or maintenance from the Qt company (only closed source, paid support is available). KDE has stepped up though and published a maintained 5.15 fork". Although it appears to be possible to use the KDE patches to update Qt I decided to use the open source Gtk toolkit to avoid any future commercial licensing issues. The old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
 
-The internal word concatenation based speech engine which had limited scope has been replaced with the Flite speech synthesis system since version 1.3. 
+
+<ins>Version 1.3: </ins> The internal word concatenation based speech engine has been replaced with the Flite speech synthesis system. The gtk_widget_override_font function has been replaced with a custom CSS style, through an application-specific GtkStyleProvider to allow application font size to be changed as an accessibility feature.  Both gtk_widget_modify_font and gtk_widget_override_font have been deprecated as Gtk say these functions are ["not useful in the context of CSS-based rendering"](https://docs.gtk.org/gtk3/method.Widget.override_font.html). The gtk_widget_override_font function is not listed when using the [Gtk 4.0 API](https://docs.gtk.org/gtk4/) search.
+
+<ins>Version 1.4: </ins> In version 1.4 a Gtk Treeview is used for displaying events to simplify the user interface. Accelerator shortcut keys are used in place of overriding window key pressed. The title bar has been replaced with Gtk Headerbar. The idea of a Gtk Headerbar is to merge the titlebar, menu and toolbar into one area to save space but retaining the same functionality. Many Gnome applications already use Gtk Headerbar and Talk Calendar has adopted this approach.
+
+In Gtk 4.0, GtkMenu, GtkMenuBar and GtkMenuItem are all gone and Gtk say "these widgets were heavily relying on X11-centric concepts such as override-redirect windows and grabs, and were hard to adjust to other windowing systems". I guess this is because of the move from X11 to Wayland. Consquently, GtkMenu, GtkMenuBar and GtkMenuItem (clasic menu) are no longer used in Talk Calendar. A GMenu hamburger style menu is used instead. 
+
+In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say "The traditional desktop is dead, and it’s not coming back"  and then "Instead of trying to bring back old concepts like menu bars or status icons, invent something better from first principles". Consequently, instead of developing an alarm desktop system status icon mechanism Talk Calendar uses an in-app alarm revealer (the red splodge) in the headerbar which is shown when  an alarm is triggered. The red splodge persists until the set alarm button is pressed again.
+
+Talk Calendar has been using libnotify which is library for sending desktop alarm notifications. The libnotify library requires x11-libs. I have replaced libnotify desktop notifications with GNotification which is the Gtk mechanism for creating pop-up desktop notifications. Hopefully this will make the application easier to port to Gtk4/Wayland in the longer term.
+
+At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will wait until the Gtk 4 package is added. Gtk 4 is available with Fedora. Migration will likley require great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+
+In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say
+"Flatpak is the future of app distribution" and so it is not clear if a deb package would be useful but I have kept it in the roadmap for now. 
 
 
 ## Acknowledgements
@@ -187,7 +213,7 @@ The internal word concatenation based speech engine which had limited scope has 
 * The Advanced Linux Sound Architecture (ALSA) provides audio and MIDI functionality to the Linux operating system. ALSA is  released under GPL-2.0-or-later and LGPL-2.1-or-later.  ALSA driver code is included in the  Linux kernel since 2.6.
 
 * [Flite](http://www.festvox.org/flite/)
-* Flite (festival-lite) is a small fast portable speech synthesis system developed from research at the Carnegie Mellon Univerity and the University of Edinburgh. Details of the latest Debian packages can be found on the Bullseye package [page](https://packages.debian.org/source/bullseye/flite).  The latest C source code is on [github](https://github.com/festvox/flite). Flite is free software and the core code has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). It is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis).
+* Flite (festival-lite) is a small fast portable speech synthesis system developed from research at the Carnegie Mellon University and the University of Edinburgh. Details of the latest Debian packages can be found on the Bullseye package [page](https://packages.debian.org/source/bullseye/flite).  The latest C source code is on [github](https://github.com/festvox/flite). Flite is free software and the core code has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). It is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis).
 
 
 

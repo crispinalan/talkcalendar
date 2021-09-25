@@ -12,7 +12,7 @@
 #include <sqlite3.h>
 #include "dbmanager.h"
 
-#define CONFIG_DIRNAME "talkcalendar-gtk"
+#define CONFIG_DIRNAME "talkcalendar-v1-4"
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    int i;

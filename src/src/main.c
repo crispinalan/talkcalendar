@@ -11,16 +11,79 @@
 #include "dbmanager.h"
 #include "event.h"
 #include <gdk/gdk.h>
-#include<libnotify/notify.h>
+//#include<libnotify/notify.h>
 #include <flite/flite.h>
 
 // Definitions
-#define CONFIG_DIRNAME "talkcalendar-gtk"
-#define CONFIG_FILENAME "talkcalendar-config"
-//export GDK_DPI_SCALE=1.5;
+#define CONFIG_DIRNAME "talkcalendar-v1-4"
+#define CONFIG_FILENAME "talkcalendar-config-v1-4"
 
 //flite voice
 cst_voice *register_cmu_us_kal();
+
+//Action callbacks
+static void callbk_import(GSimpleAction * action, GVariant  *parameter, gpointer user_data);
+static void callbk_export(GSimpleAction * action, GVariant *parameter,  gpointer user_data);
+static void callbk_delete(GSimpleAction *action, GVariant *parameter,  gpointer user_data);
+static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer user_data);
+static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpointer user_data);
+static void callbk_font(GSimpleAction* action, GVariant *parameter,gpointer user_data);
+static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer user_data);
+static void callbk_quit(GSimpleAction * action, GVariant *parameter, gpointer user_data);
+static void callbk_home(GSimpleAction * action, GVariant *parameter, gpointer user_data);
+static void callbk_speak_about(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void callbk_shortcuts(GSimpleAction * action, GVariant *parameter, gpointer user_data);
+
+//Calendar callbacks
+static void callbk_calendar_day_clicked(GtkCalendar *calendar, gpointer user_data);
+static void callbk_calendar_day_double_click(GtkCalendar *calendar, gpointer user_data);
+static void callbk_calendar_month_changed(GtkCalendar *calendar, gpointer user_data);
+
+//Button click callbacks
+static void callbk_new_event(GtkWidget *button, GtkWidget* window);
+static void callbk_alarm(GtkWidget *button, GtkWidget* window);
+//static void callbk_preferences(GtkWidget *button, GtkWidget* window);
+
+//dialogs
+static void talkcalendar_talk_options_dialog(GtkWidget *widget);
+static void talkcalendar_other_options_dialog(GtkWidget *widget);
+static void talkcalendar_alarm_dialog(GtkWidget *widget);
+static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, guint day);
+static void talkcalendar_update_event(GtkWidget *widget, gpointer data);
+
+//holidays
+GDate* calculate_easter(gint year);
+static void mark_holidays_on_calendar(GtkCalendar *calendar, gint month, gint year);
+void change_window_font_size(GtkWindow *window);
+
+
+
+//other
+static void show_notification(gchar *message, GtkApplication* app); //desktop notifications 
+static void speak_events_at_date(GtkCalendar *calendar);
+
+// map menu actions to callbacks
+const GActionEntry app_actions[] = {
+  { "import", callbk_import },
+  { "export", callbk_export},
+  { "delete", callbk_delete },
+  { "speak", callbk_speak },
+  { "preferences", callbk_preferences },  
+  { "version", callbk_speak_about},
+  { "home", callbk_home},
+  { "shortcuts",  callbk_shortcuts},
+  { "about",  callbk_about},
+  { "quit",   callbk_quit}
+};
+
+//declarations
+GtkWidget *create_view_and_model(Event *event_arry, gint arry_size);
+GtkTreeModel *create_and_fill_model(Event *event_arry, gint arry_size);
+//static void callbk_new_event(GtkWidget *window);
+
+//static void callbk_preferences(GSimpleAction *action,G_GNUC_UNUSED  GVariant *parameter,gpointer user_data);
+//static void callbk_gotoday(GSimpleAction *action, G_GNUC_UNUSED  GVariant  *parameter,	gpointer window);
+
 
 //Static variables (configuration variables)
 static char * m_config_file = NULL;
@@ -36,30 +99,17 @@ static int m_talk_at_startup=1;
 static int m_talk_description =0;
 
 static int m_font_size=22;
-static gchar* m_font_str="sans;";
+static const gchar* m_font_family="Sans";
+
 static int m_holidays=0; //show holidays
 
 static int m_alarm_notification=1;
 static int m_alarm_hour=0;
 static int m_alarm_min=0;
 
-//Prototypes
-static void show_notification(gchar *message);
-static gboolean timer_update_cb(gpointer data);
-void change_calendar_font_size(GtkWidget *window);
-static void reload_events(GtkWidget *widget, int year, int month, int day);
-static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, guint day);
-static void talkcalendar_update_event(GtkWidget *widget, gpointer data);
-static void talkcalendar_alarm_dialog(GtkWidget *widget);
-static void calendar_day_selected_callbk(GtkCalendar *calendar, gpointer user_data);
 
-
-static void add_to_list(GtkWidget *list, const gint id, const gchar* title);
-void remove_item(GtkWidget *list, gpointer selection);
-gchar* num_chars_only(const char* cstr);
-GDate* calculate_easter(gint year);
-static void mark_holidays_on_calendar(GtkCalendar *calendar, gint month, gint year);
-
+const int COLUMN = 1;
+const int NUM_COLS = 2;
 
 static void config_load_default()
 {		
@@ -70,7 +120,7 @@ static void config_load_default()
 	if(!m_talk_priority) m_talk_priority =0;
 	if(!m_talk_description) m_talk_description =0;
 	
-	m_font_str="sans;";
+	m_font_family="Sans";
 	if(!m_font_size) m_font_size=22;  
 	
 	if(!m_holidays) m_holidays=0;
@@ -91,7 +141,7 @@ static void config_read()
 	m_talk_priority =0;
 	m_talk_description =0;
 	
-	m_font_str="sans;"; 
+	m_font_family="Sans"; 
 	m_font_size=22; 
 	
 	m_holidays=0;
@@ -113,7 +163,7 @@ static void config_read()
 	m_holidays = g_key_file_get_integer(kf, "calendar_settings", "holidays", NULL);	
 	
 	
-	m_font_str=g_key_file_get_string(kf, "calendar_settings", "font_str", NULL);	
+	m_font_family=g_key_file_get_string(kf, "calendar_settings", "font_family", NULL);	
 	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font-size", NULL);	
 	
 	m_alarm_notification=g_key_file_get_integer(kf, "calendar_settings", "alarm-notification", NULL);	
@@ -140,7 +190,7 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "holidays", m_holidays);
 	
 	
-	g_key_file_set_string(kf, "calendar_settings", "font_str", m_font_str);
+	g_key_file_set_string(kf, "calendar_settings", "font_family", m_font_family);
 	g_key_file_set_integer(kf, "calendar_settings", "font-size", m_font_size);
 	
 	g_key_file_set_integer(kf, "calendar_settings", "alarm-notification", m_alarm_notification);
@@ -179,219 +229,271 @@ void config_initialize() {
 	g_free(config_dir);
 	
 }
-static void import_callbk(GSimpleAction * action,
-							G_GNUC_UNUSED GVariant      *parameter,
-							              gpointer       user_data)
+
+//---------------------------------------------------------------
+// thread speak funtion
+//---------------------------------------------------------------
+
+static gpointer thread_speak_func(gpointer user_data)
+{ 
+	gchar *text =user_data;        
+    cst_voice *voice;  
+    flite_init();   
+    voice = register_cmu_us_kal(NULL);        
+    flite_text_to_speech(text,voice,"play"); 	
+	g_mutex_unlock (&lock); //thread mutex unlock 
+	return NULL;
+}
+
+//---------------------------------------------------------------------
+// treeview remove all items
+//---------------------------------------------------------------------
+
+void remove_all(GtkTreeView *treeview) {
+    
+  GtkTreeStore *store;
+  GtkTreeModel *model;
+  GtkTreeIter  iter;
+
+  store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(treeview)));
+  model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
+
+  if (gtk_tree_model_get_iter_first(model, &iter) == FALSE) {
+      return;
+  }
+  
+ // void gtk_tree_store_clear (GtkTreeStore *tree_store);
+  gtk_tree_store_clear(store);
+  
+  
+  //g_object_unref (model);
+  //g_object_unref(store);
+}
+
+
+//---------------------------------------------------------------------
+// treeview activated double click
+//---------------------------------------------------------------------
+
+static void callbk_treeview_row_activated(GtkTreeView  *tree_view,
+										 GtkTreePath       *path,
+										 GtkTreeViewColumn *column,
+										 gpointer           user_window)
+										 
 {
-	
-	
-	GtkCalendar *calendar =user_data;
-	
-	gchar *file_name = NULL;        // Name of file to open from dialog box
-    gchar *file_contents = NULL;    // For reading contents of file
-    gboolean file_success = FALSE;  // File read status
-    GtkWidget *dialog; 
-    GtkFileFilter *filter1, *filter2;
-    GtkTextIter start, end;
-    GtkTextBuffer *textbuffer;
-    textbuffer = gtk_text_buffer_new (NULL);
-    gchar *text; 
-     
-       
-     dialog = gtk_file_chooser_dialog_new ("Open",
-                      NULL,
-                      GTK_FILE_CHOOSER_ACTION_OPEN,
-                      "_Cancel", GTK_RESPONSE_CANCEL,                      
-                      "_Open", GTK_RESPONSE_ACCEPT,                      
-                      NULL);
-                      
-	  filter1 = gtk_file_filter_new();
-	  filter2 = gtk_file_filter_new();    
-	  gtk_file_filter_add_pattern(filter1, "*.csv");
-	  gtk_file_filter_set_name(filter1, "Comma Separated Values (*.csv)");
-	  gtk_file_filter_add_pattern(filter2, "*.*");
-	  gtk_file_filter_set_name (filter2, "All Files (*.*)");
-	  gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
-	  gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);   
-	  
-	  
-	  gtk_widget_show_all(dialog);
-	  
-	  gint resp = gtk_dialog_run(GTK_DIALOG(dialog));
-	  
-    if (resp == GTK_RESPONSE_ACCEPT){
-				
-		file_name = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-		
-		if (file_name != NULL) {
-            
-            //g_file_get_contents(filename, &contents, &length, &error)
-            // Copy the contents of the file to dynamically allocated memory
-            file_success = g_file_get_contents(file_name, &file_contents, NULL, NULL);
-            if (file_success) {
-                // Put the contents of the file into the GtkTextBuffer
-                gtk_text_buffer_set_text(textbuffer, file_contents, -1);
-               
-				gtk_text_buffer_get_bounds(textbuffer, &start, &end);
-				text = gtk_text_buffer_get_text(textbuffer, &start, &end, FALSE);  
-				
-				gint line_count = gtk_text_buffer_get_line_count(textbuffer)-1;  //-1
-			   			   
-			   //Create event array with line count
-			    Event event_array[line_count]; 
-				
-				gchar **lines = g_strsplit (text, "\n", -1);
-				
-				for (int i = 0; lines[i] != NULL; i++) {					
-					if (lines[i][0] == '\0') continue; //ignore blank lines	
-					//create an event from line and store
-					//Event e;   
-			   Event e; 
-			   gchar** items = g_strsplit (lines[i],",",-1);
-			   
-			   gint j=0;			   
-			   while(items[j] != NULL)
-			   {			   		   
-			   if (j==0) {			 
-			   strcpy(e.title,items[0]);
-			   }
-			   else if(j==1) {			 		   
-			   gint priority_num = -1;
-			   priority_num = atoi(items[1]);			   
-			   e.priority=priority_num;			   
-			   }
-			   else if(j==2) {			   
-			   strcpy(e.description,items[2]);
-			   }
-			   else if(j==3) {			  
-			   gint year = -1;
-			   year = atoi(items[3]);
-			   e.year=year;   
-			   }
-			   else if(j==4) {			   
-			   gint month = -1;
-			   month = atoi(items[4]);
-			   e.month=month;			   			 				   
-			   }
-			   else if(j==5) {				  
-			   gint day = -1;
-			   day= atoi(items[5]);				  
-			   e.day=day;				   
-			   }
-			   else if(j==6) {				  
-			   gint startHour = -1;
-			   startHour= atoi(items[6]);				  
-			   e.startHour=startHour;				   
-			   }
-			   else if(j==7) {				  
-			   gint startMin = -1;
-			   startMin= atoi(items[7]);				  
-			   e.startMin=startMin;				   
-			   }
-			   else if(j==8) {				  
-			   gint endHour = -1;
-			   endHour= atoi(items[8]);				  
-			   e.endHour=endHour;				   
-			   }
-			   else if(j==9) {				  
-			   gint endMin = -1;
-			   endMin= atoi(items[9]);
-			   e.endMin= endMin;				   
-			   }
-			   else if(j==10) {				  
-			   gint isYearly = -1;
-			   isYearly= atoi(items[10]);
-			   e.isYearly= isYearly;				   
-			   }
-			   else if(j==11) {				  
-			   gint isAllday= -1;
-			   isAllday= atoi(items[11]);				  
-			   e.isAllday=isAllday;				   
-			   }
-			   j++;		
-			   } //while j
-			   //insert event e into db
-			   event_array[i]=e;					
-			} //for lines[i]	
-			          
-            Event evt;	
-			for(int k=0; k<line_count; k++) {		
-			evt=event_array[k];			
-			db_insert_event_struct(evt);
-			} //for k   
-		   g_free(file_contents);	
-	    }//if success
-	   g_free(file_name); 
-	}//file name not null
-	} //response Accept
-	else {
-		;
-		gtk_widget_destroy(GTK_WIDGET(dialog));
-		return;
-	}
-	
-
-   guint cday, cmonth, cyear;
-   gtk_calendar_get_date(GTK_CALENDAR (calendar), &cyear, &cmonth, &cday);
       
-   gtk_calendar_clear_marks(GTK_CALENDAR (calendar));  
-   gint row_number = db_get_number_of_rows_month_year(cmonth+1, cyear); 	
-   if (row_number ==0) {
-		return;
-	}
-	else { 
-	 Event event_array[row_number];		 
-	 db_get_all_events_year_month(event_array, cyear, cmonth+1, row_number);
-	 //mark up calendar
-	 Event evtmarkup;	
-	for(int i=0; i<row_number; i++) {		
-		evtmarkup=event_array[i];		//
-		guint dday = evtmarkup.day;		
-		gtk_calendar_mark_day(calendar, dday);
-	} 	 
-   }
-      
-   gtk_widget_destroy(GTK_WIDGET(dialog));  
-
-}
-
-gchar* getPublicHoliday(GDate *date) {
-
-	gchar *hol_str="";
-
-	gint day = g_date_get_day(date);
-	gint month =g_date_get_month(date);
-	gint year=g_date_get_year(date);
-	
-	if ((day==25) && (month==12)) {
-		hol_str = "Christmas";
-	}
-	if ((day==26) && (month==12)) {
-		hol_str = "Boxing Day";
-	}
-	if ((day==1) && (month==1)) {
-		hol_str = "New Year";
-	}
-	GDate *edate =calculate_easter(year);
-    
-    gint eday = g_date_get_day(edate);
-    gint emonth =g_date_get_month(edate);
-    
-     if ((day==eday) && (month=emonth)){
-		 hol_str="Easter";
-	 }
+   GtkWindow *window = user_window; //window   
+   GtkTreeIter iter; //row iterator (internal structure)
+   GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
    
-     //if (date == easterDate)
-        //holStr = " (Easter)";
-    //if (date == easterDate.addDays(-2))
-        //holStr = " (Good Friday)";
-    //if (date == easterDate.addDays(1))
-        //holStr = " (Easter Monday)"; 	
-	return hol_str;
+   gchar *value;
+   gint id=0;
+  
+   if (gtk_tree_model_get_iter(model, &iter, path)) { 
+   gtk_tree_model_get(model, &iter, 0, &id,  -1);
+   gtk_tree_model_get(model, &iter, COLUMN, &value,  -1);  
+   Event *event =g_malloc(sizeof(Event));    
+   db_get_event(id, event);    
+   talkcalendar_update_event(GTK_WIDGET(window), event); 
+   }
+   g_object_unref(model); 
+   g_free(value);
+}
+
+//---------------------------------------------------------------------
+// treeview selection changed
+//--------------------------------------------------------------------- 
+void on_changed(GtkWidget *widget, gpointer statusbar) {
+    
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gchar *value;
+
+  if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
+    gtk_tree_model_get(model, &iter, COLUMN, &value,  -1);   
+    g_free(value);
+  }
+}
+
+//---------------------------------------------------------------------
+// update treeview model
+//---------------------------------------------------------------------
+GtkTreeModel *create_and_fill_model(Event *event_arry, gint arry_size) {
+    
+  GtkTreeStore *treestore;
+  GtkTreeIter toplevel, child;
+  
+  GDateTime  *time_start;
+  time_start =g_date_time_new_now_local(); 
+  
+  GDateTime  *time_end;
+  time_end =g_date_time_new_now_local();          
+   
+  //2 columns col0=id col1=event values
+  treestore = gtk_tree_store_new(NUM_COLS,G_TYPE_INT, G_TYPE_STRING);
+  for(int i=0; i<arry_size; i++) {
+  
+  Event e =event_arry[i];
+  //these two lines create a top level node
+  gtk_tree_store_append(treestore, &toplevel, NULL);  
+  gtk_tree_store_set(treestore, &toplevel, COLUMN, e.title, -1);
+  gtk_tree_store_set(treestore, &toplevel, 0, e.id, -1);  
+  gchar* time_str="";   
+  gchar* time_start_str;  
+  time_start = g_date_time_new_local(e.year,e.month,e.day,e.startHour, e.startMin,0.0);         
+  time_start_str = g_date_time_format (time_start, "%l:%M %P");  
+  gchar* time_end_str;
+  time_end = g_date_time_new_local(e.year,e.month,e.day,e.endHour, e.endMin,0.0);         
+  time_end_str = g_date_time_format (time_end, "%l:%M %P");  
+  if(e.isAllday) {
+  time_str= g_strconcat(time_str, "This is an all day event", NULL);			
+  }
+  else {			
+  time_str= g_strconcat(time_str, time_start_str, " to ", time_end_str, NULL); 		
+  //Two new lines for spacing -option?	
+  } 
+  
+  //add a child item into the top level node
+  gtk_tree_store_append(treestore, &child, &toplevel);  
+  gtk_tree_store_set(treestore, &child, COLUMN, time_str, -1);
+  gtk_tree_store_set(treestore, &child, 0, e.id, -1);
+  //add a child item into the top level node
+  gtk_tree_store_append(treestore, &child, &toplevel);  
+  gtk_tree_store_set(treestore, &child, COLUMN, e.description, -1);
+  gtk_tree_store_set(treestore, &child, 0, e.id, -1);  
+  g_free(time_str);
+  g_free(time_start_str);
+  g_free(time_end_str);
+  }
+  g_date_time_unref (time_start);
+  g_date_time_unref (time_end);
+
+  return GTK_TREE_MODEL(treestore);
+}
+
+//---------------------------------------------------------------------
+// create treeview and model
+//---------------------------------------------------------------------
+GtkWidget *create_view_and_model(Event *event_arry, gint arry_size) {
+	    
+  GtkTreeViewColumn *col;
+  GtkCellRenderer *renderer;
+  GtkWidget *view;
+  GtkTreeModel *model; 
+  
+  view = gtk_tree_view_new();
+
+  col = gtk_tree_view_column_new();
+  gtk_tree_view_column_set_title(col, "Events");
+  gtk_tree_view_append_column(GTK_TREE_VIEW(view), col);
+  renderer = gtk_cell_renderer_text_new();
+  gtk_tree_view_column_pack_start(col, renderer, TRUE);
+  gtk_tree_view_column_add_attribute(col, renderer, "text", COLUMN);
+  model = create_and_fill_model(event_arry, arry_size);  
+  gtk_tree_view_set_model(GTK_TREE_VIEW(view), model);
+  g_object_unref(model); 
+  return view;
+}
+
+//---------------------------------------------------------------
+// alarm revealer
+//----------------------------------------------------------------
+
+static gboolean revealer_timeout (gpointer userdata)
+{   
+    gtk_revealer_set_reveal_child (GTK_REVEALER (userdata), FALSE);    
+    return TRUE; 
+}
+
+void show_revealer(GtkRevealer *revealer){
 	
+	gtk_revealer_set_reveal_child (GTK_REVEALER (revealer), TRUE);		
+	g_timeout_add_seconds (10, revealer_timeout, revealer);
 }
 
 
+//---------------------------------------------------------------
+// notifications
+//----------------------------------------------------------------
+
+static void show_notification(gchar *message, GtkApplication* app)
+{
+ 
+ GNotification* notification;
+ 
+ 
+ gchar* title_str ="Talk Calendar";
+ gchar* body_str="Alarm Reminder";
+ 
+ notification = g_notification_new(title_str);
+ g_notification_set_body(notification, body_str);
+ g_application_send_notification(G_APPLICATION(app), NULL, notification);
+ 
+ g_object_unref(notification);
+ 
+ 
+ 
+}
+
+//-----------------------------------------------------------------
+// timer update callback
+//------------------------------------------------------------------
+static gboolean callbk_timer_update(gpointer data)
+{
+	GtkWindow *window = (GtkWindow*)data;
+	
+	GtkWidget *label =g_object_get_data(G_OBJECT(window), "label-time-key");
+    
+    GDateTime *date_time;
+    //gchar *dt_format;
+    date_time = g_date_time_new_now_local(); // get local time   
+	gint hour =g_date_time_get_hour(date_time);
+	gint min =g_date_time_get_minute (date_time);
+	gint sec = g_date_time_get_second (date_time);
+	
+    //get events for date (do this outside timer function)
+    // check reminder times
+        
+    gchar *dt_format_time;                         
+    dt_format_time = g_date_time_format(date_time, "%H:%M:%S");   // 24hr time format
+    gtk_label_set_text(GTK_LABEL(label), dt_format_time);   // update label         
+    g_free (dt_format_time);
+    
+    gchar* message ="Alarm Reminder ";
+    
+    if(hour==m_alarm_hour && min==m_alarm_min && sec==0)
+	{
+	 
+	 GtkRevealer *revealer =g_object_get_data(G_OBJECT(window), "revealer-key"); 
+	 gtk_revealer_set_reveal_child (GTK_REVEALER (revealer), TRUE);
+	 
+	//speak now
+	 GThread *thread_speak; 
+		
+	gchar* message_speak ="Talk Calendar. Alarm Reminder";    
+		
+	if(m_talk) {	
+	g_mutex_lock (&lock);
+    thread_speak = g_thread_new(NULL, thread_speak_func, message_speak);   
+	}	
+	g_thread_unref (thread_speak);	
+				
+	if(m_alarm_notification){	
+	GtkApplication *app =g_object_get_data(G_OBJECT(window), "app-key"); 	
+	show_notification(message,GTK_APPLICATION(app));
+	}
+	
+	g_date_time_unref (date_time);
+	return TRUE;
+	}
+    
+    g_date_time_unref (date_time);    
+    return TRUE;
+}
+
+//---------------------------------------------------------------------
+// calculate easter
+//---------------------------------------------------------------------
 
 GDate* calculate_easter(gint year) {
 
@@ -417,834 +519,287 @@ GDate* calculate_easter(gint year) {
 	return edate;
 }
 
-static void export_callbk(GSimpleAction * action,
-							G_GNUC_UNUSED GVariant      *parameter,
-							              gpointer       user_data)
+
+
+//---------------------------------------------------------------------
+// mark holidays
+//---------------------------------------------------------------------
+
+static void mark_holidays_on_calendar(GtkCalendar *calendar, gint month, gint year)
 {
-	
-	
-	GtkWidget *dialog; 
-	GtkFileFilter *filter1, *filter2;   
-    gchar *filename;
-    gchar *csv_str;
-    csv_str="";
-        
-    gint row_count_all = db_get_number_of_rows_all();
-    
-   if (row_count_all ==0) {	
-		return;
-	}
-	
-	else {			
-	 Event event_array[row_count_all];		 
-	 db_get_all_events(event_array,row_count_all);
-	 
-	 Event evt;	
-	 for(int i=0; i<row_count_all; i++) {		
-		evt=event_array[i];	
-		
-	    gchar *priority_str = g_strdup_printf("%i", evt.priority);	   
-	    gchar *year_str = g_strdup_printf("%i", evt.year);
-		gchar *month_str = g_strdup_printf("%i", evt.month);
-		gchar *day_str = g_strdup_printf("%i", evt.day);
-		gchar *start_hour_str = g_strdup_printf("%i", evt.startHour);
-		gchar *start_min_str = g_strdup_printf("%i", evt.startMin);
-		gchar *end_hour_str = g_strdup_printf("%i", evt.endHour);
-		gchar *end_min_str = g_strdup_printf("%i", evt.endMin);
-		gchar *is_yearly_str = g_strdup_printf("%i", evt.isYearly);
-		gchar *is_allday_str = g_strdup_printf("%i", evt.isAllday);
 	    
-		csv_str= g_strconcat(csv_str, 
-		evt.title, ",", 
-		priority_str,",",
-		evt.description, ",",
-		year_str,",",
-		month_str,",",
-		day_str,",",
-		start_hour_str,",",
-		start_min_str,",",
-		end_hour_str,",",
-		end_min_str,",",
-		is_yearly_str,",",
-		is_allday_str,"\n", //terminate with new line	
-		NULL);
-		
-	  }//for i events	
-	
-     }
+   if (month==1) {  	
+	gtk_calendar_mark_day(calendar,1); //day =1
+   }
+   
+   GDate *edate =calculate_easter(year); 
+   gint eday = g_date_get_day(edate);
+   gint emonth =g_date_get_month(edate);
+   
+   if(month==emonth)
+   {
+	   gtk_calendar_mark_day(calendar,eday);
+   }
+     
+   g_date_subtract_days(edate,2);
+   gint efday = g_date_get_day(edate); //ef=easter friday
+   gint efmonth =g_date_get_month(edate); 
+   
+   if(month==efmonth)
+   {
+	   gtk_calendar_mark_day(calendar,efday);
+   }
+     
+   g_date_add_days(edate,3);
+   gint emonday = g_date_get_day(edate); //easter monday
+   gint emmonth =g_date_get_month(edate); 
     
-    dialog = gtk_file_chooser_dialog_new ("Save",
-									NULL,
-									GTK_FILE_CHOOSER_ACTION_SAVE,                      
-									"_Cancel", GTK_RESPONSE_CANCEL,
-									"_Save", GTK_RESPONSE_ACCEPT, 
-									NULL);
-									
-    // gtk_window_set_default_size (GTK_WINDOW (dialog), 220, 200);   
-    
-    filter1 = gtk_file_filter_new();
-    filter2 = gtk_file_filter_new();
-    
-    gtk_file_filter_add_pattern(filter1, "*.csv");
-    gtk_file_filter_set_name(filter1, "Comma Separated Values (*.csv)");
-   
-    
-    gtk_file_filter_add_pattern(filter2, "*.*");
-    gtk_file_filter_set_name (filter2, "All Files (*.*)");
-    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
-    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);    
-    
-    // default file name
-    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "filename.csv");
-    gtk_widget_show_all(dialog);
-    
-    gint resp = gtk_dialog_run(GTK_DIALOG(dialog));
-    
-    if (resp == GTK_RESPONSE_ACCEPT){		
-   
-    filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-   
-	
-   
-    g_file_set_contents (filename, csv_str, -1,NULL);
-    
-    //g_free (text); //core dumped invalid pointer
-    g_free (filename);
-    
-	}
-    else{    
-    //gtk_widget_destroy(GTK_WIDGET(dialog));
-	}
-    gtk_widget_destroy(GTK_WIDGET(dialog));
-	
-}
-
-
-//---------------------------------------------------------------------
-// exit callback
-//---------------------------------------------------------------------
-
-static void exit_callbk(GSimpleAction * action,
-							G_GNUC_UNUSED GVariant      *parameter,
-							              gpointer       user_data)
-{
-		
-	g_application_quit(G_APPLICATION(user_data));
-	
-}
-//----------------------------------------------------------
-// close call back
-//-----------------------------------------------------------
-
-static void options_close_callbk(GtkDialog *dialog,
-					     G_GNUC_UNUSED gpointer   user_data)  
-{
-	if( !GTK_IS_DIALOG(dialog)) { 
-	return;
-	}	
-	
-} 
-
-static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
-{
- 	
- 	GtkWidget *check_button_talk_startup; //enable startup talk  
- 	GtkWidget *check_button_talk_title; //enable  talk title 
- 	GtkWidget *check_button_talk_time; //enable  talk time	
- 	GtkWidget *check_button_talk_priority; //enable  talk priority 
- 	GtkWidget *check_button_talk_description;
- 		
- 	check_button_talk_startup =g_object_get_data(G_OBJECT(user_data), "cb_talk_startup_key");	
-	check_button_talk_title =g_object_get_data(G_OBJECT(user_data), "cb_talk_title_key");
-	check_button_talk_time =g_object_get_data(G_OBJECT(user_data), "cb_talk_time_key");  
-	check_button_talk_priority= g_object_get_data(G_OBJECT(user_data), "cb_talk_priority_key");
-	check_button_talk_description= g_object_get_data(G_OBJECT(user_data), "cb_talk_description_key");
-	
-		 	
- 	if (gtk_toggle_button_get_active(toggle_button)){		
-	//g_print("Toggled callbk: Talk TRUE\n");
-		
-	gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
-	gtk_widget_set_sensitive(check_button_talk_title,TRUE);
-	gtk_widget_set_sensitive(check_button_talk_time,TRUE);	
-	gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
-	gtk_widget_set_sensitive(check_button_talk_description,TRUE);
-	
-	}     
-	else{	
-	//g_print("Toggled callbk: Talk FALSE\n");
-	
-	gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
-	gtk_widget_set_sensitive(check_button_talk_title,FALSE);
-	gtk_widget_set_sensitive(check_button_talk_time,FALSE);	
-	gtk_widget_set_sensitive(check_button_talk_priority,FALSE);
-	gtk_widget_set_sensitive(check_button_talk_description,FALSE);
-		
-	}
-  
-}
-//--------------------------------------------------------------
-
-
-//---------------------------------------------------------------------
-// spin button show leading zeros
-//---------------------------------------------------------------------
-static gboolean on_output_alarm_spins (GtkSpinButton *spin, gpointer data)
-{
-   GtkAdjustment *adjustment;
-   gchar *text;
-   int value;
-   adjustment = gtk_spin_button_get_adjustment (spin);
-   value = (int)gtk_adjustment_get_value (adjustment);
-   text = g_strdup_printf ("%02d", value);
-   gtk_entry_set_text (GTK_ENTRY (spin), text);
-   g_free (text);
-   return TRUE;
-}
-
-static void alarm_close_callbk(GtkDialog *dialog,
-					     G_GNUC_UNUSED gpointer   user_data)  
-{
-	if( !GTK_IS_DIALOG(dialog)) { 
-	return;
-	}	
-	
-} 
-
-
-
-static void talkcalendar_alarm_dialog(GtkWidget *widget) {
-	
-  GtkWidget *window = (GtkWidget *) widget;
-   
-   
-  if( !GTK_IS_WINDOW(window)) {	  	 
-	  return;
-  }
-  config_read();
-  
-  GtkWidget *dialog;    
-  GtkWidget *container;	
-  gint response;
-  GtkWidget *label_alarm_info;
-  
-  GtkWidget *label_alarm_time;
-  GtkWidget *label_alarm_colon;
-  GtkWidget *spin_button_alarm_hour;
-  GtkWidget *spin_button_alarm_minutes;
-  GtkWidget *box_alarm_time;
-  GtkWidget *check_button_alarm_notification;
-  
-  //Create dialog
-  dialog= gtk_dialog_new();   
-  gtk_window_set_title (GTK_WINDOW (dialog), "Talk Calendar"); 
-  g_signal_connect_swapped(dialog,"close",G_CALLBACK(alarm_close_callbk),dialog);//escape close
-  gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
-   
-  gtk_widget_set_size_request(dialog, 200,150);
-  gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
-  gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
-  gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
-   
-  gchar* alarm_str ="Set Alarm Time ";  
-  label_alarm_info =gtk_label_new(alarm_str); 
-  
-  label_alarm_time =gtk_label_new("Alarm Time (24 hour) ");
-  label_alarm_colon=gtk_label_new(" : ");
-  
-  spin_button_alarm_hour = gtk_spin_button_new_with_range(0.0,23.0,1.0); //23 hours	
-  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_hour),0);
-  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_hour),1.0,23.0);
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_hour),m_alarm_hour);
-  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_hour),TRUE);		
-  g_signal_connect(spin_button_alarm_hour, "output", G_CALLBACK (on_output_alarm_spins), NULL);
-  
-  
-  spin_button_alarm_minutes=gtk_spin_button_new_with_range(0.0,59.0,1.0);
-  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_minutes),0);
-  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_minutes),1.0,10.0);
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_minutes),m_alarm_min);
-  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_minutes),TRUE);		
-  g_signal_connect(spin_button_alarm_minutes, "output", G_CALLBACK (on_output_alarm_spins), NULL);	
-  
-   
-  box_alarm_time=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_time,FALSE, FALSE, 5);
-  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_hour,TRUE, TRUE, 5);
-  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_colon,FALSE, FALSE, 5);
-  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_minutes,TRUE, TRUE, 5);
- 
- check_button_alarm_notification = gtk_check_button_new_with_label ("System Notification");
- gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_alarm_notification), m_alarm_notification); 
-	
-//---------------------------------------------------------------
-// Font size
-//----------------------------------------------------------------
-
-GtkCssProvider *cssProvider;
-
-GtkStyleContext *context_dialog;
- 
-GtkStyleContext *context_label_alarm_info;
-GtkStyleContext *context_label_alarm_time;
-GtkStyleContext *context_label_alarm_colon;
-GtkStyleContext *context_spin_button_alarm_hour;
-GtkStyleContext *context_spin_button_alarm_minutes; 
-GtkStyleContext *context_box_alarm_time; 
-GtkStyleContext *context_check_button_alarm_notification;
-//new css provider 
-cssProvider = gtk_css_provider_new(); 
-gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(label_alarm_info), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(label_alarm_time), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(label_alarm_colon), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_hour), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_minutes), "cssView");
-gtk_widget_set_name (GTK_WIDGET(box_alarm_time), "cssView");
-gtk_widget_set_name (GTK_WIDGET(check_button_alarm_notification), "cssView");
-
-gchar *size_str = g_strdup_printf("%i", m_font_size); 
-size_str =g_strconcat(size_str,"px;", NULL); 
-gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
-gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
-  
-// get GtkStyleContext from widget 
-context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));  
-context_label_alarm_info = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_info)); 
-context_label_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_time)); 
-context_label_alarm_colon= gtk_widget_get_style_context(GTK_WIDGET(label_alarm_colon)); 
-context_spin_button_alarm_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_hour));
-context_spin_button_alarm_minutes= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_minutes));
-context_box_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(box_alarm_time));
-context_check_button_alarm_notification= gtk_widget_get_style_context(GTK_WIDGET(check_button_alarm_notification));
-
-
-gtk_style_context_add_provider(context_dialog,    
-							GTK_STYLE_PROVIDER(cssProvider), 
-							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
- 
-gtk_style_context_add_provider(context_label_alarm_info,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_label_alarm_time,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_label_alarm_colon,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-gtk_style_context_add_provider(context_spin_button_alarm_hour,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                           
-
-gtk_style_context_add_provider(context_spin_button_alarm_minutes,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-             
-gtk_style_context_add_provider(context_box_alarm_time,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_check_button_alarm_notification,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
-  
-//--------------------------------------------------------------
-// Dialog PACKING
-//--------------------------------------------------------------  
-container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));
-gtk_container_add(GTK_CONTAINER(container),label_alarm_info);
-gtk_container_add(GTK_CONTAINER(container),box_alarm_time);			
-gtk_container_add(GTK_CONTAINER(container),check_button_alarm_notification);	
-gtk_widget_show_all(GTK_WIDGET(dialog));      
-
-response = gtk_dialog_run(GTK_DIALOG(dialog));  
-   
-  
-  switch (response)
-  {
-  case 1: //OK
-  //get alarm time
-  //g_print("OK pressed\n");
- 
- 
-  m_alarm_hour=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_hour));
-  m_alarm_min=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_minutes));  
-  //g_print("Alarm Time = %d:%d\n",m_alarm_hour, m_alarm_min);
-  
-  m_alarm_notification =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_alarm_notification));
-    
-  config_write();
-  
-  gtk_widget_destroy(GTK_WIDGET(dialog));
-  break;	 
-  
-  case 2: //cancel pressed 
-  //g_print("Cancel pressed\n");
-  gtk_widget_destroy(GTK_WIDGET(dialog));	 
-  break;	  
-  default:
-  gtk_widget_destroy(GTK_WIDGET(dialog));
-  break;
-  
-  } //switch
-  
- 
-}
-
-//--------------------------------------------------------------
-
-static void talkcalendar_options_dialog(GtkWidget *widget) {
-	
-  GtkWidget *window = (GtkWidget *) widget;
-   
-   
-  if( !GTK_IS_WINDOW(window)) {	  	 
-	  return;
-  }
-  config_read();
-  
-  GtkWidget *dialog;    
-  GtkWidget *container;	
-  
-  GtkWidget *check_button_talk; //enable talk 
-  GtkWidget *check_button_talk_startup; //enable talk startup   
-  GtkWidget *check_button_talk_title; //enable title talk
-  GtkWidget *check_button_talk_time; //enable title talk  
-  GtkWidget *check_button_talk_priority; //enable priority talk 
-  GtkWidget *check_button_talk_description; //enable talk  description 
-  GtkWidget *check_button_holidays; //show public holidays on calendar
+   if(month==emmonth)
+   {
+	   gtk_calendar_mark_day(calendar,emonday);
+   } 
       
-  //calendar font selector	
-  GtkWidget *label_font;
-  GtkWidget *combo_box_font;
-    
-  GtkWidget *label_font_size;
-  GtkWidget *spin_button_font_size; 
-  
-  GtkWidget *box_font;
-  
-  gint response;
-  
-  
-  //Create dialog
-    dialog= gtk_dialog_new(); 
-    gtk_window_set_title (GTK_WINDOW (dialog), "Options"); 
-    g_signal_connect_swapped(dialog,"close",G_CALLBACK(options_close_callbk),dialog);//escape close
-    gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
-   
-    gtk_widget_set_size_request(dialog, 300,200);
-    gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
-    gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
-    gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
+   if (month==12) {
+	   
+	  gtk_calendar_mark_day(calendar, 25); //christmas day
+	  gtk_calendar_mark_day(calendar, 26); //boxing
+	}   
+}
 
-	label_font =gtk_label_new("Font: ");  
-	/* Create the combo box and append your string values to it. */
-    combo_box_font = gtk_combo_box_text_new ();
-    const char* font_options[] = { 
-	"Courier", 
-	"Sans",	
-	"Serif",
-	};
-	
-	
-	/* G_N_ELEMENTS is a macro which determines the number of elements in an array.*/ 
-	for (int i = 0; i < G_N_ELEMENTS (font_options); i++){
-	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo_box_font), font_options[i]);
-	}
-	
-		gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),0);	
-	
-	
-	if (g_strcmp0(m_font_str,"courier;")==0) {		
-	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),0);
-	}
-	if (g_strcmp0(m_font_str,"sans;")==0) {		
-	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),1);
-	}
-	if (g_strcmp0(m_font_str,"serif;")==0) {		
-	gtk_combo_box_set_active (GTK_COMBO_BOX (combo_box_font),2);
-	}
-	
-	//Font size
-	label_font_size =gtk_label_new("Font Size:");
-	
-	spin_button_font_size = gtk_spin_button_new_with_range(12.0,40.0,1.0); //12-40px	
-	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_font_size),0);
-	gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_font_size),1.0,2.0);
-	//gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_font_size),22.0);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_font_size),m_font_size);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_font_size),TRUE);		
-	
-	
-	box_font=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-	gtk_box_pack_start(GTK_BOX(box_font),label_font,FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(box_font),combo_box_font,TRUE, TRUE, 5);
-	
-	gtk_box_pack_start(GTK_BOX(box_font),label_font_size,FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(box_font),spin_button_font_size,TRUE, TRUE, 5);	
-	
-	GtkWidget *box_talk_options;
-	
-	check_button_talk_startup = gtk_check_button_new_with_label ("Talk At Startup");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_startup), m_talk_at_startup); 
-	
-	check_button_talk_title = gtk_check_button_new_with_label ("Talk Title");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_title), m_talk_title); 
-	
-	check_button_talk_time = gtk_check_button_new_with_label ("Talk Time");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_time), m_talk_time); 
-	
-	check_button_talk_description = gtk_check_button_new_with_label ("Talk Description");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_description), m_talk_description); 
-			
-	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_priority), m_talk_priority); 
-	
-	check_button_holidays = gtk_check_button_new_with_label ("Show Public Holidays");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_holidays), m_holidays);
-	
-	box_talk_options = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_title, FALSE, FALSE, 10);
-	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_time, FALSE, FALSE, 10);
-	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_description, FALSE, FALSE, 10);
-	gtk_box_pack_start(GTK_BOX(box_talk_options),check_button_talk_priority,TRUE, TRUE, 0);	
-	
-	check_button_talk = gtk_check_button_new_with_label ("Enable Talking");	
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk); 
-	
-	if(m_talk) {
-		gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
-	    gtk_widget_set_sensitive(check_button_talk_title,TRUE);
-	    gtk_widget_set_sensitive(check_button_talk_time,TRUE);	    
-	    gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
-	    gtk_widget_set_sensitive(check_button_talk_description,TRUE);
-	    
-	}
-	else {
-		gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
-	    gtk_widget_set_sensitive(check_button_talk_title,FALSE);
-	    gtk_widget_set_sensitive(check_button_talk_time,FALSE);	    
-	    gtk_widget_set_sensitive(check_button_talk_priority,FALSE);	
-	    gtk_widget_set_sensitive(check_button_talk_description,FALSE);	    
+
+
+
+//---------------------------------------------------------------------
+// calendar month changed callback
+//---------------------------------------------------------------------
+
+static void callbk_calendar_month_changed(GtkCalendar *calendar, gpointer user_data) {
 	  
-	}
-	
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_startup_key",check_button_talk_startup);
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_title_key",check_button_talk_title);
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_time_key",check_button_talk_time);	
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_priority_key",check_button_talk_priority);
-	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_description_key",check_button_talk_description);
-		
-	//g_signal_connect (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", G_CALLBACK (check_button_talk_toggled_callbk), NULL);
-	g_signal_connect_swapped (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", 
-						G_CALLBACK (check_button_talk_toggled_callbk), check_button_talk);
-	
-	
-//---------------------------------------------------------------
-// Font size
-//----------------------------------------------------------------
-
-GtkCssProvider *cssProvider;
-
-GtkStyleContext *context_dialog;
- 
-GtkStyleContext *context_label_font;
-GtkStyleContext *context_combo_box_font;
-GtkStyleContext *context_label_font_size;
-GtkStyleContext *context_spin_button_font_size;
-GtkStyleContext *context_box_font;
-
-//check buttons
-GtkStyleContext *context_check_button_talk; //enable talk 
-GtkStyleContext *context_check_button_talk_startup; //enable talk startup 
-GtkStyleContext *context_box_talk_options;  
-GtkStyleContext *context_check_button_talk_title; //enable title talk
-GtkStyleContext *context_check_button_talk_time; //enable title talk  
-GtkStyleContext *context_check_button_talk_priority; //enable priority talk 
-GtkStyleContext *context_check_button_talk_description; //enable p description talk  
-GtkStyleContext *context_check_button_holidays; //show public holidays on calendar
-   
-    
-//new css provider 
-cssProvider = gtk_css_provider_new(); 
-gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(label_font), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(combo_box_font), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(label_font_size), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(spin_button_font_size), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(box_font), "cssView");
-
-
-//check buttons
-gtk_widget_set_name (GTK_WIDGET(check_button_talk), "cssView");
-gtk_widget_set_name (GTK_WIDGET(check_button_talk_startup), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(box_talk_options), "cssView");  
-gtk_widget_set_name (GTK_WIDGET(check_button_talk_title), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(check_button_talk_time), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(check_button_talk_priority), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(check_button_talk_description), "cssView"); 
-gtk_widget_set_name (GTK_WIDGET(check_button_holidays), "cssView"); 
-
-
-gchar *size_str = g_strdup_printf("%i", m_font_size); 
-size_str =g_strconcat(size_str,"px;", NULL); 
-gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
-gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
- 
-// get GtkStyleContext from widget 
-context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));  
-context_label_font = gtk_widget_get_style_context(GTK_WIDGET(label_font)); 
-context_combo_box_font= gtk_widget_get_style_context(GTK_WIDGET(combo_box_font)); 
-context_label_font_size= gtk_widget_get_style_context(GTK_WIDGET(label_font_size));
-context_spin_button_font_size= gtk_widget_get_style_context(GTK_WIDGET(spin_button_font_size));
-context_box_font = gtk_widget_get_style_context(GTK_WIDGET(box_font));
-
-
-context_check_button_talk= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk));  
-context_check_button_talk_startup = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_startup));
-context_box_talk_options= gtk_widget_get_style_context(GTK_WIDGET(box_talk_options)); 
-context_check_button_talk_title = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_title));
-context_check_button_talk_time = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_time));
-context_check_button_talk_priority= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_priority));
-context_check_button_talk_description= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_description));
-context_check_button_holidays= gtk_widget_get_style_context(GTK_WIDGET(check_button_holidays));;
-
-
-
-// finally load style provider 
-gtk_style_context_add_provider(context_dialog,    
-							GTK_STYLE_PROVIDER(cssProvider), 
-							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
- 
-gtk_style_context_add_provider(context_label_font,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_combo_box_font,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_label_font_size,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-gtk_style_context_add_provider(context_spin_button_font_size,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                           
-
-gtk_style_context_add_provider(context_box_font,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-//checkboxes
-gtk_style_context_add_provider(context_check_button_talk,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-gtk_style_context_add_provider(context_check_button_talk_startup,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_box_talk_options,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
-                             
-gtk_style_context_add_provider(context_check_button_talk_title,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
-
-gtk_style_context_add_provider(context_check_button_talk_time,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-gtk_style_context_add_provider(context_check_button_talk_description,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
-             
-gtk_style_context_add_provider(context_check_button_talk_priority,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_check_button_holidays,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                
-	
-
-		
-//--------------------------------------------------------------
-// Dialog PACKING
-//--------------------------------------------------------------  
-container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));			
-
-gtk_container_add(GTK_CONTAINER(container),check_button_talk);
-gtk_container_add(GTK_CONTAINER(container),check_button_talk_startup);	
-gtk_container_add(GTK_CONTAINER(container),box_talk_options);
-gtk_container_add(GTK_CONTAINER(container),box_font);		
-gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
-		
-gtk_widget_show_all(GTK_WIDGET(dialog));      
-response = gtk_dialog_run(GTK_DIALOG(dialog));  
-    
-  
-  switch (response)
-  {
-  case 1:
-  
-  m_talk =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk));
-  m_talk_at_startup=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_startup));
-  m_talk_time =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_time));
-  m_talk_description=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_description));
-  m_talk_priority =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_priority));
-  
-  
-  gint active_id = gtk_combo_box_get_active (GTK_COMBO_BOX(combo_box_font));
-  
-	  switch (active_id)
-	  {
-		  case 0:
-		  m_font_str="courier;"; 
-		  break;
-		  case 1:
-		  m_font_str="sans;";
-		  break;
-		  case 2:
-		  m_font_str="serif;";
-		  break;		 	  
-	  }
-  m_font_size =gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_font_size));
- 
-  change_calendar_font_size(window);
-  
-  m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
-  
-  config_write();
-  
-  gtk_widget_destroy(GTK_WIDGET(dialog));	 
-  break;	 
-  
-  case 2: //cancel pressed  
-  gtk_widget_destroy(GTK_WIDGET(dialog));	 
-  break;	  
-  default:
-  gtk_widget_destroy(GTK_WIDGET(dialog));
-  break;
-} 	
-}
-
-gchar* num_chars_only(const char* cstr)
-{    
-const char* c;
-gchar* ret_val;
-GString* s = g_string_new("");
-	//c strings terminated by a null character '\0'
-	for ( c = cstr; *c != '0'; c = g_utf8_next_char(c) ) 
-	{
-	    gunichar cp = g_utf8_get_char(c); 
-		if ( cp == 0 ) break;		
-		if (g_unichar_isdigit(cp)) // allow numbers	
-		{ 	 
-		g_string_append_unichar( s, cp);
-		} 
-	} 
-ret_val = s->str;
-g_string_free(s, FALSE);
-return ret_val; 
-}
-
-//--------------------------------------------------------
-// Go to today
-//---------------------------------------------------------
-
-static void callbk_gotoday(GSimpleAction *action, G_GNUC_UNUSED  GVariant  *parameter,	gpointer window)
-{
-
-GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key");
-
-GDateTime *dt;  
-gchar *dt_format;  
-dt = g_date_time_new_now_local();
-
-gint year = g_date_time_get_year(dt);
-gint month =g_date_time_get_month(dt);    
-gint day = g_date_time_get_day_of_month(dt); 
-dt_format = g_date_time_format(dt, "%a %e %b %Y"); 
-gtk_label_set_xalign(GTK_LABEL(label_date),0.5);
-gtk_label_set_text(GTK_LABEL(label_date), dt_format); 
-
-gtk_calendar_select_month (calendar, month-1, year);
-gtk_calendar_select_day (calendar, day);
-reload_events(window, year, month,day);
-
-//mark_holidays_on_calendar(calendar);
-//gtk_calendar_set_date(GTK_CALENDAR (calendar), &year, &month, &day);
-
-g_date_time_unref (dt);
-
-}
-
-//---------------------------------------------------------------
-// thread speak funtion
-//---------------------------------------------------------------
-
-static gpointer thread_speak_func(gpointer user_data)
-{ 
-	gchar *text =user_data;
-    g_print("speaking message = %s\n", text);
-	
-	//gchar* text ="Thursday sixteenth September 2021. Dentist Appointment";	
-	//g_print("Speak: %s\n",text);    
-    
-    cst_voice *voice;
-  
-    flite_init();
-   
-    voice = register_cmu_us_kal(NULL);
+   guint day, month, year;
+   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);    
+   gtk_calendar_clear_marks(GTK_CALENDAR (calendar)); 
         
-    flite_text_to_speech(text,voice,"play");
-           
-    g_print("Speak: finished\n");
-	
-	g_mutex_unlock (&lock); //thread mutex unlock 
-	return NULL;
-}
-
-
-
-//--------------------------------------------------------------------
-// audio test callback
-//--------------------------------------------------------------------
-static void audio_callbk(GSimpleAction *action,
-							G_GNUC_UNUSED  GVariant      *parameter,
-							  gpointer       user_data){
-	
-	 GThread *thread_speak; 
-	
-	//gchar* message_speak ="Friday seventeenth September 2021. No Events. ";
-	gchar* message_speak ="Talk Calendar. Version. 1.3.";    
+   if(m_holidays) mark_holidays_on_calendar(calendar, month+1,year); //option
+   
+   gint row_number = db_get_number_of_rows_month_year(month+1, year);
+  
 		
-	if(m_talk) {	
-	g_mutex_lock (&lock);
-    thread_speak = g_thread_new(NULL, thread_speak_func, message_speak);   
-	}
+	Event event_array[row_number];		 
+	db_get_all_events_year_month(event_array, year, month+1, row_number);
+	 //mark up calendar
+	Event evt;	
+	for(int i=0; i<row_number; i++) {		
+		evt=event_array[i];		//
+		guint day = evt.day;
+		if  (evt.isYearly == 0)	{	
+		gtk_calendar_mark_day(calendar, day);
+		}
+	} 	 
+  
+   //Now fetch the isYearly events    
+   
+   gint isyearly_number = db_get_number_of_isyearly_events_month(month+1);
+      
+   Event isyearly_array[isyearly_number];	
+   db_get_isyearly_events_month(isyearly_array, month+1, isyearly_number);
 	
-	g_thread_unref (thread_speak);	
-	
-	
-	g_print("audio callback -version\n");	
-		
+	 // mark up calendar
+	Event evty;	
+	for(int i=0; i<isyearly_number; i++) {		
+		evty=isyearly_array[i];	
+		evty.year=year;	
+		guint rday = evty.day;
+		gtk_calendar_mark_day(calendar, rday);
+	} 
+  
 }
 //---------------------------------------------------------------------
+// calendar double clicked callback
+//---------------------------------------------------------------------
+static void callbk_calendar_day_double_click(GtkCalendar *calendar, gpointer user_data)
+{
+   guint day, month, year;
+   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);    
+   
+   GtkWidget *window = (GtkWidget *) user_data;
+   
+   if( !GTK_IS_WINDOW(window)) { 
+	  return;
+  }
+  
+  talkcalendar_new_event(window, year, month+1, day);
+  
+}
+
+//---------------------------------------------------------------------
+// calendar clicked  callback
+//---------------------------------------------------------------------
+static void callbk_calendar_day_clicked(GtkCalendar *calendar, gpointer user_data)
+{
+    
+   //calendar day clicked   
+   GtkWidget *window = (GtkWidget *) user_data;
+   
+   if( !GTK_IS_WINDOW(window)) { 
+   return;
+   }
+     
+  GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key"); 
+ 
+   guint day, month, year;
+   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);
+    
+    GDateTime *dt;
+    //dt =g_date_time_new_now_local();
+    gchar *dt_str;
+    dt = g_date_time_new_local(year,month+1,day,0,0,0.0);   // get date    
+    dt_str = g_date_time_format(dt, "%a %e %b %Y");	
+    gtk_label_set_xalign(GTK_LABEL(label_date),0.5); //add date to label    	
+	
+	if(m_holidays) { //check for holidays	
+	
+	//Check for new year, easter and christmas
+    if(month+1==1 && day==1)
+    {
+    dt_str=g_strconcat(dt_str, " New year",NULL);
+    }
+    
+    GDate *edate =calculate_easter(year); 
+    gint eday = g_date_get_day(edate);
+    gint emonth =g_date_get_month(edate);
+    
+    if(month+1==emonth && day==eday)
+    {
+    dt_str=g_strconcat(dt_str, " Easter",NULL); 
+    }
+    
+    g_date_subtract_days(edate,2);
+    gint efday = g_date_get_day(edate); //easter friday
+    gint efmonth =g_date_get_month(edate); 
+	
+	if(month+1==efmonth && day==efday)
+	{
+	dt_str=g_strconcat(dt_str, " Easter Friday",NULL);
+	}
+	
+	//GDate *edate2 =calculateEaster(year); 
+	g_date_add_days(edate,3);
+	gint emonday = g_date_get_day(edate); //easter monday
+	gint emmonth =g_date_get_month(edate); 
+    
+	if(month+1==emmonth && day==emonday)
+	{
+	dt_str=g_strconcat(dt_str, " Easter Monday",NULL);
+	} 
+	
+    if(month+1 ==12 && day==25) {
+    dt_str=g_strconcat(dt_str, " Christmas",NULL);
+	}
+    if(month+1 ==12 && day==26) {
+    dt_str=g_strconcat(dt_str, " Boxing Day",NULL);
+	}
+	} //m_holidsays	
+	
+	gtk_label_set_text(GTK_LABEL(label_date), dt_str); 
+    
+   	//get all day events from database
+	
+	gint n_regular_events = db_get_number_of_rows_year_month_day(year, month+1, day);    
+	gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month+1);   
+	gint n_isyearly_day_events=0;
+	
+	Event isyearly_array[n_isyearly_month_events];
+		 
+	db_get_isyearly_events_month(isyearly_array, month+1, n_isyearly_month_events);
+	Event e1;	
+	for(int i=0; i<n_isyearly_month_events; i++) {		
+	e1=isyearly_array[i];
+	if(e1.day == day && e1.year!=year){	
+	n_isyearly_day_events=n_isyearly_day_events+1;
+	}
+	}
+	
+	gint total_number_events = n_regular_events+n_isyearly_day_events;
+	
+	//Now create total event array i.e. contains regular plus isyearly events
+	Event* event_array_total = NULL;	
+	event_array_total = malloc(total_number_events * sizeof(Event));
+	
+	Event event_array[n_regular_events]; //regular event array
+	db_get_all_events_year_month_day(event_array, year, month+1, day, n_regular_events);
+	
+	int count=0;  //event array total count
+	
+	for(int i=0; i<n_regular_events; i++) {	//add regular events to total		
+	event_array_total[count] = event_array[i];
+	count =count+1;
+	if(count>total_number_events)
+	{
+	g_print("fatal error: malloc over run\n");
+	break;
+	}
+	}	
+	//now add yearly events
+	for(int i=0; i<n_isyearly_month_events; i++) {		
+	Event e2=isyearly_array[i];
+	if(e2.day == day && e2.year!=year){			
+    event_array_total[count] = isyearly_array[i];
+	count =count+1;
+	if(count>total_number_events)
+	{
+	g_print("fatal error: malloc over run\n");
+	break;
+	}
+	}
+	}	 
+		
+   GtkTreeView *treeview =g_object_get_data(G_OBJECT(window), "treeview-key");
+   //remove all and recreate view
+	remove_all(treeview);
+	
+	//change the model data not the view which exists
+	GtkTreeModel *model;	
+	model =create_and_fill_model(event_array_total,total_number_events);
+	//connect the model to the view  
+    gtk_tree_view_set_model(GTK_TREE_VIEW(treeview), model);
+    //g_object_unref(model); unref error!!!	
+	gtk_widget_show_all(window);
+}
+
+
+static void callbk_home(GSimpleAction * action, GVariant *parameter, gpointer user_data){
+	
+	 GtkWindow *window = GTK_WINDOW (gtk_widget_get_ancestor (GTK_WIDGET (user_data),
+                                                 GTK_TYPE_WINDOW));
+   
+   if( !GTK_IS_WINDOW(window)) {	   	
+       return;
+   }
+	
+   GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
+   GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key"); 
+   
+   GDateTime *dt; 
+   gchar *dt_format;
+   dt = g_date_time_new_now_local();   // get local time     
+   dt_format = g_date_time_format(dt, "%a %e %b %Y");	   
+   
+   gtk_label_set_xalign(GTK_LABEL(label_date),0.5);
+   gtk_label_set_text(GTK_LABEL(label_date), dt_format); 	
+   
+   gint year = g_date_time_get_year(dt);
+   gint month =g_date_time_get_month(dt);    
+   gint day = g_date_time_get_day_of_month(dt); 
+      
+   gtk_calendar_select_month (calendar, month-1, year);	   
+   gtk_calendar_select_day (calendar, day);	   
+  
+   g_date_time_unref(dt); 
+}
 
 static void speak_events_at_date(GtkCalendar *calendar) {
 	
-	g_print("Speak events at date\n");
-	
+		
 	guint day, month, year;
 	
 	gchar *dow_str=""; //day of week
@@ -1255,14 +810,10 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	GDateMonth month_enum;
 	
 	gchar *speak_str;
-    speak_str ="";
-   
+    speak_str ="";   
 		
     gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);
-    
-    g_print("read  for events day= %d month = %d year = %d\n", day, month+1,year);
-   
-   
+       
    date =g_date_new_dmy (day,month+1,year); 
    weekday= g_date_get_weekday(date);
       	
@@ -1469,7 +1020,6 @@ static void speak_events_at_date(GtkCalendar *calendar) {
     
     //regular events
     gint n_regular_events = db_get_number_of_rows_year_month_day(year, month+1, day);    
-    //g_print("Speak events: number of regular events = %d\n",n_regular_events);    
     
     //repeat yearly events
     gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month+1);    
@@ -1479,21 +1029,16 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	gint n_isyearly_day_events=0;
 	for(int i=0; i<n_isyearly_month_events; i++) {		
     evty=isyearly_array[i];
-    if(evty.day == day && evty.year!=year){			
-    //g_print("Speak events: isyearly event for day %d and year %d\n",evty.day,year);
+    if(evty.day == day && evty.year!=year){	
     n_isyearly_day_events=n_isyearly_day_events+1;
     }
 	}
    
-    //if(n_isyearly_day_events>0)  g_print("Speak events: n_isyearly_day_events = %d\n", n_isyearly_day_events); 
-    //else g_print("Speak events: n_isyearly_day_events = 0\n");
-    
     gint total_number_events = n_regular_events+n_isyearly_day_events;
-    g_print("total_number_events = %d\n", total_number_events);
+   
     gchar* event_num_str;
     
-    if (total_number_events ==0) {		
-    //g_print("Speak events: No  events today\n");
+    if (total_number_events ==0) {	
         event_num_str="no events";  
 	} //if
 	
@@ -1520,8 +1065,6 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	speak_str= g_strconcat(speak_str, event_num_str, " ", NULL); 
 	
 	//Get total event array i.e. regular plus isyearly events
-	
-	
 	Event* event_array_total = NULL;	
 	event_array_total = malloc(total_number_events * sizeof(Event));
 	Event event_array[n_regular_events]; //regular event array
@@ -1553,8 +1096,6 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 	}
 	
 	//TALK event details
-    
-  
     
 	Event evt;	
 		
@@ -1599,9 +1140,7 @@ static void speak_events_at_date(GtkCalendar *calendar) {
 		} //if talk priority
 		
 		}	//for total events
-    
-     
-     
+  
      //free
      free(event_array_total);  
       
@@ -1611,65 +1150,539 @@ static void speak_events_at_date(GtkCalendar *calendar) {
     thread_speak = g_thread_new(NULL, thread_speak_func, speak_str);   
 	}	
 	g_thread_unref (thread_speak);	
-      
-   
 	
 }
 
 
-
-//---------------------------------------------------------------------
-
-
-//------------------------------------------------------------------
-// Read events
 //-------------------------------------------------------------------
-static void callbk_read_events(GSimpleAction *action,
-							G_GNUC_UNUSED  GVariant      *parameter,
-							  gpointer       window)
-{
-			
-	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-		
-    if(m_talk) {
-       speak_events_at_date(calendar);
-	}
-	   
-}
+// speak callback
+//--------------------------------------------------------------------
 
-//--------------------------------------------------------------------
-// Options callback
-//--------------------------------------------------------------------
-static void options_callbk(GSimpleAction *action,
-							G_GNUC_UNUSED  GVariant      *parameter,
-							  gpointer       user_data){
+static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer user_data){
 	
-	GtkWidget *window = (GtkWidget *) user_data;
+		
+	GtkWidget *window = gtk_widget_get_toplevel (user_data);
+	
+	if (!GTK_IS_WINDOW (window))
+    {      
+      return; 
+    }
    
-   if( !GTK_IS_WINDOW(window)) { 
-	  return;
-  }
+	GtkWidget *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+	speak_events_at_date(GTK_CALENDAR(calendar));
+}
+
+
+//---------------------------------------------------------------------
+// exit callback
+//---------------------------------------------------------------------
+
+static void callbk_quit(GSimpleAction * action,
+							G_GNUC_UNUSED GVariant      *parameter,
+							              gpointer       user_data)
+{
 	
-		
-	talkcalendar_options_dialog(window);
+	g_application_quit(G_APPLICATION(user_data));
 	
+}
+//---------------------------------------------------------------------
+// export callback
+//---------------------------------------------------------------------
+static void callbk_export(GSimpleAction * action,
+							G_GNUC_UNUSED GVariant      *parameter,
+							              gpointer       user_data)
+{
 		
+	GtkWidget *dialog; 
+	GtkFileFilter *filter1, *filter2;   
+    gchar *filename;
+    gchar *csv_str;
+    csv_str="";
+        
+    gint row_count_all = db_get_number_of_rows_all();
+    
+   if (row_count_all ==0) {	
+		return;
+	}
+	
+	else {			
+	 Event event_array[row_count_all];		 
+	 db_get_all_events(event_array,row_count_all);
+	 
+	 Event evt;	
+	 for(int i=0; i<row_count_all; i++) {		
+		evt=event_array[i];	
+		
+	    gchar *priority_str = g_strdup_printf("%i", evt.priority);	   
+	    gchar *year_str = g_strdup_printf("%i", evt.year);
+		gchar *month_str = g_strdup_printf("%i", evt.month);
+		gchar *day_str = g_strdup_printf("%i", evt.day);
+		gchar *start_hour_str = g_strdup_printf("%i", evt.startHour);
+		gchar *start_min_str = g_strdup_printf("%i", evt.startMin);
+		gchar *end_hour_str = g_strdup_printf("%i", evt.endHour);
+		gchar *end_min_str = g_strdup_printf("%i", evt.endMin);
+		gchar *is_yearly_str = g_strdup_printf("%i", evt.isYearly);
+		gchar *is_allday_str = g_strdup_printf("%i", evt.isAllday);
+	    
+		csv_str= g_strconcat(csv_str, 
+		evt.title, ",", 
+		priority_str,",",
+		evt.description, ",",
+		year_str,",",
+		month_str,",",
+		day_str,",",
+		start_hour_str,",",
+		start_min_str,",",
+		end_hour_str,",",
+		end_min_str,",",
+		is_yearly_str,",",
+		is_allday_str,"\n", //terminate with new line	
+		NULL);
+		
+	  }//for i events	
+	
+     }
+    
+    dialog = gtk_file_chooser_dialog_new ("Save",
+									NULL,
+									GTK_FILE_CHOOSER_ACTION_SAVE,                      
+									"_Cancel", GTK_RESPONSE_CANCEL,
+									"_Save", GTK_RESPONSE_ACCEPT, 
+									NULL);
+									
+    // gtk_window_set_default_size (GTK_WINDOW (dialog), 220, 200);   
+    
+    filter1 = gtk_file_filter_new();
+    filter2 = gtk_file_filter_new();
+    
+    gtk_file_filter_add_pattern(filter1, "*.csv");
+    gtk_file_filter_set_name(filter1, "Comma Separated Values (*.csv)");
+   
+    
+    gtk_file_filter_add_pattern(filter2, "*.*");
+    gtk_file_filter_set_name (filter2, "All Files (*.*)");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);    
+    
+    // default file name
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "filename.csv");
+    gtk_widget_show_all(dialog);
+    
+    gint resp = gtk_dialog_run(GTK_DIALOG(dialog));
+    
+    if (resp == GTK_RESPONSE_ACCEPT){		
+   
+    filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+   
+	
+   
+    g_file_set_contents (filename, csv_str, -1,NULL);
+    
+    //g_free (text); //core dumped invalid pointer
+    g_free (filename);
+    
+	}
+    else{    
+    //gtk_widget_destroy(GTK_WIDGET(dialog));
+	}
+    gtk_widget_destroy(GTK_WIDGET(dialog));
+	
+}
+
+//---------------------------------------------------------------------
+// import callback
+//---------------------------------------------------------------------
+static void callbk_import(GSimpleAction * action,
+							G_GNUC_UNUSED GVariant      *parameter,
+							              gpointer       user_data)
+{
+		
+	GtkCalendar *calendar =user_data;
+	
+	gchar *file_name = NULL;        // Name of file to open from dialog box
+    gchar *file_contents = NULL;    // For reading contents of file
+    gboolean file_success = FALSE;  // File read status
+    GtkWidget *dialog; 
+    GtkFileFilter *filter1, *filter2;
+    GtkTextIter start, end;
+    GtkTextBuffer *textbuffer;
+    textbuffer = gtk_text_buffer_new (NULL);
+    gchar *text; 
+     
+       
+     dialog = gtk_file_chooser_dialog_new ("Open",
+                      NULL,
+                      GTK_FILE_CHOOSER_ACTION_OPEN,
+                      "_Cancel", GTK_RESPONSE_CANCEL,                      
+                      "_Open", GTK_RESPONSE_ACCEPT,                      
+                      NULL);
+                      
+	  filter1 = gtk_file_filter_new();
+	  filter2 = gtk_file_filter_new();    
+	  gtk_file_filter_add_pattern(filter1, "*.csv");
+	  gtk_file_filter_set_name(filter1, "Comma Separated Values (*.csv)");
+	  gtk_file_filter_add_pattern(filter2, "*.*");
+	  gtk_file_filter_set_name (filter2, "All Files (*.*)");
+	  gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter1);
+	  gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter2);   
+	  
+	  
+	  gtk_widget_show_all(dialog);
+	  
+	  gint resp = gtk_dialog_run(GTK_DIALOG(dialog));
+	  
+    if (resp == GTK_RESPONSE_ACCEPT){
+				
+		file_name = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		
+		if (file_name != NULL) {
+            
+            //g_file_get_contents(filename, &contents, &length, &error)
+            // Copy the contents of the file to dynamically allocated memory
+            file_success = g_file_get_contents(file_name, &file_contents, NULL, NULL);
+            if (file_success) {
+                // Put the contents of the file into the GtkTextBuffer
+                gtk_text_buffer_set_text(textbuffer, file_contents, -1);
+               
+				gtk_text_buffer_get_bounds(textbuffer, &start, &end);
+				text = gtk_text_buffer_get_text(textbuffer, &start, &end, FALSE);  
+				
+				gint line_count = gtk_text_buffer_get_line_count(textbuffer)-1;  //-1
+			   			   
+			   //Create event array with line count
+			    Event event_array[line_count]; 
+				
+				gchar **lines = g_strsplit (text, "\n", -1);
+				
+				for (int i = 0; lines[i] != NULL; i++) {					
+					if (lines[i][0] == '\0') continue; //ignore blank lines	
+					//create an event from line and store
+					//Event e;   
+			   Event e; 
+			   gchar** items = g_strsplit (lines[i],",",-1);
+			   
+			   gint j=0;			   
+			   while(items[j] != NULL)
+			   {			   		   
+			   if (j==0) {			 
+			   strcpy(e.title,items[0]);
+			   }
+			   else if(j==1) {			 		   
+			   gint priority_num = -1;
+			   priority_num = atoi(items[1]);			   
+			   e.priority=priority_num;			   
+			   }
+			   else if(j==2) {			   
+			   strcpy(e.description,items[2]);
+			   }
+			   else if(j==3) {			  
+			   gint year = -1;
+			   year = atoi(items[3]);
+			   e.year=year;   
+			   }
+			   else if(j==4) {			   
+			   gint month = -1;
+			   month = atoi(items[4]);
+			   e.month=month;			   			 				   
+			   }
+			   else if(j==5) {				  
+			   gint day = -1;
+			   day= atoi(items[5]);				  
+			   e.day=day;				   
+			   }
+			   else if(j==6) {				  
+			   gint startHour = -1;
+			   startHour= atoi(items[6]);				  
+			   e.startHour=startHour;				   
+			   }
+			   else if(j==7) {				  
+			   gint startMin = -1;
+			   startMin= atoi(items[7]);				  
+			   e.startMin=startMin;				   
+			   }
+			   else if(j==8) {				  
+			   gint endHour = -1;
+			   endHour= atoi(items[8]);				  
+			   e.endHour=endHour;				   
+			   }
+			   else if(j==9) {				  
+			   gint endMin = -1;
+			   endMin= atoi(items[9]);
+			   e.endMin= endMin;				   
+			   }
+			   else if(j==10) {				  
+			   gint isYearly = -1;
+			   isYearly= atoi(items[10]);
+			   e.isYearly= isYearly;				   
+			   }
+			   else if(j==11) {				  
+			   gint isAllday= -1;
+			   isAllday= atoi(items[11]);				  
+			   e.isAllday=isAllday;				   
+			   }
+			   j++;		
+			   } //while j
+			   //insert event e into db
+			   event_array[i]=e;					
+			} //for lines[i]	
+			          
+            Event evt;	
+			for(int k=0; k<line_count; k++) {		
+			evt=event_array[k];			
+			db_insert_event_struct(evt);
+			} //for k   
+		   g_free(file_contents);	
+	    }//if success
+	   g_free(file_name); 
+	}//file name not null
+	} //response Accept
+	else {
+		;
+		gtk_widget_destroy(GTK_WIDGET(dialog));
+		return;
+	}
+	
+
+   guint cday, cmonth, cyear;
+   gtk_calendar_get_date(GTK_CALENDAR (calendar), &cyear, &cmonth, &cday);
+      
+   gtk_calendar_clear_marks(GTK_CALENDAR (calendar));  
+   gint row_number = db_get_number_of_rows_month_year(cmonth+1, cyear); 	
+   if (row_number ==0) {
+		return;
+	}
+	else { 
+	 Event event_array[row_number];		 
+	 db_get_all_events_year_month(event_array, cyear, cmonth+1, row_number);
+	 //mark up calendar
+	 Event evtmarkup;	
+	for(int i=0; i<row_number; i++) {		
+		evtmarkup=event_array[i];		//
+		guint dday = evtmarkup.day;		
+		gtk_calendar_mark_day(calendar, dday);
+	} 	 
+   }
+      
+   gtk_widget_destroy(GTK_WIDGET(dialog));  
+	
+}
+
+static void callbk_font(GSimpleAction* action, GVariant *parameter,gpointer user_data)
+{
+		
+	GtkWidget *window = gtk_widget_get_toplevel (user_data);
+	
+	if (!GTK_IS_WINDOW (window))
+    {      
+      return;      
+    }
+	
+	GtkWidget *font_chooser = NULL;	
+	const gchar* font_str;	
+	PangoFontDescription *font_desc = NULL;
+	
+	font_chooser = gtk_font_chooser_dialog_new("Select Font", NULL);
+	
+	const gchar* current_font_str=m_font_family;	
+	gchar *size_str = g_strdup_printf("%i", m_font_size);  	
+	current_font_str =g_strconcat(current_font_str," ", size_str, NULL); 
+	
+	gchar* preview_str="Talk Calendar";
+	gtk_font_chooser_set_preview_text (GTK_FONT_CHOOSER(font_chooser), preview_str);
+		
+	gtk_font_chooser_set_font(GTK_FONT_CHOOSER(font_chooser), current_font_str);
+
+	if (gtk_dialog_run(GTK_DIALOG(font_chooser)) == GTK_RESPONSE_OK)
+	{
+				
+		font_str = gtk_font_chooser_get_font(GTK_FONT_CHOOSER(font_chooser));	
+		font_desc = pango_font_description_from_string(font_str);		
+		const gchar* font_family= pango_font_description_get_family(font_desc);		
+		m_font_family=font_family;				
+		gint pango_font_size =pango_font_description_get_size(font_desc);		
+		m_font_size=pango_font_size/1024;
+		config_write();			
+		change_window_font_size(GTK_WINDOW(window));
+		pango_font_description_free(font_desc);
+		//g_free(font_str);		
+	}
+	gtk_widget_destroy(font_chooser);
+}
+
+//--------------------------------------------------------------------
+// Other Preferences callback
+//--------------------------------------------------------------------
+
+static void callbk_other_options(GSimpleAction* action, GVariant *parameter,gpointer user_data)
+{
+	GtkWidget *window = gtk_widget_get_toplevel (user_data);
+	
+	if (!GTK_IS_WINDOW (window))
+    {
+      return; 
+    }
+	talkcalendar_other_options_dialog(window);
+}
+//--------------------------------------------------------------------
+// Talk Preferences callback
+//--------------------------------------------------------------------
+
+//static void callbk_preferences(GtkWidget *button, GtkWidget* window)
+static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpointer user_data)
+{
+	//GtkWindow *window = GTK_WINDOW (gtk_widget_get_ancestor (GTK_WIDGET (user_data), GTK_TYPE_WINDOW));	
+	
+	GtkWidget *window = gtk_widget_get_toplevel (user_data);
+	
+	if (!GTK_IS_WINDOW (window))
+    {      
+      return;
+    }
+   talkcalendar_talk_options_dialog(window);	
+}
+
+//---------------------------------------------------------------------
+// Delete all events
+//---------------------------------------------------------------------
+
+static void callbk_delete_all_response(GtkDialog *dialog, gint response_id, gpointer  user_data)								 
+{
+	
+	GtkWindow *window = user_data; //window data
+	
+    GtkTreeView *treeview =g_object_get_data(G_OBJECT(window), "treeview-key");
+	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
+	
+     
+     if (response_id == GTK_RESPONSE_OK) {
+     //Delete everything
+     db_delete_all();
+     db_reset_sequence();
+     //clear 
+    
+     //clear treeview list   
+	 remove_all(treeview);    
+      //clear calendar marks
+     callbk_calendar_month_changed(calendar, NULL); 
+     gtk_widget_destroy (GTK_WIDGET (dialog));
+     }     
+     else if (response_id == GTK_RESPONSE_CANCEL) {
+		 //cancel			
+		gtk_widget_destroy(GTK_WIDGET (dialog));
+	 }
+	  else if (response_id == GTK_RESPONSE_DELETE_EVENT) {
+          //dialog closed or cancelled          
+		  gtk_widget_destroy(GTK_WIDGET (dialog));
+	 }
 }
 
 
 //--------------------------------------------------------------------
-// About
-//---------------------------------------------------------------------
+// Delete events callback
+//--------------------------------------------------------------------
+
+static void callbk_delete(GSimpleAction *action, GVariant *parameter,  gpointer user_data){
+
+	
+	GtkWidget *window = gtk_widget_get_toplevel (user_data);
+	
+	if (!GTK_IS_WINDOW (window))
+    {
+      return;
+    }
+	
+	GtkWidget *message_dialog;
+	message_dialog = gtk_message_dialog_new (GTK_WINDOW(window), GTK_DIALOG_MODAL, 
+                                            GTK_MESSAGE_WARNING, 
+                                            GTK_BUTTONS_OK_CANCEL, 
+                                            "Delete All Events?");
+	
+	g_signal_connect (GTK_DIALOG (message_dialog), "response",   G_CALLBACK (callbk_delete_all_response), window);
+	
+	gtk_widget_show(message_dialog); 	
+}
+
+//--------------------------------------------------------------------
+// New event callback
+//--------------------------------------------------------------------
+
+
+static void callbk_new_event(GtkWidget *button, GtkWidget* window){
+
+	if( !GTK_IS_WINDOW(window)) { 	
+	return;
+	}	
+	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+	guint day, month, year;	
+	gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);  
+	talkcalendar_new_event(window, year, month+1, day);
+}
+
+
+//-------------------------------------------------------------------
+// Set alarm callback
+//-------------------------------------------------------------------
+
+static void callbk_alarm(GtkWidget *button, GtkWidget* window)
+{
+	
+	if( !GTK_IS_WINDOW(window)) { 
+	return;
+	}
+	GtkRevealer *revealer =g_object_get_data(G_OBJECT(window), "revealer-key"); 
+	gtk_revealer_set_reveal_child (GTK_REVEALER (revealer), FALSE);	
+	talkcalendar_alarm_dialog(window);
+}
+
 
 static void callbk_about_close (GtkDialog *dialog, gint response_id, gpointer user_data)
 {
-  /* This will cause the dialog to be destroyed */
+  // destroy the about dialog 
   gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
+//-----------------------------------------------------------------
+// Keyboard shortcuts
+//-----------------------------------------------------------------
 
-static void callbk_about(GtkWindow *window){	
+static void callbk_shortcuts(GSimpleAction * action, GVariant *parameter, gpointer user_data){
+
+	GtkWindow *window = GTK_WINDOW (gtk_widget_get_ancestor (GTK_WIDGET (user_data),
+	GTK_TYPE_WINDOW));
 	
+	gchar* shortcuts_str ="\n\
+	Import		<Ctrl>O\n\
+	Export		<Ctrl>S\n\
+	Delete		<Ctrl>D\n\
+	Speak		Spacebar\n\
+	Today		Home Key\n\
+	About		<Ctrl>A\n\
+	Quit		<Ctrl>Q\
+	";
+	
+	GtkWidget *dialog;
+	dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+	GTK_DIALOG_DESTROY_WITH_PARENT,
+	GTK_MESSAGE_INFO,
+	GTK_BUTTONS_OK,
+	"%s", shortcuts_str);
+		
+	gtk_window_set_title(GTK_WINDOW(dialog), "Shortcut Keys");
+			
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+}
+
+
+//-------------------------------------------------------------------
+// About callback
+//-------------------------------------------------------------------
+static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer user_data){
+	
+	
+	GtkWindow *window = GTK_WINDOW (gtk_widget_get_ancestor (GTK_WIDGET (user_data),
+                                                 GTK_TYPE_WINDOW));
 		
 	const gchar *authors[] = {"Alan Crispin", NULL};		
 	GtkWidget *about_dialog;
@@ -1680,7 +1693,7 @@ static void callbk_about(GtkWindow *window){
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.3");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "1.4");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 	
 	//gtk_about_dialog_set_wrap_license(GTK_ABOUT_DIALOG(about_dialog),TRUE);	
@@ -1699,7 +1712,11 @@ static void callbk_about(GtkWindow *window){
 	
 	char *size_str = g_strdup_printf("%i", m_font_size); 
 	size_str =g_strconcat(size_str,"px;", NULL);
-	gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+	
+	const gchar* font_family = m_font_family; 
+    font_family =g_strconcat(font_family,";", NULL); 
+	
+	gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
 	gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
 	
 	// get GtkStyleContext from widget
@@ -1707,244 +1724,382 @@ static void callbk_about(GtkWindow *window){
 	//finally load style provider 
 	gtk_style_context_add_provider(context_about_dialog,    
 	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	
+	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
 	
 	gtk_widget_show(about_dialog);	
 		
 }
 
-//---------------------------------------------------------------------
-// List view  //G_GNUC_UNUSED
-//---------------------------------------------------------------------
 
-//-------------------------------------------------------------------
-// List row activated (double click)
-//-------------------------------------------------------------------
-
-static void list_row_activated_callbk(GtkTreeView  *tree_view,
-										 GtkTreePath       *path,
-										 GtkTreeViewColumn *column,
-										 gpointer           user_window)
-										 
-{
-   
-   gint id =0;   
-   gchar *title;
-  
-   GtkWindow *window = user_window; //window   
-   GtkTreeIter iter; //row iterator (internal structure)
-   GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
-
-   if (gtk_tree_model_get_iter(model, &iter, path)) {      
-   //Get selected data   
-   //gtk_tree_model_get (GTK_LIST_STORE(model), &iter, 0, &id, 1, &title, -1);      
-   gtk_tree_model_get (GTK_TREE_MODEL(model), &iter, 0, &id, 1, &title, -1);
-   
-   Event *event =g_malloc(sizeof(Event));    
-   db_get_event(id, event);    
-   talkcalendar_update_event(GTK_WIDGET(window), event); 
-   }
+//--------------------------------------------------------------------
+// About audio callback
+//--------------------------------------------------------------------
+static void callbk_speak_about(GSimpleAction *action,
+							G_GNUC_UNUSED  GVariant      *parameter,
+							  gpointer       user_data){
+		
+	GThread *thread_speak; 
+		
+	gchar* message_speak ="Talk Calendar. Version. 1.4.";    
+		
+	if(m_talk) {	
+	g_mutex_lock (&lock);
+    thread_speak = g_thread_new(NULL, thread_speak_func, message_speak);   
+	}	
+	g_thread_unref (thread_speak);	
 }
 
-//--------------------------------------------------------------------
-// List view -inialise - add -remove -remove all
-//--------------------------------------------------------------------
-
-static void init_list(GtkWidget *list)
-{
-    GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-    GtkTreeViewColumn *id, *title; 
-    GtkListStore *store;
-
-    id = gtk_tree_view_column_new_with_attributes("id", renderer, "text", 0, NULL);      
-    title = gtk_tree_view_column_new_with_attributes("title", renderer,"text",1, NULL);
+//---------------------------------------------------------------------
+// change window font size
+//---------------------------------------------------------------------
+void change_window_font_size(GtkWindow *window){
+	
+	if( !GTK_IS_WINDOW(window)) { 
+	return;
+	}
+	
+	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
+	GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key");
+	GtkWidget *label_time =g_object_get_data(G_OBJECT(window), "label-time-key");
+	GtkWidget *tree_view =g_object_get_data(G_OBJECT(window), "treeview-key");
+	
+	
+ GtkCssProvider *cssProvider;
+ //GtkSourceView *view;
+ //GError *error = NULL;
+ GtkStyleContext *context_window;
+ GtkStyleContext *context_tree_view;
+ GtkStyleContext *context_label_date;
+ GtkStyleContext *context_label_time;
+ GtkStyleContext *context_calendar;
  
-    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list),FALSE);
+ /* new css provider */
+ cssProvider = gtk_css_provider_new(); 
+ gtk_widget_set_name (GTK_WIDGET(window), "cssView"); 
+ gtk_widget_set_name (GTK_WIDGET(tree_view), "cssView");   
+ gtk_widget_set_name (GTK_WIDGET(label_date), "cssView");
+ gtk_widget_set_name (GTK_WIDGET(label_time), "cssView");  
+ gtk_widget_set_name (GTK_WIDGET(calendar), "cssView"); 
+ 
+ 
+ gchar *size_str = g_strdup_printf("%i", m_font_size); 
+ size_str =g_strconcat(size_str,"px;", NULL); 
+ 
+ const gchar* font_family = m_font_family; 
+ font_family =g_strconcat(font_family,";", NULL); 
+ 
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
 
-    gtk_tree_view_append_column(GTK_TREE_VIEW(list), id);
-    gtk_tree_view_column_set_visible (id,FALSE); 
-       
-    gtk_tree_view_append_column(GTK_TREE_VIEW(list), title);
-    gtk_tree_view_column_set_visible (title,TRUE); 
-   
-    store = gtk_list_store_new(2, G_TYPE_INT, G_TYPE_STRING);
-    gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
-    g_object_unref(store);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+ 
+/* get GtkStyleContext from widget   */
+context_window = gtk_widget_get_style_context(GTK_WIDGET(window)); 
+context_tree_view = gtk_widget_get_style_context(GTK_WIDGET(tree_view));  
+context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date));
+context_label_time = gtk_widget_get_style_context(GTK_WIDGET(label_time));
+context_calendar = gtk_widget_get_style_context(GTK_WIDGET(calendar));
+
+ 
+ /* finally load style provider */
+gtk_style_context_add_provider(context_window,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_tree_view,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_label_date,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                           
+
+gtk_style_context_add_provider(context_calendar,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);     
+	
+  
 }
 
-static void add_to_list(GtkWidget *list, const gint id, const gchar* title)
+//---------------------------------------------------------------------
+// Alarm dialog spin button show leading zeros
+//---------------------------------------------------------------------
+static gboolean on_output_alarm_spins (GtkSpinButton *spin, gpointer data)
 {
-    
-    GtkListStore *store;      
-    GtkTreeIter iter;   
-    store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));    
-    gtk_list_store_append(store, &iter);
-    gtk_list_store_set(store, &iter, 0, id, -1); 
-    gtk_list_store_set(store, &iter, 1, title, -1);   
+   GtkAdjustment *adjustment;
+   gchar *text;
+   int value;
+   adjustment = gtk_spin_button_get_adjustment (spin);
+   value = (int)gtk_adjustment_get_value (adjustment);
+   text = g_strdup_printf ("%02d", value);
+   gtk_entry_set_text (GTK_ENTRY (spin), text);
+   g_free (text);
+   return TRUE;
 }
 
 
-void remove_all(GtkWidget *list, gpointer selection) {
-    
-  GtkListStore *store;
-  GtkTreeModel *model;
-  GtkTreeIter  iter;
+//---------------------------------------------------------------------
+// Alarm dialog close
+//---------------------------------------------------------------------
+static void alarm_close_callbk(GtkDialog *dialog,
+					     G_GNUC_UNUSED gpointer   user_data)  
+{
+	if( !GTK_IS_DIALOG(dialog)) { 
+	return;
+	}	
+	
+} 
 
-  store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
-  model = gtk_tree_view_get_model(GTK_TREE_VIEW(list));
 
-  if (gtk_tree_model_get_iter_first(model, &iter) == FALSE) {
-      return;
+//------------------------------------------------------------------
+// Alarm dialog
+//-------------------------------------------------------------------
+static void talkcalendar_alarm_dialog(GtkWidget *widget) {
+	
+  GtkWidget *window = (GtkWidget *) widget;
+   
+   
+  if( !GTK_IS_WINDOW(window)) {	  	 
+	  return;
   }
+  config_read();
   
-  gtk_list_store_clear(store);
+  GtkWidget *dialog;    
+  GtkWidget *container;	
+  gint response;
+  GtkWidget *label_alarm_info;
   
-  //g_object_unref(store);
-  //g_object_unref (model);
-}
-
-void remove_item(GtkWidget *list, gpointer selection) {
-    
-  GtkListStore *store;
-  GtkTreeModel *model;
-  GtkTreeIter  iter;
-
-  store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
-  model = gtk_tree_view_get_model(GTK_TREE_VIEW(list));
-
-  if (gtk_tree_model_get_iter_first(model, &iter) == FALSE) {
-      return;
-  }
-
-  if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(selection), 
-         &model, &iter)) {
-    gtk_list_store_remove(store, &iter);
-  }
-}
-
+  GtkWidget *label_alarm_time;
+  GtkWidget *label_alarm_colon;
+  GtkWidget *spin_button_alarm_hour;
+  GtkWidget *spin_button_alarm_minutes;
+  GtkWidget *box_alarm_time;
+  GtkWidget *check_button_alarm_notification;
+  
+  //Create dialog
+  dialog= gtk_dialog_new();   
+  gtk_window_set_title (GTK_WINDOW (dialog), "Talk Calendar"); 
+  g_signal_connect_swapped(dialog,"close",G_CALLBACK(alarm_close_callbk),dialog);//escape close
+  gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
+   
+  gtk_widget_set_size_request(dialog, 200,150);
+  gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
+   
+  gchar* alarm_str ="Set Alarm Time ";  
+  label_alarm_info =gtk_label_new(alarm_str); 
+  
+  label_alarm_time =gtk_label_new("Alarm Time (24 hour) ");
+  label_alarm_colon=gtk_label_new(" : ");
+  
+  spin_button_alarm_hour = gtk_spin_button_new_with_range(0.0,23.0,1.0); //23 hours	
+  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_hour),0);
+  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_hour),1.0,23.0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_hour),m_alarm_hour);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_hour),TRUE);		
+  g_signal_connect(spin_button_alarm_hour, "output", G_CALLBACK (on_output_alarm_spins), NULL);
+  
+  
+  spin_button_alarm_minutes=gtk_spin_button_new_with_range(0.0,59.0,1.0);
+  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin_button_alarm_minutes),0);
+  gtk_spin_button_set_increments(GTK_SPIN_BUTTON(spin_button_alarm_minutes),1.0,10.0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_alarm_minutes),m_alarm_min);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_alarm_minutes),TRUE);		
+  g_signal_connect(spin_button_alarm_minutes, "output", G_CALLBACK (on_output_alarm_spins), NULL);	
+  
+   
+  box_alarm_time=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_time,FALSE, FALSE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_hour,TRUE, TRUE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),label_alarm_colon,FALSE, FALSE, 5);
+  gtk_box_pack_start(GTK_BOX(box_alarm_time),spin_button_alarm_minutes,TRUE, TRUE, 5);
+ 
+ check_button_alarm_notification = gtk_check_button_new_with_label ("System Notification");
+ gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_alarm_notification), m_alarm_notification); 
+	
 //---------------------------------------------------------------
-// notifications
+// Font size
 //----------------------------------------------------------------
 
-static void show_notification(gchar *message)
-{
- NotifyNotification *notify;
- notify_init("calendar-notification"); 
- notify = notify_notification_new("Talk Calendar", message, NULL);
+GtkCssProvider *cssProvider;
+
+GtkStyleContext *context_dialog;
  
- //notify_notification_set_category (notify, "GTimeUtils");
- //NOTIFY_URGENCY
- //CRITICAL - Critical urgency.
- //LOW - Low urgency.
- //NORMAL - Normal urgency. 
- notify_notification_set_urgency (notify, NOTIFY_URGENCY_NORMAL);
- notify_notification_show(notify,NULL);
-}
+GtkStyleContext *context_label_alarm_info;
+GtkStyleContext *context_label_alarm_time;
+GtkStyleContext *context_label_alarm_colon;
+GtkStyleContext *context_spin_button_alarm_hour;
+GtkStyleContext *context_spin_button_alarm_minutes; 
+GtkStyleContext *context_box_alarm_time; 
+GtkStyleContext *context_check_button_alarm_notification;
+//new css provider 
+cssProvider = gtk_css_provider_new(); 
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_info), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_time), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(label_alarm_colon), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_hour), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(spin_button_alarm_minutes), "cssView");
+gtk_widget_set_name (GTK_WIDGET(box_alarm_time), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_alarm_notification), "cssView");
 
-//------------------------------------------------------------------
-// Start up
-//------------------------------------------------------------------
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+const gchar* font_family = m_font_family; 
+font_family =g_strconcat(font_family,";", NULL); 
 
-static void startup (GtkApplication *application)
-{
-	
-	
-	GMenu *main_menu;
-	GMenu *file_menu;
-	GMenu *edit_menu;
-	GMenu *tools_menu;
-	GMenu *help_menu;
-	GMenuItem *item;
-    
-    main_menu = g_menu_new(); //main menu
-    file_menu = g_menu_new(); //file menu
-    edit_menu = g_menu_new(); //edit menu
-    tools_menu = g_menu_new(); //tools menu    
-    help_menu = g_menu_new(); //help menu
-   
-	
-	item = g_menu_item_new("Import", "app.import");    
-    g_menu_insert_item(file_menu,1,item);    
-    g_object_unref(item);
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
+gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
   
-    item = g_menu_item_new("Export", "app.export");    
-    g_menu_insert_item(file_menu,2,item);    
-    g_object_unref(item);
-     
-    item = g_menu_item_new("Quit", "app.quit");
-    g_menu_append_item(file_menu,item);
-	g_object_unref(item);
-	
-	item = g_menu_item_new("Options", "app.options");
-    g_menu_append_item(edit_menu,item);
-	g_object_unref(item);
-	
-	item = g_menu_item_new("Delete All Events", "app.delete");
-    g_menu_append_item(edit_menu,item);
-	g_object_unref(item);
-	
-	item = g_menu_item_new("New Event (Selected Date)", "app.new");
-    g_menu_append_item(tools_menu,item);
-	g_object_unref(item);
-		
-	item = g_menu_item_new("Talk Selected Date", "app.read");
-    g_menu_append_item(tools_menu,item);
-	g_object_unref(item);
-		
-	item = g_menu_item_new("Goto Today (Home Key)", "app.gotoday");
-    g_menu_append_item(tools_menu,item);
-	g_object_unref(item);
-	
-	item = g_menu_item_new("Set Alarm", "app.alarm");
-    g_menu_append_item(tools_menu,item);
-	g_object_unref(item);
-		
-	item = g_menu_item_new("About", "app.about");
-    g_menu_append_item(help_menu,item);
-	g_object_unref(item); 
-	
-	item = g_menu_item_new("About Audio", "app.audio");
-    g_menu_append_item(help_menu,item);
-	g_object_unref(item);
-        
-    //insert  menu into main menu          
-    g_menu_insert_submenu(main_menu, 0, "File", G_MENU_MODEL(file_menu));
-    g_menu_append_submenu(main_menu,"Edit", G_MENU_MODEL(edit_menu));
-    g_menu_append_submenu(main_menu,"Tools", G_MENU_MODEL(tools_menu));
-    g_menu_append_submenu(main_menu,"Help", G_MENU_MODEL(help_menu));
-	//create the actions
-    //create_actions(application);
-        
-    gtk_application_set_menubar(application, G_MENU_MODEL(main_menu));
+// get GtkStyleContext from widget 
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));  
+context_label_alarm_info = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_info)); 
+context_label_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(label_alarm_time)); 
+context_label_alarm_colon= gtk_widget_get_style_context(GTK_WIDGET(label_alarm_colon)); 
+context_spin_button_alarm_hour= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_hour));
+context_spin_button_alarm_minutes= gtk_widget_get_style_context(GTK_WIDGET(spin_button_alarm_minutes));
+context_box_alarm_time = gtk_widget_get_style_context(GTK_WIDGET(box_alarm_time));
+context_check_button_alarm_notification= gtk_widget_get_style_context(GTK_WIDGET(check_button_alarm_notification));
+
+
+gtk_style_context_add_provider(context_dialog,    
+							GTK_STYLE_PROVIDER(cssProvider), 
+							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+ 
+gtk_style_context_add_provider(context_label_alarm_info,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_alarm_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_label_alarm_colon,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+gtk_style_context_add_provider(context_spin_button_alarm_hour,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                           
+
+gtk_style_context_add_provider(context_spin_button_alarm_minutes,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+             
+gtk_style_context_add_provider(context_box_alarm_time,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+gtk_style_context_add_provider(context_check_button_alarm_notification,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
+  
+//--------------------------------------------------------------
+// Dialog PACKING
+//--------------------------------------------------------------  
+container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));
+gtk_container_add(GTK_CONTAINER(container),label_alarm_info);
+gtk_container_add(GTK_CONTAINER(container),box_alarm_time);			
+gtk_container_add(GTK_CONTAINER(container),check_button_alarm_notification);	
+gtk_widget_show_all(GTK_WIDGET(dialog));      
+
+response = gtk_dialog_run(GTK_DIALOG(dialog));  
+   
+  
+  switch (response)
+  {
+  case 1: //OK
+  
+ 
+  m_alarm_hour=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_hour));
+  m_alarm_min=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_alarm_minutes));  
+  
+  m_alarm_notification =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_alarm_notification));
     
-    //change menu font size?
-    
-    
-    g_object_unref(main_menu);
-    g_object_unref(file_menu);
-    g_object_unref(tools_menu);
-    g_object_unref(help_menu);   
-    
-    // load_css(); 
-	
+  config_write();
+  
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;	 
+  
+  case 2: //cancel pressed   
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	  
+  default:
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;
+  
+  } //switch
+  
+ 
 }
 
-/* signal handler for "toggled" signal of the CheckButton */
-static void check_button_isyearly_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
+
+
+
+
+//------------------------------------------------------------------
+//  Options Talk Toggled
+//------------------------------------------------------------------
+
+static void check_button_talk_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
 {
- 	 	
+ 	
+ 	GtkWidget *check_button_talk_startup; //enable startup talk  
+ 	GtkWidget *check_button_talk_title; //enable  talk title 
+ 	GtkWidget *check_button_talk_time; //enable  talk time	
+ 	GtkWidget *check_button_talk_priority; //enable  talk priority 
+ 	GtkWidget *check_button_talk_description;
+ 		
+ 	check_button_talk_startup =g_object_get_data(G_OBJECT(user_data), "cb_talk_startup_key");	
+	check_button_talk_title =g_object_get_data(G_OBJECT(user_data), "cb_talk_title_key");
+	check_button_talk_time =g_object_get_data(G_OBJECT(user_data), "cb_talk_time_key");  
+	check_button_talk_priority= g_object_get_data(G_OBJECT(user_data), "cb_talk_priority_key");
+	check_button_talk_description= g_object_get_data(G_OBJECT(user_data), "cb_talk_description_key");
+	
+		 	
  	if (gtk_toggle_button_get_active(toggle_button)){		
-	 //IsYearly TRUE	
+			
+	gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_time,TRUE);	
+	gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
+	gtk_widget_set_sensitive(check_button_talk_description,TRUE);
+	
 	}     
 	else{	
-	//IsYearly FALSE
+		
+	gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_time,FALSE);	
+	gtk_widget_set_sensitive(check_button_talk_priority,FALSE);
+	gtk_widget_set_sensitive(check_button_talk_description,FALSE);
+		
 	}
   
 }
 
+//----------------------------------------------------------
+// Options close callback
+//-----------------------------------------------------------
 
-/* signal handler for "toggled" signal of the CheckButton */
+static void options_close_callbk(GtkDialog *dialog,
+					     G_GNUC_UNUSED gpointer   user_data)  
+{
+	if( !GTK_IS_DIALOG(dialog)) { 
+	return;
+	}	
+	
+} 
+
+//----------------------------------------------------------
+// New Event  checkbutton allday callback
+//-----------------------------------------------------------
 static void check_button_allday_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
 {
  	
@@ -1979,6 +2134,10 @@ static void check_button_allday_toggled_callbk (GtkToggleButton *toggle_button, 
   
 }
 
+//---------------------------------------------------------------------
+// combobox priority changed callback
+//---------------------------------------------------------------------
+
 static void callbk_combo_box_priority_on_changed(GtkComboBox *widget,  gpointer  user_data)
 {
 	GtkComboBox *combo_box_priorities = widget;
@@ -1986,125 +2145,19 @@ static void callbk_combo_box_priority_on_changed(GtkComboBox *widget,  gpointer 
 	g_free (priority_str);
 }
 
-
-//------------------------------------------------------------------
-//RELOAD 
-//------------------------------------------------------------------
-static void reload_events(GtkWidget *widget, int year, int month, int day ) {
-
-GtkWidget *window = (GtkWidget *) widget;
-   
-   if( !GTK_IS_WINDOW(window)) {	  
-	   return;
-  }
- 
- 
-   GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association  
-   GtkWidget *list = g_object_get_data(G_OBJECT(window), "list-key"); //object-key association
-   
-  remove_all(list, NULL); 
-  
-  GtkTextBuffer *text_buffer;
-  gchar *output_str;  	 
-  text_buffer = gtk_text_buffer_new (NULL);   
-  output_str ="";
-  gtk_text_buffer_set_text (text_buffer, output_str, -1);	//CLEAR
-  gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer); 
-  
-	
-	 
-gint n_regular_events = db_get_number_of_rows_year_month_day(year, month, day);    
-gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month);   
-gint n_isyearly_day_events=0;
- 
-Event isyearly_array[n_isyearly_month_events];	 
-db_get_isyearly_events_month(isyearly_array, month, n_isyearly_month_events);
-Event e1;	
-for(int i=0; i<n_isyearly_month_events; i++) {		
-		e1=isyearly_array[i];
-		if(e1.day == day && e1.year!=year){	
-		n_isyearly_day_events=n_isyearly_day_events+1;
-}
-}
-
-gint total_number_events = n_regular_events+n_isyearly_day_events;
-
-
-//Now create total event array i.e. contains regular plus isyearly events
-Event* event_array_total = NULL;	
-event_array_total = malloc(total_number_events * sizeof(Event));
-
-Event event_array[n_regular_events]; //regular event array
-db_get_all_events_year_month_day(event_array, year, month, day, n_regular_events);
-		
-int count=0;  //event array total count
-	
-for(int i=0; i<n_regular_events; i++) {	//add regular events to total		
-event_array_total[count] = event_array[i];
-count =count+1;
-if(count>total_number_events)
-	{
-	g_print("fatal error: malloc over run\n");
-	break;
+// signal handler for "toggled" signal of the CheckButton  -todo
+static void check_button_isyearly_toggled_callbk (GtkToggleButton *toggle_button, gpointer user_data)
+{
+ 	 	
+ 	if (gtk_toggle_button_get_active(toggle_button)){		
+	 //IsYearly TRUE
+	 //g_print("isYearly=TRUE\n");	
+	}     
+	else{	
+	//IsYearly FALSE
+	//g_print("isYearly=FALSE\n");
 	}
-}	
-//now add yearly events
-for(int i=0; i<n_isyearly_month_events; i++) {		
-Event e2=isyearly_array[i];
-if(e2.day == day && e2.year!=year){			
-    event_array_total[count] = isyearly_array[i];
-	count =count+1;
-	if(count>total_number_events)
-	{
-	g_print("fatal error: malloc over run\n");
-	break;
-	}
-}
-}	 
-//cycle through event array total	 
-Event e3;
-
-for(int i=0; i<total_number_events; i++) {	
-
-e3=event_array_total[i];
-
-GDateTime  *time_start;		 
-gchar* time_start_str;
-time_start = g_date_time_new_local(e3.year,e3.month,e3.day,e3.startHour, e3.startMin,0.0);         
-time_start_str = g_date_time_format (time_start, "%l:%M %P");
-
-GDateTime  *time_end;        
-gchar* time_end_str;
-time_end = g_date_time_new_local(e3.year,e3.month,e3.day,e3.endHour, e3.endMin,0.0);         
-time_end_str = g_date_time_format (time_end, "%l:%M %P");
-         
-output_str= g_strconcat(output_str, e3.title, "\n", NULL);
-		
-if(e3.isAllday) {
-	output_str= g_strconcat(output_str, "This is an all day event\n", NULL);			
-}
-else {			
-	output_str= g_strconcat(output_str, time_start_str, " to ", time_end_str, "\n", NULL); 		
-   //Two new lines for spacing -option?	
-} //else
-output_str= g_strconcat(output_str, e3.description, "\n", "\n", NULL);
-
-
-//GtkTextIter start;
-//GtkTextIter end;
-//gtk_text_buffer_get_selection_bounds (text_buffer, &start, &end);
-//gchar* tag_name="bold";
-//gtk_text_buffer_apply_tag_by_name (text_buffer, tag_name, &start, &end);
-
-gtk_text_buffer_set_text (text_buffer, output_str, -1);	
-gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);
-add_to_list(list,e3.id,e3.title);
-g_date_time_unref (time_start);
-g_date_time_unref (time_end);		
-		
-} //for i <event_number		
-	
- free(event_array_total); 	  
+  
 }
 
 //---------------------------------------------------------------------
@@ -2146,13 +2199,14 @@ void callbk_talkcalendar_update_event_response(GtkDialog *dialog, gint response_
     GtkWidget *check_button_allday= g_object_get_data(G_OBJECT(dialog), "check-button-allday-key"); 
     GtkWidget *check_button_isyearly= g_object_get_data(G_OBJECT(dialog), "check-button-isyearly-key");  
     GtkWidget *check_button_delete= g_object_get_data(G_OBJECT(dialog), "check-button-delete-key");
-    GtkWidget *list = g_object_get_data(G_OBJECT(dialog), "dialog-list-key");
-    GtkTreeSelection *selection;
+    
+    //GtkWidget *list = g_object_get_data(G_OBJECT(dialog), "dialog-list-key");
+    //GtkTreeSelection *selection;
     
     //GPOINTER_TO_INT()
-    gint year = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-year-key")); 
-    gint month = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-month-key"));  
-    gint day= GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-day-key"));  
+    //gint year = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-year-key")); 
+    //gint month = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-month-key"));  
+    //gint day= GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "dialog-day-key"));  
     //gint year = g_object_get_data(G_OBJECT(dialog), "dialog-year-key"); 
     //gint month = g_object_get_data(G_OBJECT(dialog), "dialog-month-key");  
     //gint day= g_object_get_data(G_OBJECT(dialog), "dialog-day-key");  
@@ -2162,15 +2216,15 @@ void callbk_talkcalendar_update_event_response(GtkDialog *dialog, gint response_
 	{
 	case 1: //OK pressed
 	
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
-	
-	//CHECK DELETE request
-	
+	//CHECK DELETE request	
 	if(gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_delete)) ==1) {		
 	db_delete_row(id);	//DELETE  
-	//event deleted no longer exists so cant get data from it
-	remove_item(GTK_WIDGET(list), selection); 	
-	reload_events(window, year,month, day); //everything
+	
+	//update tree view    
+	GtkWidget *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+    callbk_calendar_day_clicked(GTK_CALENDAR(calendar), window);
+    callbk_calendar_month_changed(GTK_CALENDAR(calendar), NULL);
+	
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 	return; //return after delete	
 	}
@@ -2221,7 +2275,11 @@ void callbk_talkcalendar_update_event_response(GtkDialog *dialog, gint response_
 	event->isYearly=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_isyearly));
 	
 	db_update_event(event);	
-    reload_events(window, year, month, day );	
+    //reload_events(window, year, month, day );	
+    
+    //update tree view    
+	GtkWidget *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+    callbk_calendar_day_clicked(GTK_CALENDAR(calendar), window);
 	
 	g_free(event);
 	//g_free(title_str); //title is const?
@@ -2604,7 +2662,11 @@ gtk_widget_set_name (GTK_WIDGET(box_end_time), "cssView");
 
 gchar *size_str = g_strdup_printf("%i", m_font_size); 
 size_str =g_strconcat(size_str,"px;", NULL); 
-gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+
+const gchar* font_family = m_font_family; 
+font_family =g_strconcat(font_family,";", NULL); 
+
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
 gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
  
   
@@ -2767,12 +2829,15 @@ gtk_style_context_add_provider(context_box_end_time,
 }
 
 
-//---------------------------------------------------------------------
-// New event
-//---------------------------------------------------------------------
+
+
+
+
+
+
 
 //--------------------------------------------------------------------
-// New event close callback
+// New event dialog close callback
 //---------------------------------------------------------------------
 
 static void callbk_event_dialog_close(GtkDialog *dialog,
@@ -2783,6 +2848,22 @@ static void callbk_event_dialog_close(GtkDialog *dialog,
 	}
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 } 
+
+//---------------------------------------------------------------------
+// spin button show leading zeros
+//---------------------------------------------------------------------
+//static gboolean on_output (GtkSpinButton *spin, gpointer data)
+//{
+   //GtkAdjustment *adjustment;
+   //gchar *text;
+   //int value;
+   //adjustment = gtk_spin_button_get_adjustment (spin);
+   //value = (int)gtk_adjustment_get_value (adjustment);
+   //text = g_strdup_printf ("%02d", value);
+   //gtk_entry_set_text (GTK_ENTRY (spin), text);
+   //g_free (text);
+   //return TRUE;
+//}
 
 //--------------------------------------------------------------------
 // New event response callback
@@ -2895,7 +2976,11 @@ switch (response_id)
   db_insert_event(event);
   
   //Reload events
-  reload_events(window, year, month, day );
+  //reload_events(window, year, month, day );
+  
+  GtkWidget *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+  callbk_calendar_day_clicked(GTK_CALENDAR(calendar), window);
+  callbk_calendar_month_changed(GTK_CALENDAR(calendar), NULL);
    
   g_free(event);
   
@@ -2911,11 +2996,12 @@ switch (response_id)
 	g_free(event);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 	break;
-}
+}	
 	
-	
 }
-
+//----------------------------------------------------------------------
+// Talk Calendar  New Event
+//----------------------------------------------------------------------
 
 static void talkcalendar_new_event(GtkWidget *widget, guint year, guint month, guint day ) {
 
@@ -3232,7 +3318,10 @@ gtk_widget_set_name (GTK_WIDGET(box_end_time), "cssView");
 
 gchar *size_str = g_strdup_printf("%i", m_font_size); 
 size_str =g_strconcat(size_str,"px;", NULL); 
-gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+const gchar* font_family = m_font_family; 
+font_family =g_strconcat(font_family,";", NULL); 
+
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
 gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
  
   
@@ -3394,611 +3483,382 @@ gtk_style_context_add_provider(context_box_end_time,
    
 }
 
-static void mark_holidays_on_calendar(GtkCalendar *calendar, gint month, gint year)
-{
+//------------------------------------------------------------------
+// Talk Calendar Other Options
+//------------------------------------------------------------------
+static void talkcalendar_other_options_dialog(GtkWidget *widget) {
+	
+  GtkWidget *window = (GtkWidget *) widget;
+   
+   
+  if( !GTK_IS_WINDOW(window)) {	  	 
+	  return;
+  }
+  config_read();
+  
+  GtkWidget *dialog;    
+  GtkWidget *container;	
+  GtkWidget *check_button_holidays; //show public holidays on calendar
+  gint response;
+  dialog= gtk_dialog_new(); 
+  gtk_window_set_title (GTK_WINDOW (dialog), "Other Options"); 
+  g_signal_connect_swapped(dialog,"close",G_CALLBACK(options_close_callbk),dialog);//escape close
+  gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
+  
+  gtk_widget_set_size_request(dialog, 200,100);
+  gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
+  
+  //check_button_holidays = gtk_check_button_new_with_label ("Show Public Holidays");
+  check_button_holidays = gtk_check_button_new_with_label ("Show Public Holidays");
+  //gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_holidays), m_holidays);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_holidays), m_holidays);
+  
+  //---------------------------------------------------------------
+  // Font size
+  //----------------------------------------------------------------
+  
+  GtkCssProvider *cssProvider;  
+  GtkStyleContext *context_dialog;
+  GtkStyleContext *context_check_button_holidays; //show public holidays on calendar
+  //new css provider 
+  cssProvider = gtk_css_provider_new(); 
+  gtk_widget_set_name (GTK_WIDGET(dialog), "cssView");
+  gtk_widget_set_name (GTK_WIDGET(check_button_holidays), "cssView");
+  
+  gchar *size_str = g_strdup_printf("%i", m_font_size); 
+  size_str =g_strconcat(size_str,"px;", NULL);   
+  const gchar* font_family = m_font_family; 
+  font_family =g_strconcat(font_family,";", NULL); 
+  
+  gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
+  gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
+    
+  // get GtkStyleContext from widget 
+  context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));
+  context_check_button_holidays= gtk_widget_get_style_context(GTK_WIDGET(check_button_holidays));
+  
+  // finally load style provider 
+  gtk_style_context_add_provider(context_dialog,    
+  GTK_STYLE_PROVIDER(cssProvider), 
+  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+  gtk_style_context_add_provider(context_check_button_holidays,    
+  GTK_STYLE_PROVIDER(cssProvider), 
+  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  //pack
+  container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));	
+  //gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
+  gtk_container_add(GTK_CONTAINER(container),check_button_holidays);
+  
+  gtk_widget_show_all(GTK_WIDGET(dialog));      
+  response = gtk_dialog_run(GTK_DIALOG(dialog));  
+  
+  
+  switch (response)
+  {
+  case 1:
+  
+  //m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
+  m_holidays =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_holidays));
+  
+ //calandar month changed
+  GtkWidget *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
+  callbk_calendar_month_changed(GTK_CALENDAR(calendar), NULL);
+  
+   
+  config_write();
+  
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	 
+  
+  case 2: //cancel pressed  
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	  
+  default:
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;
+  } 	
+    
+}
+
+//------------------------------------------------------------------
+// Talk Calendar Talk Options
+//------------------------------------------------------------------
+
+static void talkcalendar_talk_options_dialog(GtkWidget *widget) {
+	
+  GtkWidget *window = (GtkWidget *) widget;
+   
+   
+  if( !GTK_IS_WINDOW(window)) {	  	 
+	  return;
+  }
+  config_read();
+  
+  GtkWidget *dialog;    
+  GtkWidget *container;	
+  
+  GtkWidget *check_button_talk; //enable talk 
+  GtkWidget *check_button_talk_startup; //enable talk startup   
+  GtkWidget *check_button_talk_title; //enable title talk
+  GtkWidget *check_button_talk_time; //enable title talk  
+  GtkWidget *check_button_talk_priority; //enable priority talk 
+  GtkWidget *check_button_talk_description; //enable talk  description 
+    
+  gint response;
+  
+  //Create dialog
+    dialog= gtk_dialog_new(); 
+    gtk_window_set_title (GTK_WINDOW (dialog), "Talk Options"); 
+    g_signal_connect_swapped(dialog,"close",G_CALLBACK(options_close_callbk),dialog);//escape close
+    gtk_window_set_transient_for(GTK_WINDOW(dialog),GTK_WINDOW(window));  
+   
+    gtk_widget_set_size_request(dialog, 300,200);
+    gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);  
+    gtk_dialog_add_button(GTK_DIALOG(dialog),"Ok",1);  
+    gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",2);
+
+		
+	GtkWidget *box_talk_options1;
+	GtkWidget *box_talk_options2;
+	
+	check_button_talk_startup = gtk_check_button_new_with_label ("Talk At Startup");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_startup), m_talk_at_startup); 
+	
+	check_button_talk_title = gtk_check_button_new_with_label ("Talk Title");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_title), m_talk_title); 
+	
+	check_button_talk_time = gtk_check_button_new_with_label ("Talk Time");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_time), m_talk_time); 
+	
+	check_button_talk_description = gtk_check_button_new_with_label ("Talk Description");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_description), m_talk_description); 
+			
+	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk_priority), m_talk_priority); 
+	
+	
+	
+	
+	box_talk_options1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_talk_options1),check_button_talk_title, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_talk_options1),check_button_talk_time, FALSE, FALSE, 10);
+	
+	box_talk_options2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
+	gtk_box_pack_start(GTK_BOX(box_talk_options2),check_button_talk_description, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(box_talk_options2),check_button_talk_priority,TRUE, TRUE, 0);	
+	
+	check_button_talk = gtk_check_button_new_with_label ("Enable Talking");	
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button_talk), m_talk); 
+	
+	if(m_talk) {
+		gtk_widget_set_sensitive(check_button_talk_startup,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_title,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_time,TRUE);	    
+	    gtk_widget_set_sensitive(check_button_talk_priority,TRUE);
+	    gtk_widget_set_sensitive(check_button_talk_description,TRUE);
 	    
-   if (month==1) {  	
-	gtk_calendar_mark_day(calendar,1); //day =1
-   }
-   
-   GDate *edate =calculate_easter(year); 
-   gint eday = g_date_get_day(edate);
-   gint emonth =g_date_get_month(edate);
-   
-   if(month==emonth)
-   {
-	   gtk_calendar_mark_day(calendar,eday);
-   }
-     
-   g_date_subtract_days(edate,2);
-   gint efday = g_date_get_day(edate); //ef=easter friday
-   gint efmonth =g_date_get_month(edate); 
-   
-   if(month==efmonth)
-   {
-	   gtk_calendar_mark_day(calendar,efday);
-   }
-     
-   g_date_add_days(edate,3);
-   gint emonday = g_date_get_day(edate); //easter monday
-   gint emmonth =g_date_get_month(edate); 
-    
-   if(month==emmonth)
-   {
-	   gtk_calendar_mark_day(calendar,emonday);
-   } 
-      
-   if (month==12) {
-	   
-	  gtk_calendar_mark_day(calendar, 25); //christmas day
-	  gtk_calendar_mark_day(calendar, 26); //boxing
-	}   
-}
-
-//---------------------------------------------------------------------
-// Calendar callbacks
-//----------------------------------------------------------------------
-static void calendar_month_changed_callbk(GtkCalendar *calendar, gpointer user_data) {
-	
-   
-   guint day, month, year;
-
-   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day); 
-   
-   gtk_calendar_clear_marks(GTK_CALENDAR (calendar));    
-   
-     
-   mark_holidays_on_calendar(calendar, month+1,year);
-   
-   gint row_number = db_get_number_of_rows_month_year(month+1, year);
-  
-		
-	Event event_array[row_number];		 
-	db_get_all_events_year_month(event_array, year, month+1, row_number);
-	 //mark up calendar
-	Event evt;	
-	for(int i=0; i<row_number; i++) {		
-		evt=event_array[i];		//
-		guint day = evt.day;
-		if  (evt.isYearly == 0)	{	
-		gtk_calendar_mark_day(calendar, day);
-		}
-	} 	 
-  
-   
-   //Now fetch the isYearly events    
-   
-   gint isyearly_number = db_get_number_of_isyearly_events_month(month+1);
-   
-   
-   Event isyearly_array[isyearly_number];		 
-   
-   db_get_isyearly_events_month(isyearly_array, month+1, isyearly_number);
-	
-	 // printout then mark up calendar
-	Event evty;	
-	for(int i=0; i<isyearly_number; i++) {		
-		evty=isyearly_array[i];	
-		evty.year=year;	
-		guint rday = evty.day;
-		gtk_calendar_mark_day(calendar, rday);
-	} 
-}
-
-
-
-static void calendar_day_selected_double_click_callbk(GtkCalendar *calendar, gpointer user_data)
-{
-   guint day, month, year;
-
-   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);    
-   
-   GtkWidget *window = (GtkWidget *) user_data;
-   
-   if( !GTK_IS_WINDOW(window)) { 
-	  return;
-  }
-  
-  talkcalendar_new_event(window, year, month+1, day);
- 
-  reload_events(window, year, month+1, day);
-  calendar_month_changed_callbk(calendar, NULL);
-  
-}
-
-
-static void calendar_day_selected_callbk(GtkCalendar *calendar, gpointer user_data)
-{
-     
-   //claendar day clicked   
-   GtkWidget *window = (GtkWidget *) user_data;
-   
-   if( !GTK_IS_WINDOW(window)) { 
-   return;
-   }
-   
-   
-   
-   //GtkWidget *window = g_object_get_data(G_OBJECT(user_data), "window-key"); //object-key association
-   GDateTime *dt;
-   dt =g_date_time_new_now_local(); //initialise
-   GDateTime  *time_start;
-   time_start =g_date_time_new_now_local();   
-   GDateTime  *time_end;
-   time_end =g_date_time_new_now_local();          
-   
-   GtkWidget *list_widget = g_object_get_data(G_OBJECT(calendar), "calendar-list-key"); //object-key association     
-   GtkWidget *label_date =g_object_get_data(G_OBJECT(calendar), "calendar-label-date-key");    
-   GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association  
-   //GtkWidget *list_widget = g_object_get_data(G_OBJECT(window), "list-key"); //object-key association
-      
-   //GtkWidget *label_date =g_object_get_data(G_OBJECT(calendar), "calendar-label-date-key");    
-   //GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association  
-   //GtkWidget *list_widget = g_object_get_data(G_OBJECT(window), "list-key"); //object-key association
-     
-   GtkTextBuffer *text_buffer;
-   gchar *output_str;
-    
-   //setup and clear text_view text_buffer   
-   text_buffer = gtk_text_buffer_new (NULL);   
-   output_str =""; 
-  
-   gtk_text_buffer_set_text (text_buffer, output_str, -1);	//clear
-   gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);
-	
-   //get the day month and year from calendar
-   guint day, month, year;
-   gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);
-   
-    gchar *dt_str;
-    dt = g_date_time_new_local(year,month+1,day,0,0,0.0);   // get date    
-    dt_str = g_date_time_format(dt, "%a %e %b %Y");	
-    gtk_label_set_xalign(GTK_LABEL(label_date),0.5); //add date to label
-    	
-	gtk_label_set_text(GTK_LABEL(label_date), dt_str); 	
-  
-gint n_regular_events = db_get_number_of_rows_year_month_day(year, month+1, day);    
-gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month+1);   
-gint n_isyearly_day_events=0;
- 
-Event isyearly_array[n_isyearly_month_events];	 
-db_get_isyearly_events_month(isyearly_array, month+1, n_isyearly_month_events);
-Event e1;	
-for(int i=0; i<n_isyearly_month_events; i++) {		
-		e1=isyearly_array[i];
-		if(e1.day == day && e1.year!=year){	
-		n_isyearly_day_events=n_isyearly_day_events+1;
-}
-}
-
-gint total_number_events = n_regular_events+n_isyearly_day_events;
-
-//Now create total event array i.e. contains regular plus isyearly events
-Event* event_array_total = NULL;	
-event_array_total = malloc(total_number_events * sizeof(Event));
-
-Event event_array[n_regular_events]; //regular event array
-db_get_all_events_year_month_day(event_array, year, month+1, day, n_regular_events);
-		
-int count=0;  //event array total count
-	
-for(int i=0; i<n_regular_events; i++) {	//add regular events to total		
-event_array_total[count] = event_array[i];
-count =count+1;
-if(count>total_number_events)
-	{
-	g_print("fatal error: malloc over run\n");
-	break;
 	}
-}	
-//now add yearly events
-for(int i=0; i<n_isyearly_month_events; i++) {		
-Event e2=isyearly_array[i];
-if(e2.day == day && e2.year!=year){			
-    event_array_total[count] = isyearly_array[i];
-	count =count+1;
-	if(count>total_number_events)
-	{
-	g_print("fatal error: malloc over run\n");
-	break;
-	}
-}
-}	 
-
-remove_all(list_widget, NULL);	
-for(int i=0; i<total_number_events; i++) {	
-
-Event e3=event_array_total[i];
-
-		 
-gchar* time_start_str;
-time_start = g_date_time_new_local(e3.year,e3.month,e3.day,e3.startHour, e3.startMin,0.0);         
-time_start_str = g_date_time_format (time_start, "%l:%M %P");
- 
-        
-gchar* time_end_str;
-time_end = g_date_time_new_local(e3.year,e3.month,e3.day,e3.endHour, e3.endMin,0.0);         
-time_end_str = g_date_time_format (time_end, "%l:%M %P");
-         
-output_str= g_strconcat(output_str, e3.title, "\n", NULL);
-		
-if(e3.isAllday) {
-	output_str= g_strconcat(output_str, "This is an all day event\n", NULL);			
-}
-else {			
-	output_str= g_strconcat(output_str, time_start_str, " to ", time_end_str, "\n", NULL); 		
-   //Two new lines for spacing -option?	
-} //else
-output_str= g_strconcat(output_str, e3.description, "\n", "\n", NULL);		
-
-add_to_list(list_widget,e3.id,e3.title);
-
-
-gtk_text_buffer_set_text (text_buffer, output_str, -1);
-
-gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);	
-//update_text_vew	(text_view, text_buffer);
-//gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);		
-
-} //for i <row_number
-free(event_array_total);		
-reload_events(window, year,month+1, day);
-calendar_month_changed_callbk(calendar,NULL); 
-g_date_time_unref (time_start);
-g_date_time_unref (time_end);	
-g_date_time_unref(dt); 
-   
-}
-
-
-//---------------------------------------------------------------------
-//Delete all events 
-//---------------------------------------------------------------------
-
-static void callbk_delete_all_response(GtkDialog *dialog, gint response_id, gpointer  user_data)								 
-{
-	
-	GtkWindow *window = user_data; //window data
-	GtkTextBuffer *text_buffer;
-    gchar *output_str;  
-    
-    GtkWidget *text_view = g_object_get_data(G_OBJECT(window), "textview-key"); //object-key association
-	GtkWidget *list =g_object_get_data(G_OBJECT(window), "list-key");
-	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-	 //g_object_set_data(G_OBJECT(window), "textview-key",text_view);  
-     //g_object_set_data(G_OBJECT(window), "list-key",list);  
-     //g_object_set_data(G_OBJECT(window), "calendar-key",calendar);
-     
-     if (response_id == GTK_RESPONSE_OK) {
-     //Delete everything
-     db_delete_all();
-     db_reset_sequence();
-     //clear 
-     text_buffer = gtk_text_buffer_new (NULL);   
-     output_str ="";
-     gtk_text_buffer_set_text (text_buffer, output_str, -1);	//clear
-     gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), text_buffer);
-     //clear list
-     remove_all(list, NULL);
-      //clear calendar marks
-     calendar_month_changed_callbk(calendar,NULL);
-   
-     gtk_widget_destroy (GTK_WIDGET (dialog));
-     }
-     
-     else if (response_id == GTK_RESPONSE_CANCEL) {
-		 //cancel
-			
-		gtk_widget_destroy(GTK_WIDGET (dialog));
-	 }
-	  else if (response_id == GTK_RESPONSE_DELETE_EVENT) {
-          //dialog closed or cancelled
-          
-		  gtk_widget_destroy(GTK_WIDGET (dialog));
-	 }
-	
-}
-
-static void delete_events_callbk(GtkWidget *window){	
-	
-	GtkWidget *message_dialog;
-	message_dialog = gtk_message_dialog_new (GTK_WINDOW(window), GTK_DIALOG_MODAL, 
-                                            GTK_MESSAGE_WARNING, 
-                                            GTK_BUTTONS_OK_CANCEL, 
-                                            "Delete All Events?");
-	
-	g_signal_connect (GTK_DIALOG (message_dialog), "response",   G_CALLBACK (callbk_delete_all_response), window);
-	
-	gtk_widget_show(message_dialog); 	
-		
-}
-
-
-static void callbk_alarm(GSimpleAction *action,
-							G_GNUC_UNUSED  GVariant      *parameter,
-							  gpointer       user_data){
-	
-	g_print("set alarm dialog\n");
-	
-	GtkWidget *window = (GtkWidget *) user_data;
-   
-   if( !GTK_IS_WINDOW(window)) { 
-	   g_print("not a gtkWindow\n");	
-	  return;
-  }
-	
-	talkcalendar_alarm_dialog(window);	
-	//talkcalendar_options_dialog(window);
-	
-		
-}
-
-
-
-
-
-static void new_event_menu_callbk(GtkWidget *window){	
-
-	if( !GTK_IS_WINDOW(window)) { 
-	return;
+	else {
+		gtk_widget_set_sensitive(check_button_talk_startup,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_title,FALSE);
+	    gtk_widget_set_sensitive(check_button_talk_time,FALSE);	    
+	    gtk_widget_set_sensitive(check_button_talk_priority,FALSE);	
+	    gtk_widget_set_sensitive(check_button_talk_description,FALSE);	    
+	  
 	}
 	
-	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");                    	
-	
-	guint day, month, year;
-	
-	gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);    
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_startup_key",check_button_talk_startup);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_title_key",check_button_talk_title);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_time_key",check_button_talk_time);	
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_priority_key",check_button_talk_priority);
+	g_object_set_data(G_OBJECT(check_button_talk), "cb_talk_description_key",check_button_talk_description);
 		
-	talkcalendar_new_event(window, year, month+1, day);
+	//g_signal_connect (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", G_CALLBACK (check_button_talk_toggled_callbk), NULL);
+	g_signal_connect_swapped (GTK_TOGGLE_BUTTON (check_button_talk), "toggled", 
+						G_CALLBACK (check_button_talk_toggled_callbk), check_button_talk);
 	
-	reload_events(window, year, month+1, day);
-	calendar_month_changed_callbk(calendar, NULL);
+	
+//---------------------------------------------------------------
+// Font size
+//----------------------------------------------------------------
 
-}
+GtkCssProvider *cssProvider;
 
-gboolean callbk_window_on_key_press(GtkWidget * widget, GdkEvent * event,
-                    gpointer data)
-{
-	GtkWidget *window = (GtkWidget *) widget;
-   
-   if( !GTK_IS_WINDOW(window)) {	
-   return FALSE;
-   }
-   
-   GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-   GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key");   
-   GdkEventKey key = event->key;
-   
-   if(key.keyval ==GDK_KEY_space) {
-	     
-		
-		GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key"); 
-			
-		if(m_talk) {
-		speak_events_at_date(calendar);
-		}
-   }
-   
-   
-   if(key.keyval ==GDK_KEY_Home) {   
-   
-   GDateTime *dt; 
-   gchar *dt_format;
-   dt = g_date_time_new_now_local();   // get local time     
-   dt_format = g_date_time_format(dt, "%a %e %b %Y");	   
-   
-   gtk_label_set_xalign(GTK_LABEL(label_date),0.5);
-   gtk_label_set_text(GTK_LABEL(label_date), dt_format); 	
-   
-   gint year = g_date_time_get_year(dt);
-   gint month =g_date_time_get_month(dt);    
-   gint day = g_date_time_get_day_of_month(dt); 
-      
-   gtk_calendar_select_month (calendar, month-1, year);	   
-   gtk_calendar_select_day (calendar, day);	   
-   reload_events(window, year, month,day);
-   g_date_time_unref(dt); 
-   }
-   
-   
-return TRUE;
-	
-}
-//---------------------------------------------------------------------
-// change calendar font size
-//---------------------------------------------------------------------
-void change_calendar_font_size(GtkWidget *window){
-	
-	if( !GTK_IS_WINDOW(window)) { 
-	return;
-	}
-	
-	GtkCalendar *calendar =g_object_get_data(G_OBJECT(window), "calendar-key");
-	GtkWidget *label_date =g_object_get_data(G_OBJECT(window), "label-date-key");
-	GtkWidget *label_time =g_object_get_data(G_OBJECT(window), "label-time-key");
-	GtkWidget *text_view =g_object_get_data(G_OBJECT(window), "textview-key");
-	GtkWidget *list =g_object_get_data(G_OBJECT(window), "list-key");
-	
-	//GtkWidget *box_pane1 =g_object_get_data(G_OBJECT(window), "box-pane1-key");
-	//GtkWidget *box_pane2 =g_object_get_data(G_OBJECT(window), "box-pane2-key");
-	
-	
- GtkCssProvider *cssProvider;
- //GtkSourceView *view;
- //GError *error = NULL;
- GtkStyleContext *context_window;
- GtkStyleContext *context_text_view;
- GtkStyleContext *context_label_date;
- GtkStyleContext *context_label_time;
- GtkStyleContext *context_list;
- GtkStyleContext *context_calendar;
- 
- //GtkStyleContext *context_box_pane1;
- //GtkStyleContext *context_box_pane2;
- 
- /* new css provider */
- cssProvider = gtk_css_provider_new(); 
- gtk_widget_set_name (GTK_WIDGET(window), "cssView"); 
- gtk_widget_set_name (GTK_WIDGET(text_view), "cssView");   
- gtk_widget_set_name (GTK_WIDGET(label_date), "cssView");
- gtk_widget_set_name (GTK_WIDGET(label_time), "cssView");  
- gtk_widget_set_name (GTK_WIDGET(list), "cssView"); 
- gtk_widget_set_name (GTK_WIDGET(calendar), "cssView"); 
- 
- //gtk_widget_set_name (GTK_WIDGET(box_pane1), "cssView");
- //gtk_widget_set_name (GTK_WIDGET(box_pane2), "cssView");
- 
- //g_print("m_font_str=%s;\n", m_font_str);
- //g_print("m_font_size = %d;\n", m_font_size); 
- gchar *size_str = g_strdup_printf("%i", m_font_size); 
- size_str =g_strconcat(size_str,"px;", NULL); 
- //g_print("size_str = %s\n",size_str);
- 
-gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", m_font_str, size_str);
+GtkStyleContext *context_dialog;
 
+//check buttons
+GtkStyleContext *context_check_button_talk; //enable talk 
+GtkStyleContext *context_check_button_talk_startup; //enable talk startup 
+GtkStyleContext *context_box_talk_options1;
+GtkStyleContext *context_box_talk_options2; 
+GtkStyleContext *context_check_button_talk_title; //enable title talk
+GtkStyleContext *context_check_button_talk_time; //enable title talk  
+GtkStyleContext *context_check_button_talk_priority; //enable priority talk 
+GtkStyleContext *context_check_button_talk_description; //enable p description talk  
+   
+//new css provider 
+cssProvider = gtk_css_provider_new(); 
+gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+
+//check buttons
+gtk_widget_set_name (GTK_WIDGET(check_button_talk), "cssView");
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_startup), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_talk_options1), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(box_talk_options2), "cssView");   
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_title), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_time), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_priority), "cssView"); 
+gtk_widget_set_name (GTK_WIDGET(check_button_talk_description), "cssView"); 
+ 
+
+
+gchar *size_str = g_strdup_printf("%i", m_font_size); 
+size_str =g_strconcat(size_str,"px;", NULL); 
+
+const gchar* font_family = m_font_family; 
+font_family =g_strconcat(font_family,";", NULL); 
+
+gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_family, size_str);
 gtk_css_provider_load_from_data(cssProvider, css_str,-1, NULL); 
  
-/* get GtkStyleContext from widget   */
-context_window = gtk_widget_get_style_context(GTK_WIDGET(window)); 
-context_text_view = gtk_widget_get_style_context(GTK_WIDGET(text_view));  
-context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date));
-context_label_time = gtk_widget_get_style_context(GTK_WIDGET(label_time));
-context_list = gtk_widget_get_style_context(GTK_WIDGET(list));
-context_calendar = gtk_widget_get_style_context(GTK_WIDGET(calendar));
-
-//context_box_pane1= gtk_widget_get_style_context(GTK_WIDGET(box_pane1));
-//context_box_pane2= gtk_widget_get_style_context(GTK_WIDGET(box_pane2));
+// get GtkStyleContext from widget 
+context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));
  
- /* finally load style provider */
-gtk_style_context_add_provider(context_window,    
-                             GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-gtk_style_context_add_provider(context_text_view,    
+context_check_button_talk= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk));  
+context_check_button_talk_startup = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_startup));
+
+context_box_talk_options1= gtk_widget_get_style_context(GTK_WIDGET(box_talk_options1)); 
+context_box_talk_options2= gtk_widget_get_style_context(GTK_WIDGET(box_talk_options2));
+ 
+context_check_button_talk_title = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_title));
+context_check_button_talk_time = gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_time));
+context_check_button_talk_priority= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_priority));
+context_check_button_talk_description= gtk_widget_get_style_context(GTK_WIDGET(check_button_talk_description));
+
+// finally load style provider 
+gtk_style_context_add_provider(context_dialog,    
+							GTK_STYLE_PROVIDER(cssProvider), 
+							GTK_STYLE_PROVIDER_PRIORITY_APPLICATION); 
+ 
+         
+//checkboxes
+gtk_style_context_add_provider(context_check_button_talk,    
                              GTK_STYLE_PROVIDER(cssProvider), 
                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-gtk_style_context_add_provider(context_label_date,    
+gtk_style_context_add_provider(context_check_button_talk_startup,    
                              GTK_STYLE_PROVIDER(cssProvider), 
                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
                              
-gtk_style_context_add_provider(context_label_time,    
+gtk_style_context_add_provider(context_box_talk_options1,    
                              GTK_STYLE_PROVIDER(cssProvider), 
                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
                              
-gtk_style_context_add_provider(context_list,    
+gtk_style_context_add_provider(context_box_talk_options2,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                                                           
+                             
+gtk_style_context_add_provider(context_check_button_talk_title,    
                              GTK_STYLE_PROVIDER(cssProvider), 
                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
 
-gtk_style_context_add_provider(context_calendar,    
+gtk_style_context_add_provider(context_check_button_talk_time,    
                              GTK_STYLE_PROVIDER(cssProvider), 
-                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);     
-	
-//gtk_style_context_add_provider(context_box_pane1,    
-                             //GTK_STYLE_PROVIDER(cssProvider), 
-                             //GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                             
-//gtk_style_context_add_provider(context_box_pane2,    
-                             //GTK_STYLE_PROVIDER(cssProvider), 
-                             //GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                             
-                             
-	
-}
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-//-----------------------------------------------------------------
-// timer update
-//------------------------------------------------------------------
-static gboolean timer_update_cb(gpointer data)
-{
-	GtkLabel *label = (GtkLabel*)data;
+gtk_style_context_add_provider(context_check_button_talk_description,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);                            
+             
+gtk_style_context_add_provider(context_check_button_talk_priority,    
+                             GTK_STYLE_PROVIDER(cssProvider), 
+                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                             
+                
 	
-	// need events_array of day events
-	
-    //object-key association
-    GDateTime *date_time;
-    //gchar *dt_format;
-    date_time = g_date_time_new_now_local(); // get local time
-    //gint year = g_date_time_get_year(date_time);
-	//gint month =g_date_time_get_month(date_time);    
-	//gint day = g_date_time_get_day_of_month(date_time); 
-	gint hour =g_date_time_get_hour(date_time);
-	gint min =g_date_time_get_minute (date_time);
-	gint sec = g_date_time_get_second (date_time);
-	
-    //get events for date (do this outside timer function)
-    // check reminder times
-        
-    gchar *dt_format_time;                         
-    dt_format_time = g_date_time_format(date_time, "%H:%M:%S");   // 24hr time format
-    gtk_label_set_text(GTK_LABEL(label), dt_format_time);   // update label
-    //g_print("%s\n",dt_format);        
-    g_free (dt_format_time);
-    
-    gchar* message ="Alarm Reminder ";
-    
-    if(hour==m_alarm_hour && min==m_alarm_min && sec==0)
-	{
-	 g_print(" Alarm Notification\n");
-	
-	//speak now
-	 GThread *thread_speak; 
-	
-	//gchar* message_speak ="Friday seventeenth September 2021. No Events. ";
-	gchar* message_speak ="Talk Calendar. Alarm Reminder";    
+
 		
-	if(m_talk) {	
-	g_mutex_lock (&lock);
-    thread_speak = g_thread_new(NULL, thread_speak_func, message_speak);   
-	}
-	
-	g_thread_unref (thread_speak);	
-	
-			
-	if(m_alarm_notification) show_notification(message);
-	
-	g_date_time_unref (date_time);
-	return TRUE;
-	}
+//--------------------------------------------------------------
+// Dialog PACKING
+//--------------------------------------------------------------  
+container = gtk_dialog_get_content_area (GTK_DIALOG(dialog));			
+
+gtk_container_add(GTK_CONTAINER(container),check_button_talk);
+gtk_container_add(GTK_CONTAINER(container),check_button_talk_startup);	
+gtk_container_add(GTK_CONTAINER(container),box_talk_options1);
+gtk_container_add(GTK_CONTAINER(container),box_talk_options2);	
+
+		
+gtk_widget_show_all(GTK_WIDGET(dialog));      
+response = gtk_dialog_run(GTK_DIALOG(dialog));  
     
-        
+  
+  switch (response)
+  {
+  case 1:
+  
+  m_talk =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk));
+  m_talk_at_startup=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_startup));
+  m_talk_time =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_time));
+  m_talk_description=gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_description));
+  m_talk_priority =gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(check_button_talk_priority));
+  
+  config_write();
+  
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	 
+  
+  case 2: //cancel pressed  
+  gtk_widget_destroy(GTK_WIDGET(dialog));	 
+  break;	  
+  default:
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+  break;
+} 	
+}
+
+//------------------------------------------------------------------
+// Start up
+//------------------------------------------------------------------
     
-    g_date_time_unref (date_time);    
-    return TRUE;
+static void startup (GtkApplication *app)
+{
+	//removed menubar (menubar depreciated and gone in gtk4)	
 }
 
 
-
-//---------------------------------------------------------------------
-// activate
-//---------------------------------------------------------------------
-
-static void activate (GtkApplication *app, gpointer user_data)
+static void activate (GtkApplication* app, gpointer user_data)
 {
+
 	GtkWidget *window;
 	GtkWidget *calendar;
 	
 	GtkWidget *label_date;
 	GtkWidget *label_time;
+	//GtkWidget *label_alarm;
 	
-	
-	GtkWidget *paned;
-	GtkWidget *text_view;
+	GtkWidget *paned;	
 	GtkWidget *scrolled_window;
-	GtkTextBuffer *buffer_text_view;
-	
 	GtkWidget *box_pane1;
 	GtkWidget *box_pane2;
 	
-	GtkWidget *list;
+	GtkWidget *treeview;	
+	//GtkTreeSelection *selection;  
 	
-	GDateTime *date_time;
-	
+	GtkWidget *header;
+	GtkWidget *button;	
+	GtkWidget *menu_button;
+	 
+	//GIcon *icon;
+	GtkWidget *icon;
+	GtkStyleContext *context;
+		
+	GDateTime *date_time;	
 	date_time = g_date_time_new_now_local();   // get local time     
 	
-	
-	//---------------------------------------------------------------
-	// Date time labels
-	//--------------------------------------------------------------
+	// Date time labels	
 	gchar *dt_format_date;
 	dt_format_date = g_date_time_format(date_time, "%a %e %b %Y");
 	label_date=gtk_label_new("");	
@@ -4014,176 +3874,284 @@ static void activate (GtkApplication *app, gpointer user_data)
 	g_free (dt_format_time);	
 	
 	
-	
-	//----------------------------------------------------------------
-	//set up window
-	//------------------------------------------------------------------
-	
-	gchar* title ="Talk Calendar";
-	
+	// define keyboard accelerators
+	const gchar *import_accels[2] = { "<Ctrl>O", NULL };
+	const gchar *export_accels[2] = { "<Ctrl>S", NULL };
+	const gchar *delete_accels[2] = { "<Ctrl>D", NULL };
+	const gchar *speak_accels[2] = { "space", NULL };
+	const gchar *home_accels[2] = { "Home", NULL };
+	const gchar *about_accels[2] =  { "<Ctrl>A", NULL };
+	const gchar *quit_accels[2] =   { "<Ctrl>Q", NULL };
+		
+	//Setup window
+	gchar* title ="Talk Calendar";	
 	window = gtk_application_window_new (app);
 	gtk_window_set_title (GTK_WINDOW (window), title);
-	gtk_window_set_default_size (GTK_WINDOW (window), 950, 450);
+	gtk_window_set_default_size (GTK_WINDOW (window), 750, 500);
 	gtk_window_set_icon_name (GTK_WINDOW (window), "x-office-calendar");
-	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-	
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);	
 	gtk_container_set_border_width(GTK_CONTAINER(window), 3);
+		
+		
+	//set up calendar
+	calendar = gtk_calendar_new();		
+	g_signal_connect(GTK_CALENDAR(calendar), "day-selected", G_CALLBACK(callbk_calendar_day_clicked), window); //calnedar clicked	
+	g_signal_connect(GTK_CALENDAR(calendar), "day-selected-double-click", G_CALLBACK(callbk_calendar_day_double_click), window); //calendar double clicked
+	g_signal_connect(GTK_CALENDAR(calendar), "month-changed", G_CALLBACK(callbk_calendar_month_changed), NULL);
 	
+	//get the day month and year from calendar
+    guint day, month, year;
+    gtk_calendar_get_date(GTK_CALENDAR (calendar), &year, &month, &day);
+    
+   
+	gint n_regular_events = db_get_number_of_rows_year_month_day(year, month+1, day);    
+	gint n_isyearly_month_events = db_get_number_of_isyearly_events_month(month+1);   
+	gint n_isyearly_day_events=0;
 	
-	g_signal_connect(G_OBJECT (window), "key_press_event", G_CALLBACK(callbk_window_on_key_press), NULL);
+	Event isyearly_array[n_isyearly_month_events];
+		 
+	db_get_isyearly_events_month(isyearly_array, month+1, n_isyearly_month_events);
+	Event e1;	
+	for(int i=0; i<n_isyearly_month_events; i++) {		
+	e1=isyearly_array[i];
+	if(e1.day == day && e1.year!=year){	
+	n_isyearly_day_events=n_isyearly_day_events+1;
+	}
+	}
 	
-	//Set up list view    
-	list = gtk_tree_view_new(); // a widget for displaying both trees and lists    
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);    
-	g_object_set(G_OBJECT(list), "activate-on-single-click", FALSE, NULL);
-	g_signal_connect(GTK_TREE_VIEW(list), "row-activated", G_CALLBACK(list_row_activated_callbk), window);    
-	init_list(list);
+	gint total_number_events = n_regular_events+n_isyearly_day_events;
 	
+	//Now create total event array i.e. contains regular plus isyearly events
+	Event* event_array_total = NULL;	
+	event_array_total = malloc(total_number_events * sizeof(Event));
 	
-	//-------------------------------------------------------------------
-	// set up text view
-	//-------------------------------------------------------------------
+	Event event_array[n_regular_events]; //regular event array
+	db_get_all_events_year_month_day(event_array, year, month+1, day, n_regular_events);
 	
-	buffer_text_view = gtk_text_buffer_new (NULL); //text being viewed  
-	text_view = gtk_text_view_new_with_buffer (buffer_text_view); 
-	gtk_text_view_set_left_margin(GTK_TEXT_VIEW(text_view),6);
-	gtk_text_view_set_right_margin(GTK_TEXT_VIEW(text_view),6);  
-	gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view),FALSE);   
-	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text_view), GTK_WRAP_WORD);   
+	int count=0;  //event array total count
 	
+	for(int i=0; i<n_regular_events; i++) {	//add regular events to total		
+	event_array_total[count] = event_array[i];
+	count =count+1;
+	if(count>total_number_events)
+	{
+	g_print("fatal error: malloc over run\n");
+	break;
+	}
+	}	
+	//now add yearly events
+	for(int i=0; i<n_isyearly_month_events; i++) {		
+	Event e2=isyearly_array[i];
+	if(e2.day == day && e2.year!=year){			
+    event_array_total[count] = isyearly_array[i];
+	count =count+1;
+	if(count>total_number_events)
+	{
+	g_print("fatal error: malloc over run\n");
+	break;
+	}
+	}
+	}	 
+		
+	treeview = create_view_and_model(event_array_total,total_number_events);	
+	g_signal_connect(GTK_TREE_VIEW(treeview), "row-activated", G_CALLBACK(callbk_treeview_row_activated), window); 
+	
+	//Set up scrolled window
 	scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), 
-	GTK_POLICY_AUTOMATIC, 
-	GTK_POLICY_AUTOMATIC); 
-	
-	gtk_container_add (GTK_CONTAINER (scrolled_window), text_view); //put textview inside scrolled window
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), 	GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC); 	
+	gtk_container_add (GTK_CONTAINER (scrolled_window), treeview); //put treeview inside scrolled window
 	gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
 	
 	
-	//-------------------------------------------------------------------
-	// Set up calendar
-	//--------------------------------------------------------------------
-	
-	//set up calendar
-	calendar = gtk_calendar_new();
-	
-	//calendar clicked
-	g_signal_connect(GTK_CALENDAR(calendar), "day-selected", G_CALLBACK(calendar_day_selected_callbk), window);
-	//calendar double clicked
-	g_signal_connect(GTK_CALENDAR(calendar), "day-selected-double-click", G_CALLBACK(calendar_day_selected_double_click_callbk), window);
-	g_signal_connect(GTK_CALENDAR(calendar), "month-changed", G_CALLBACK(calendar_month_changed_callbk), NULL);
-	
-	
-	
-	//----------------------------------------------------------------
-	// Set up connections
-	//-----------------------------------------------------------------
-	//g_object_set_data() makes a connection between two objects
-	g_object_set_data(G_OBJECT(window), "textview-key",text_view);  
-	g_object_set_data(G_OBJECT(window), "list-key",list);  
-	g_object_set_data(G_OBJECT(window), "calendar-key",calendar);
-	g_object_set_data(G_OBJECT(window), "label-date-key",label_date);
-	g_object_set_data(G_OBJECT(window), "label-time-key",label_time);
-	
-	g_object_set_data(G_OBJECT(text_view), "text-view-window-key",window);
-	
-	g_object_set_data(G_OBJECT(calendar), "calendar-list-key",list);
-	g_object_set_data(G_OBJECT(calendar), "calendar-textview-key",text_view); 
-	g_object_set_data(G_OBJECT(calendar), "calendar-label-date-key",label_date);   
-	
-	g_object_set_data(G_OBJECT(list), "treeview-textview-key",text_view);
-	g_object_set_data(G_OBJECT(list), "treeview-calendar-key",calendar);   	
-	
-	//------------------------------------------------------------------
-	// Menu Actions
-	//------------------------------------------------------------------
+	//setup actions (actions needed for menu)
+	GSimpleAction *import_action;	
+	import_action=g_simple_action_new("import",NULL); //app.import
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(import_action)); //make visible	
+	g_signal_connect(import_action, "activate",  G_CALLBACK(callbk_import), calendar);
 	
 	GSimpleAction *export_action;	
 	export_action=g_simple_action_new("export",NULL); //app.export
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(export_action)); //make visible
-	//connect the exit_action activate signal to the exit_callbk function with application user data
-	g_signal_connect(export_action, "activate",  G_CALLBACK(export_callbk), NULL);
-	
-	
-	GSimpleAction *import_action;	
-	import_action=g_simple_action_new("import",NULL); //app.import
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(import_action)); //make visible
-	//connect the exit_action activate signal to the exit_callbk function with application user data
-	g_signal_connect(import_action, "activate",  G_CALLBACK(import_callbk), calendar);
-	
-	
-	GSimpleAction *exit_action;	
-	exit_action=g_simple_action_new("quit",NULL); //app.quite
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(exit_action)); //make visible
-	//connect the exit_action activate signal to the exit_callbk function with application user data
-	g_signal_connect(exit_action, "activate",  G_CALLBACK(exit_callbk), app);
-	
-	GSimpleAction *options_action;
-	options_action=g_simple_action_new("options",NULL); //action = app.options
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(options_action)); //make visible	
-	g_signal_connect(options_action, "activate",  G_CALLBACK(options_callbk), window);
+	g_signal_connect(export_action, "activate",  G_CALLBACK(callbk_export), window);
 	
 	GSimpleAction *delete_events_action;	
-	delete_events_action=g_simple_action_new("delete",NULL); //action = app.event
+	delete_events_action=g_simple_action_new("delete",NULL); //action = app.delete
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(delete_events_action)); //make visible	
-	g_signal_connect_swapped(delete_events_action, "activate",  G_CALLBACK(delete_events_callbk), window);
-	//g_signal_connect(delete_events_action, "activate",  G_CALLBACK(delete_events_callbk), calendar);
-	
-	GSimpleAction *new_event_action;	
-	new_event_action=g_simple_action_new("new",NULL); //action = app.event
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(new_event_action)); //make visible	
-	g_signal_connect_swapped(new_event_action, "activate",  G_CALLBACK(new_event_menu_callbk), window);
+	g_signal_connect(delete_events_action, "activate",  G_CALLBACK(callbk_delete), window);
 	
 	
-	GSimpleAction *gotoday_action;		
-	gotoday_action=g_simple_action_new("gotoday",NULL); 
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(gotoday_action)); //make visible	
-	g_signal_connect(gotoday_action, "activate",  G_CALLBACK(callbk_gotoday), window);
+	GSimpleAction *speak_action;	
+	speak_action=g_simple_action_new("speak",NULL); //app.speak
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(speak_action)); //make visible	
+	g_signal_connect(speak_action, "activate",  G_CALLBACK(callbk_speak), window);
 	
-	GSimpleAction *action_read_events;		
-	action_read_events=g_simple_action_new("read",NULL); 
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(action_read_events)); //make visible	
-	g_signal_connect(action_read_events, "activate",  G_CALLBACK(callbk_read_events), window);
+	GSimpleAction *preferences_action;	
+	preferences_action=g_simple_action_new("preferences",NULL); //app.spreferences
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(preferences_action)); //make visible	
+	g_signal_connect(preferences_action, "activate",  G_CALLBACK(callbk_preferences), window);
 	
-	GSimpleAction *alarm_action;		
-	alarm_action=g_simple_action_new("alarm",NULL); 
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(alarm_action)); //make visible	
-	g_signal_connect(alarm_action, "activate",  G_CALLBACK(callbk_alarm), window);
+	GSimpleAction *other_action;	
+	other_action=g_simple_action_new("other",NULL); //app.other
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(other_action)); //make visible	
+	g_signal_connect(other_action, "activate",  G_CALLBACK(callbk_other_options), window);
 	
+	GSimpleAction *font_action;	
+	font_action=g_simple_action_new("font",NULL); //app.font
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(font_action)); //make visible	
+	g_signal_connect(font_action, "activate",  G_CALLBACK(callbk_font), window);
 	
 	GSimpleAction *about_action;	
 	about_action=g_simple_action_new("about",NULL); //app.about
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(about_action)); //make visible	
-	g_signal_connect_swapped(about_action, "activate",  G_CALLBACK(callbk_about), window);
+	g_signal_connect(about_action, "activate",  G_CALLBACK(callbk_about), window);
 	
-	GSimpleAction *audio_action;		
-	audio_action=g_simple_action_new("audio",NULL); 
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(audio_action)); //make visible	
-	g_signal_connect(audio_action, "activate",  G_CALLBACK(audio_callbk), window);
+	GSimpleAction *speak_about_action;	
+	speak_about_action=g_simple_action_new("version",NULL); //app.version
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(speak_about_action)); //make visible	
+	g_signal_connect(speak_about_action, "activate",  G_CALLBACK(callbk_speak_about), window);
 	
+	GSimpleAction *home_action;	
+	home_action=g_simple_action_new("home",NULL); //app.home
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(home_action)); //make visible	
+	g_signal_connect(home_action, "activate",  G_CALLBACK(callbk_home), window);
+	
+	
+	GSimpleAction *shortcuts_action;	
+	shortcuts_action=g_simple_action_new("shortcuts",NULL); //app.shortcuts
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(shortcuts_action)); //make visible	
+	g_signal_connect(shortcuts_action, "activate",  G_CALLBACK(callbk_shortcuts), window);
+	
+	GSimpleAction *quit_action;	
+	quit_action=g_simple_action_new("quit",NULL); //app.quit
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(quit_action)); //make visible	
+	g_signal_connect(quit_action, "activate",  G_CALLBACK(callbk_quit), app);
+	
+	
+	GMenu *appmenu, *section; 
+	//GMenuModel *menu_model;
+	
+	appmenu = g_menu_new ();  
+	
+	section = g_menu_new ();  
+	g_menu_append (section, "Import", "app.import");
+	g_menu_append (section, "Export", "app.export");	
+	g_menu_append_section (appmenu, NULL, G_MENU_MODEL (section));
+	g_object_unref (section);
+	
+	section = g_menu_new ();
+	g_menu_append (section, "Delete", "app.delete");	
+	g_menu_append_section (appmenu, NULL, G_MENU_MODEL (section));
+	g_object_unref (section);
+	
+	section = g_menu_new ();
+	g_menu_append (section, "Talk", "app.preferences");
+	g_menu_append (section, "Font", "app.font"); 
+	g_menu_append (section, "Other", "app.other"); 		
+	g_menu_append_submenu (appmenu, "_Preferences", G_MENU_MODEL (section));
+	g_object_unref (section);
+	
+	section = g_menu_new ();
+	g_menu_append (section, "Shortcuts", "app.shortcuts"); //show shortcuts
+	g_menu_append (section, "About", "app.about");
+	g_menu_append (section, "Speak Version", "app.version");  //speak version
+	g_menu_append_submenu (appmenu, "_Help", G_MENU_MODEL (section));
+	g_object_unref (section);
+	
+	section = g_menu_new ();
+	g_menu_append (section, "Quit", "app.quit");
+	g_menu_append_section (appmenu, NULL, G_MENU_MODEL(section));
+	g_object_unref (section);
+	
+	gtk_application_set_app_menu (GTK_APPLICATION (app), G_MENU_MODEL (appmenu));
+	
+	
+	header = gtk_header_bar_new ();
+	gtk_header_bar_set_title (GTK_HEADER_BAR (header), "Talk Calendar");
+	gtk_window_set_titlebar (GTK_WINDOW(window), header);
+	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header), TRUE);
+	
+	//hamburger
+	menu_button = gtk_menu_button_new();
+	gtk_widget_set_tooltip_text(menu_button, "Menu");
+	icon = gtk_image_new_from_icon_name ("open-menu-symbolic", GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_image (GTK_BUTTON (menu_button), icon);		
+	gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (menu_button), G_MENU_MODEL(appmenu));
+	gtk_widget_show (menu_button);
+	gtk_header_bar_pack_end(GTK_HEADER_BAR (header), menu_button);
+	
+	//-----------------------------------------------------------------
+	//New event
+	button = gtk_button_new_from_icon_name ("appointment-new-symbolic", GTK_ICON_SIZE_BUTTON); 
+	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE); //no border
+	context = gtk_widget_get_style_context (button);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button, GTK_ALIGN_CENTER);  
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), button);
+	gtk_widget_set_tooltip_text(button, "New Appointment");
+	g_signal_connect (button, "clicked", G_CALLBACK (callbk_new_event), window);
+	
+	//separator = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
+	//gtk_header_bar_pack_start(GTK_HEADER_BAR(header), separator);
+	//Alarm
+	button = gtk_button_new_from_icon_name ("appointment-soon-symbolic", GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE); //no border
+	context = gtk_widget_get_style_context (button);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
+	gtk_widget_set_tooltip_text(button, "Set Alarm");
+	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(callbk_alarm), window);
+	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), button);
+	
+	
+	//Revealer test
+	GtkWidget *revealer = gtk_revealer_new ();
+	gtk_container_add (GTK_CONTAINER (revealer),
+	gtk_image_new_from_icon_name ("software-update-urgent-symbolic",
+	GTK_ICON_SIZE_BUTTON));
+	gtk_revealer_set_transition_duration (GTK_REVEALER (revealer), 500);
+	gtk_revealer_set_transition_type (GTK_REVEALER (revealer),
+	GTK_REVEALER_TRANSITION_TYPE_CROSSFADE);
+	gtk_header_bar_pack_start (GTK_HEADER_BAR (header), revealer);
+	
+	
+	// Set up gobject key value pairs
+	g_object_set_data(G_OBJECT(window), "treeview-key",treeview); 
+	g_object_set_data(G_OBJECT(window), "calendar-key",calendar);
+	g_object_set_data(G_OBJECT(window), "label-date-key",label_date);
+	g_object_set_data(G_OBJECT(window), "label-time-key",label_time);
+	g_object_set_data(G_OBJECT(window), "revealer-key",revealer);
+	g_object_set_data(G_OBJECT(window), "app-key",app);
+	//GtkWidget *header =g_object_get_data(G_OBJECT(window), "header-key"); 
+	
+	//g_object_set_data(G_OBJECT(calendar), "calendar-treeview-key",treeview);	
+	//g_object_set_data(G_OBJECT(calendar), "calendar-label-date-key",label_date);   
+		
 	
 	box_pane1=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
-	gtk_box_pack_start(GTK_BOX(box_pane1),calendar,FALSE, FALSE, 2);
-	gtk_box_pack_start(GTK_BOX(box_pane1),list,FALSE, FALSE, 2);
+	//gtk_box_pack_start(GTK_BOX(box_pane1),popover,FALSE, FALSE, 5);	
+	gtk_box_pack_start(GTK_BOX(box_pane1),label_date,FALSE, FALSE, 5);	
+	gtk_box_pack_start(GTK_BOX(box_pane1),calendar,TRUE, TRUE, 2);
 	
-	box_pane2=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);    
-	gtk_box_pack_start(GTK_BOX(box_pane2),label_date,FALSE, FALSE, 5);
-	//textview inside scrolled window
+	
+	box_pane2=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);   
 	gtk_box_pack_start(GTK_BOX(box_pane2),scrolled_window,TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(box_pane2),label_time,FALSE, FALSE, 5);	
 	
-	paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);	
+	paned = gtk_paned_new (GTK_ORIENTATION_VERTICAL);	
 	gtk_paned_add1 (GTK_PANED (paned), box_pane1);
 	gtk_paned_add2 (GTK_PANED (paned), box_pane2);
 	
-	gtk_paned_set_position(GTK_PANED (paned), 600); //window 950x400
+	gtk_paned_set_position(GTK_PANED (paned), 300); //window 600x450
 	
 	gtk_container_add (GTK_CONTAINER (window), paned);	
-	calendar_month_changed_callbk(GTK_CALENDAR(calendar),NULL);
+	callbk_calendar_month_changed(GTK_CALENDAR(calendar),NULL);
 	
 	//call calendar day clicked directly at startup
-	calendar_day_selected_callbk(GTK_CALENDAR(calendar), GTK_WINDOW(window));
-	change_calendar_font_size(window);
+	//callbk_calendar_day_clicked(GTK_CALENDAR(calendar), GTK_WINDOW(window));
+	
+	change_window_font_size(GTK_WINDOW(window));
 	
 	
 	PangoAttrList *attrs;
@@ -4192,23 +4160,37 @@ static void activate (GtkApplication *app, gpointer user_data)
 	gtk_label_set_attributes (GTK_LABEL (label_date), attrs);
 	pango_attr_list_unref (attrs);
 	
-	
 	if(m_talk && m_talk_at_startup) speak_events_at_date(GTK_CALENDAR(calendar));
 	
-	g_date_time_unref(date_time);	
+		
+	// connect keyboard accelerators
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.import", import_accels);
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.export", export_accels);
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.delete", delete_accels);
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.speak", speak_accels);                                     
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.home", home_accels); 
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.about", about_accels);
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
+	"app.quit", quit_accels);
 	
+	g_date_time_unref(date_time);
 	gtk_widget_show_all (window);
 	
 	//Timer
-	g_timeout_add_seconds(1, timer_update_cb, label_time);
-	
-	notify_uninit();
-  
+	g_timeout_add_seconds(1, callbk_timer_update, window);
+	//notifications
+	//notify_uninit();
+
 }
 
 int main (int argc, char **argv)
 {
-    
   //setup database
   db_create_events_table();  
   //setup preferences

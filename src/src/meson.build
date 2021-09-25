@@ -1,4 +1,3 @@
-
 talkcalendar_src = [  
   'dbmanager.c',      
   'main.c',  
@@ -12,11 +11,9 @@ talkcalendar_deps = [
  compiler.find_library('flite_cmu_us_kal', required : true),
  compiler.find_library('flite_usenglish', required : true),
  compiler.find_library('flite_cmulex', required : true),
- compiler.find_library('asound', required : true),
+ compiler.find_library('asound', required : true),  
   
-  
-  dependency('gtk+-3.0', version : '>=3.22'),
-  dependency('libnotify'),
+  dependency('gtk+-3.0', version : '>=3.22'),  
   dependency('sqlite3', version : '>= 3.27.2'),
  
   
