@@ -42,27 +42,46 @@ Linux Mint 20.2 Cinnamon Edition
 
 ### Editing Existing Event
 
-* Double click the event in the title list below the calendar to edit.
+* Double click the event in the treeview list below the calendar to edit.
 * Change details as appropriate.
 
 ### Preferences
 
-* The options dialog can be accessed from the Edit menu.
+* Use the Preferences section in the hamburger menu to change options. 
+* You can change:
+```
+Talk options
+Font family and font size
+Other options (holidays)
+```
 
-### Keyboard Bindings
+### Keyboard Shortcut
+```
+Import		<Ctrl>O
+Export		<Ctrl>S
+Delete		<Ctrl>D
+Speak		Spacebar
+Today		Home Key
+About		<Ctrl>A
+Quit		<Ctrl>Q
+```
 
-* key_spacebar = speak
-* key_home = return to today (current date)
 
 ### Talk
 
-* Enable talking in options 
+* Enable talking in Talk options (use hamburger menu)
 * Click on a calendar date
-* Select Menu->Tools->Talk Selected Date 
-* Alternatively just press the spacebar to speak 
+* Press the spacebar to speak 
 
 ### Set Alarm
-* Select Menu->Tools->Set Alarm
+
+* Set the alarm time using the alarm button on the headerbar.
+![](header.png)
+
+There is an option to show a pop-up desktop notification when an alrm is triggered.
+
+An in-app alarm icon (red splodge) appears in the headerbar when an alarm is triggered. The red splodge persists until the set alarm button is pressed again. 
+
 
 ## Build From Source
 
