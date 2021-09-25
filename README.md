@@ -55,7 +55,7 @@ Font family and font size
 Other options (holidays)
 ```
 
-### Keyboard Shortcut
+### Keyboard Shortcuts
 ```
 Import		<Ctrl>O
 Export		<Ctrl>S
