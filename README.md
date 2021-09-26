@@ -218,9 +218,9 @@ Talk Calendar has been tested using Mate 1.26  (Ubuntu Mate 2.10 beta) as shown 
 
 This has raised the issue of default system themes and icons. With Talk Calendar tooltips are used when you hover over an icon button to describe its function. 
 
-Adwaita is the default theme of the GNOME Shell desktop and Gnome seem to be transitioning to using libadwaita, ["the GTK 4 port of libhandy that will play a central role in defining the visual language and user experience of GNOME applications"](https://adrienplazas.com/blog/2021/03/31/introducing-libadwaita.html). Libadwaita describes itself as the ["building blocks for modern GNOME applications"](https://gitlab.gnome.org/GNOME/libadwaita). It is not clear to me how this is going to play out with other desktops such as Mate. With Gtk 4.0 they say you should ["review your use of icon resources"](https://docs.gtk.org/gtk4/migrating-3to4.html#review-your-use-of-icon-resources) which is another thing to consider in future releases.
+Adwaita is the default theme of the Gnome shell desktop and Gnome seem to be transitioning to using libadwaita, ["the GTK 4 port of libhandy that will play a central role in defining the visual language and user experience of GNOME applications"](https://adrienplazas.com/blog/2021/03/31/introducing-libadwaita.html). Libadwaita describes itself as the ["building blocks for modern GNOME applications"](https://gitlab.gnome.org/GNOME/libadwaita). It is not clear to me how this is going to play out with other desktops such as Mate. With Gtk 4.0 they say you should ["review your use of icon resources"](https://docs.gtk.org/gtk4/migrating-3to4.html#review-your-use-of-icon-resources) which is another thing to consider in future releases.
 
-Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. Flite is not installed by default and so the Flite package along with ALSA has be installed to run Talk Calendar. Install these packages using the commands below.
+Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. With Fedora, Flite is not installed by default and so the Flite package along with ALSA has be installed to run Talk Calendar. Install these packages using the commands below.
 
 ```
 sudo dnf install -y flite
