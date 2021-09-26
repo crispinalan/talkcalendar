@@ -128,7 +128,7 @@ GNU General Public Licence, version 2 or later (GPLv2+).
 
 ## License Note
 
-The Gtk 3.0 GUI toolkit which is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.  
+The Gtk 3.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.  
 
 When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser library.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html).
 
