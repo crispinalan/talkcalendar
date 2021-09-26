@@ -136,7 +136,7 @@ The Pico speech synthesizer uses the Apache 2.0 license and this is not compatib
 
 The eSpeak speech synthesiser is licensed under GPLv3 which is not compatible with GPLv2. 
 
-The flite speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING) and is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I).
+The Flite speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING) and is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I).
 
 DFGS = Debian Free Software Guidelines 
 
