@@ -191,9 +191,11 @@ binary for 64-bit Debian based distributions
 
 ## Roadmap
 ```
+review text-to-speech code
+new features
 full code review
-deb package installer
-migrate to using Gtk4 
+package installer (deb,flatpak or snap)
+migrate to using Gtk4 (longer term goal)
 ```
 ## Project History and Notes
 
@@ -204,13 +206,38 @@ C++ and Qt were used to develop the original calendar diary project but when the
 
 <ins>Version 1.4: </ins> In version 1.4 a Gtk Treeview is used for displaying events to simplify the user interface. Accelerator shortcut keys are used in place of overriding window key pressed. The title bar has been replaced with Gtk Headerbar. The idea of a Gtk Headerbar is to merge the titlebar, menu and toolbar into one area to save space but retaining the same functionality. Many Gnome applications already use Gtk Headerbar and Talk Calendar has adopted this approach.
 
-In Gtk 4.0, GtkMenu, GtkMenuBar and GtkMenuItem are all gone and Gtk say ["these widgets were heavily relying on X11-centric concepts such as override-redirect windows and grabs, and were hard to adjust to other windowing systems"](https://docs.gtk.org/gtk4/migrating-3to4.html#gtkmenu-gtkmenubar-and-gtkmenuitem-are-gone). I guess this is because of the move from X11 to Wayland. Consquently, GtkMenu, GtkMenuBar and GtkMenuItem (clasic menu) are no longer used in Talk Calendar. A GMenu hamburger style menu is used instead. Also GTkToolbar has been [removed](https://docs.gtk.org/gtk4/migrating-3to4.html#gtktoolbar-has-been-removed). This was another reason to use a Gtk Headerbar.
+In Gtk 4.0, GtkMenu, GtkMenuBar and GtkMenuItem are all gone and Gtk say ["these widgets were heavily relying on X11-centric concepts such as override-redirect windows and grabs, and were hard to adjust to other windowing systems"](https://docs.gtk.org/gtk4/migrating-3to4.html#gtkmenu-gtkmenubar-and-gtkmenuitem-are-gone). I can only guess this has something to do with the transistion from X11 to Wayland. Consquently, GtkMenu, GtkMenuBar and GtkMenuItem (clasic menu) are no longer used in Talk Calendar. A GMenu hamburger style menu is used instead. Also GTkToolbar has been [removed](https://docs.gtk.org/gtk4/migrating-3to4.html#gtktoolbar-has-been-removed). This was another reason to use a Gtk Headerbar. Many applications such as those used with the Mate desktop rely on using a classic menu and a toolbar and will not be able to use GtkMenu, GtkMenuBar and GtkMenuItem when transistioning to Gtk4.0.
 
-In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say "The traditional desktop is dead, and it’s not coming back"  and then "Instead of trying to bring back old concepts like menu bars or status icons, invent something better from first principles". Consequently, instead of developing an alarm desktop system status icon mechanism Talk Calendar uses an in-app alarm revealer (the red splodge) in the headerbar which is shown when  an alarm is triggered. The red splodge persists until the set alarm button is pressed again.
+In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say "The traditional desktop is dead, and it’s not coming back"  and then "Instead of trying to bring back old concepts like menu bars or status icons, invent something better from first principles". Consequently, instead of developing an alarm desktop system status icon mechanism Talk Calendar uses an in-app alarm revealer (the splodge alarm triggered icon) in the headerbar which is shown when  an alarm is triggered. The splodge icon persists until the set alarm button is pressed again.
 
 Talk Calendar has been using libnotify which is library for sending desktop alarm notifications. The libnotify library requires x11-libs. I have replaced libnotify desktop notifications with GNotification which is the Gtk mechanism for creating pop-up desktop notifications. Hopefully this will make the application easier to port to Gtk4/Wayland in the longer term.
 
-At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will wait until the Gtk 4 package is added. Gtk 4 is available with Fedora. Migration will likley require great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+Talk Calendar has been tested using Mate 1.26  (Ubuntu Mate 2.10 beta) as shown in the screenshot below.
+
+![](talkcalendar-mate-1-26.png)
+
+This has raised the issue of default system themes and icons. With Talk Calendar tooltips are used when you hover over an icon button to describe its function. 
+
+Adwaita is the default theme of the GNOME Shell desktop and Gnome seem to be transitioning to using libadwaita, ["the GTK 4 port of libhandy that will play a central role in defining the visual language and user experience of GNOME applications"](https://adrienplazas.com/blog/2021/03/31/introducing-libadwaita.html). Libadwaita describes itself as the ["building blocks for modern GNOME applications"](https://gitlab.gnome.org/GNOME/libadwaita). It is not clear to me how this is going to play out with other desktops such as Mate. With Gtk 4.0 they say you should ["review your use of icon resources"](https://docs.gtk.org/gtk4/migrating-3to4.html#review-your-use-of-icon-resources) which is another thing to consider in future releases.
+
+Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. Flite is not installed by default and so the Flite package along with ALSA has be installed to run Talk Calendar. Install these packages using the commands below.
+
+```
+sudo dnf install -y flite
+sudo dnf install alsa-lib
+./talkcalendar
+```
+
+![](talkcalendar-fedora34.png)
+
+However, the talk output was not working with Fedora 34. Infact running a simple Flite command
+
+```
+flite -t "hello"
+```
+did not produce an audio output which works with both Debian and Ubuntu. I will need to look into this issue further with future releases as I have replaced the internal speech generator with Flite. If this is going to be problematic with some distros then this approach needs to be reviewed. However, the Flite C-code works with both Debian and Ubuntu. I will investigate why it is not working with Fedora Gnome Edition. Unfortunately,, I was not able spend time investigating if there was a missing package as using Gnome makes me feel dizzy with all the pressing of the windows key or the tab key to move between applications and not being able to minimise applications to a taskbar.
+
+At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will have to wait until the Gtk 4.0 package is added to the mainstream distributions. Gtk 4.0 is available with Fedora as is the Gtk 3.0 library (Talk Calendar runs as a Gtk 3.0 application).  Migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
 In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say
 "Flatpak is the future of app distribution" and so it is not clear if a deb package would be useful but I have kept it in the roadmap for now. 
