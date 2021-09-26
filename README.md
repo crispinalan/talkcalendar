@@ -128,7 +128,7 @@ GNU General Public Licence, version 2 or later (GPLv2+). [License](https://www.g
 
 ## License Note
 
-As I am using the Gtk 3.0 GUI toolkit which is licensed using LGPLv2.1 then this license (or the equivalent GPLv2) should be used for the project (like the Geany project). Consequently, the project has been licensed using the same GNU Lesser General Public License version 2 or later to be compatible with Gtk.  
+As I am using the Gtk 3.0 GUI toolkit which is licensed using LGPLv2.1 then this license (or the equivalent GPLv2) should be used for the project (like the Geany project). Consequently, the project has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.  
 
 When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser library.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html).
 
