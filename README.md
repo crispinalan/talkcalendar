@@ -34,7 +34,7 @@ Linux Mint 20.2 Cinnamon Edition
 
 * Double click on a date in the calendar to invoke the "New Event" dialog.
 * Enter the event title, description notes, start and end times, repeat etc.
-* Events are sorted by start time when displayed in the side day page view.
+* Events are sorted by start time when displayed.
 * A visual marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
@@ -78,7 +78,7 @@ Quit		<Ctrl>Q
 * Set the alarm time using the alarm button on the headerbar.
 ![](header.png)
 
-There is an option to show a pop-up desktop notification when an alrm is triggered.
+There is an option to show a pop-up desktop notification when an alarm is triggered.
 
 An in-app alarm icon (red splodge) appears in the headerbar when an alarm is triggered. The red splodge persists until the set alarm button is pressed again. 
 
