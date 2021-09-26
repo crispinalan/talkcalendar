@@ -230,7 +230,7 @@ sudo dnf install alsa-lib
 
 ![](talkcalendar-fedora34.png)
 
-However, the talk output was not working with Fedora 34. Infact running a simple Flite command
+However, the talk output was not working with Fedora 34. In fact running a simple Flite command
 
 ```
 flite -t "hello"
