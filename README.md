@@ -34,7 +34,8 @@ Talk Calendar has been tested using the following 64-bit distributions.
 ```
 Debian 11 (Bullseye) Mate Edition
 Ubuntu Mate (Focal Fossa 20.04.3 LTS)
-Linux Mint 20.2 Cinnamon Edition  
+Linux Mint 20.2 Cinnamon Edition
+Fedora 34
 ```
 
 <ins>Note: </ins> If ./talkcalendar fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename). 
