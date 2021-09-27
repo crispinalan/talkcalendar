@@ -5,21 +5,13 @@
  ***************************************************************************/
 
 #include <gtk/gtk.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-#include <math.h>
 #include "dbmanager.h"
 #include "event.h"
-#include <gdk/gdk.h>
-//#include<libnotify/notify.h>
-#include <flite/flite.h>
+#include "wavplay.h"
 
 // Definitions
 #define CONFIG_DIRNAME "talkcalendar-v1-4"
 #define CONFIG_FILENAME "talkcalendar-config-v1-4"
-
-//flite voice
-cst_voice *register_cmu_us_kal();
 
 //Action callbacks
 static void callbk_import(GSimpleAction * action, GVariant  *parameter, gpointer user_data);
@@ -236,14 +228,27 @@ void config_initialize() {
 
 static gpointer thread_speak_func(gpointer user_data)
 { 
-	gchar *text =user_data;        
-    cst_voice *voice;  
-    flite_init();   
-    voice = register_cmu_us_kal(NULL);        
-    flite_text_to_speech(text,voice,"play"); 	
+	gchar *text =user_data;  
+	
+    //g_print("speaking message = %s\n", text);
+    gchar* command_str ="flite";
+    gchar* out_file =" -o /tmp/talk.wav";
+    
+    command_str= g_strconcat(command_str," -t "," '",text,"' ",out_file, NULL);
+        
+    system(command_str);
+    
+    //play
+    if (g_file_test(g_build_filename ("/tmp","talk.wav", NULL), G_FILE_TEST_IS_REGULAR)) {	
+	char input[50];		
+	strcpy(input, "/tmp/talk.wav");
+	wavplay(input);	
+	}
+        
 	g_mutex_unlock (&lock); //thread mutex unlock 
 	return NULL;
 }
+
 
 //---------------------------------------------------------------------
 // treeview remove all items

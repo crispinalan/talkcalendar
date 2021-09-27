@@ -15,6 +15,18 @@ To run Talk Calendar from the terminal use:
 ```
 ./talkcalendar
 ```
+You need to install the Flite speech synthesizer for audio output. With Debian, Ubuntu and deriviates use
+
+```
+sudo apt install flite
+```
+
+With Fedora use
+
+```
+sudo dnf install flite
+```
+
 
 Create a launcher (Mate desktop) or use a menu editor (Cinnamon desktop) to launch Talk Calendar and add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
@@ -189,9 +201,17 @@ shortcut keys
 binary for 64-bit Debian based distributions
 ```
 
+Talk Calendar Version 1.4.1
+```
+built with Gtk3.0
+removed implicit dependency on Flite library header files
+generic binary for 64-bit distributions (Debian, Ubuntu, Fedora)
+requires Flite to be install independently
+```
+
 ## Roadmap
 ```
-review text-to-speech code
+review text-to-speech approach
 new features
 full code review
 package installer (deb,flatpak or snap)
@@ -200,7 +220,6 @@ migrate to using Gtk4 (longer term goal)
 ## Project History and Notes
 
 C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.).  It seemed to be the best alternative to Qt for open source Linux development. However, since the Qt Company moved Qt 5.15 LTS to a commercial-only phase KDE is now maintaining set of [patches](https://dot.kde.org/2021/04/06/announcing-kdes-qt-5-patch-collection) for Qt 5 [news](https://www.phoronix.com/scan.php?page=news_item&px=KDE-Qt-5-Patch-Collection). This has been welcomed by distributions such as KaOS who say in their recent [release](https://distrowatch.com/?newsid=11326) "Qt 5.15 does not receive updates or maintenance from the Qt company (only closed source, paid support is available). KDE has stepped up though and published a maintained 5.15 fork". Although it appears to be possible to use the KDE patches to update Qt I decided to use the open source Gtk toolkit to avoid any future commercial licensing issues. The old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
-
 
 <ins>Version 1.3: </ins> The internal word concatenation based speech engine has been replaced with the Flite speech synthesis system. The gtk_widget_override_font function has been replaced with a custom CSS style, through an application-specific GtkStyleProvider to allow the application font size to be changed as an accessibility feature.  Both gtk_widget_modify_font and gtk_widget_override_font have been deprecated as Gtk say these functions are ["not useful in the context of CSS-based rendering"](https://docs.gtk.org/gtk3/method.Widget.override_font.html). The gtk_widget_override_font function is not listed when using the [Gtk 4.0 API](https://docs.gtk.org/gtk4/) search.
 
@@ -220,27 +239,21 @@ This has raised the issue of default system themes and icons. With Talk Calendar
 
 Adwaita is the default theme of the Gnome shell desktop and Gnome seem to be transitioning to using libadwaita, ["the GTK 4 port of libhandy that will play a central role in defining the visual language and user experience of GNOME applications"](https://adrienplazas.com/blog/2021/03/31/introducing-libadwaita.html). Libadwaita describes itself as the ["building blocks for modern GNOME applications"](https://gitlab.gnome.org/GNOME/libadwaita). It is not clear to me how this is going to play out with other desktops such as Mate. With Gtk 4.0 they say you should ["review your use of icon resources"](https://docs.gtk.org/gtk4/migrating-3to4.html#review-your-use-of-icon-resources) which is another thing to consider in future releases.
 
-Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. With Fedora, Flite is not installed by default and so the Flite package along with ALSA has be installed to run Talk Calendar. Install these packages using the commands below.
+<ins>Version 1.4.1: </ins> The implicit dependency on the Flite library header files has been removed so that Flite has to be installed independently. This allows the older version of Flite used by Fedora to be used. 
 
-```
-sudo dnf install -y flite
-sudo dnf install alsa-lib
-./talkcalendar
-```
+Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. 
 
 ![](talkcalendar-fedora34.png)
 
-However, the talk output was not working with Fedora 34. In fact running a simple Flite command
+For speech output install Flite using the command below.
 
 ```
-flite -t "hello"
+sudo dnf install -y flite
 ```
-did not produce an audio output. This command works with both Debian and Ubuntu.  A Flite version check (flite --version) with Fedora 34 gives the output "version: flite-1.3-release October 2005 CMU Copyright 1999-2005, all rights reserved". The same version check with Ubuntu Mate gives the output "Carnegie Mellon University, Copyright (c) 1999-2016, all rights reserved version: flite-2.1-release Dec 2017 (http://cmuflite.org). With Debian 11 Bullseye Flite version 2.2 is being used. So it appears that Fedora is using a very old version of Flite. However, both Fedora and Ubuntu are using the same version of Festival with a version check (festival --version) yielding "Festival Speech Synthesis System: 2.5.0:release December 2017". I will need to look into this issue further with future releases as I have replaced the internal speech generator with Flite. If using Flite is going to be problematic with some distros then then the current text-to-speech approach (code) will need to be changed. 
+<ins>Gtk 4.0:</ins> At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will have to wait until the Gtk 4.0 package is added to the mainstream distributions. Gtk 4.0 is available with Fedora as is the Gtk 3.0 library (Talk Calendar runs as a Gtk 3.0 application).  Migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
-At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will have to wait until the Gtk 4.0 package is added to the mainstream distributions. Gtk 4.0 is available with Fedora as is the Gtk 3.0 library (Talk Calendar runs as a Gtk 3.0 application).  Migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
-In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say
-"Flatpak is the future of app distribution" and so it is not clear if a deb package would be useful but I have kept it in the roadmap for now. 
+<ins>Packages:</ins> In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say "Flatpak is the future of app distribution" and so it is not clear if a deb package would be useful but I have kept it in the roadmap for now. 
 
 
 ## Acknowledgements
