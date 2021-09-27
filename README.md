@@ -15,7 +15,7 @@ To run Talk Calendar from the terminal use:
 ```
 ./talkcalendar
 ```
-You need to install the Flite speech synthesizer for audio output. With Debian, Ubuntu and deriviates use
+You need to install the Flite speech synthesizer for audio output. With Debian, Ubuntu and derivatives use
 
 ```
 sudo apt install flite
