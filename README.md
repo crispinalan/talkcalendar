@@ -37,8 +37,7 @@ Ubuntu Mate (Focal Fossa 20.04.3 LTS)
 Linux Mint 20.2 Cinnamon Edition  
 ```
 
-<ins>Note: </ins> If ./talkcalendar fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename). Speech requires the libraries libflite1 and libasound2 which should be installed by default on a fresh Debian 11 install. If not install these libraries.
-
+<ins>Note: </ins> If ./talkcalendar fails to run check that the Talk Calendar binary has read, write and executable permissions and if necessary change permissions using chmod (e.g. chmod +rwx filename). 
 
 ## Usage
 
