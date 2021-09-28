@@ -239,7 +239,7 @@ This has raised the issue of default system themes and icons. With Talk Calendar
 
 Adwaita is the default theme of the Gnome shell desktop and Gnome seem to be transitioning to using libadwaita, ["the GTK 4 port of libhandy that will play a central role in defining the visual language and user experience of GNOME applications"](https://adrienplazas.com/blog/2021/03/31/introducing-libadwaita.html). Libadwaita describes itself as the ["building blocks for modern GNOME applications"](https://gitlab.gnome.org/GNOME/libadwaita). It is not clear to me how this is going to play out with other desktops such as Mate. With Gtk 4.0 they say you should ["review your use of icon resources"](https://docs.gtk.org/gtk4/migrating-3to4.html#review-your-use-of-icon-resources) which is another thing to consider in future releases.
 
-<ins>Version 1.4.1: </ins> The implicit dependency on the Flite library header files has been removed so that Flite has to be installed independently. This allows the older version of Flite used by Fedora to be used. 
+<ins>Version 1.4.1: </ins> The implicit dependency on the Flite library header files has been removed so that Flite has to be installed independently. This allows an older version of Flite to be used such as that used by Fedora 34. 
 
 Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the screenshot below. 
 
@@ -250,6 +250,9 @@ For speech output install Flite using the command below.
 ```
 sudo dnf install -y flite
 ```
+Fedora Gnome is using an older version of Flite compared to Debian and Ubuntu. A version check (flite --version) reveals that Fedora is using version "flite-1.3-release October 2005". The same version check with Ubuntu Mate reveals "flite-2.1-release Dec 2017". Debian Bullseye is using "flite 2.2". This has meant that I have had to change the Talk Calendar code base so that there is not longer an implicit dependency on Flite C library header files. Flite has to be installed independently and the code now uses a C system command which allows speech to be generated with Linux distributions using an older version of Flite e.g. 1.3. I am wondering if Fedora Gnome wants users to use  Festival rather than [Flite] given the version being [used](https://repology.org/project/flite/versions). 
+
+
 <ins>Gtk 4.0:</ins> At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will have to wait until the Gtk 4.0 package is added to the mainstream distributions. Gtk 4.0 is available with Fedora as is the Gtk 3.0 library (Talk Calendar runs as a Gtk 3.0 application).  Migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
 
