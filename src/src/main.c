@@ -7,7 +7,6 @@
 #include <gtk/gtk.h>
 #include "dbmanager.h"
 #include "event.h"
-#include "wavplay.h"
 
 // Definitions
 #define CONFIG_DIRNAME "talkcalendar-v1-4"
@@ -99,6 +98,7 @@ static int m_alarm_notification=1;
 static int m_alarm_hour=0;
 static int m_alarm_min=0;
 
+static int m_speed = 160; //espeak words per minute
 
 const int COLUMN = 1;
 const int NUM_COLS = 2;
@@ -227,27 +227,20 @@ void config_initialize() {
 //---------------------------------------------------------------
 
 static gpointer thread_speak_func(gpointer user_data)
-{ 
-	gchar *text =user_data;  
-	
-    //g_print("speaking message = %s\n", text);
-    gchar* command_str ="flite";
-    gchar* out_file =" -o /tmp/talk.wav";
-    
-    command_str= g_strconcat(command_str," -t "," '",text,"' ",out_file, NULL);
-        
+{     
+    gchar *text =user_data;
+    //g_print("speaking day events %s\n", text);
+    gchar * command_str ="espeak --stdout";
+    gchar *m_str = g_strdup_printf("%i", m_speed); 
+    gchar *speed_str ="-s ";
+    speed_str= g_strconcat(speed_str,m_str, NULL);   
+    command_str= g_strconcat(command_str," '",speed_str,"' "," '",text,"' ", "| aplay", NULL);
     system(command_str);
-    
-    //play
-    if (g_file_test(g_build_filename ("/tmp","talk.wav", NULL), G_FILE_TEST_IS_REGULAR)) {	
-	char input[50];		
-	strcpy(input, "/tmp/talk.wav");
-	wavplay(input);	
-	}
-        
-	g_mutex_unlock (&lock); //thread mutex unlock 
-	return NULL;
+    g_mutex_unlock (&lock); //thread mutex unlock 
+    return NULL;   
 }
+
+
 
 
 //---------------------------------------------------------------------

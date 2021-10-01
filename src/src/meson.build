@@ -1,6 +1,5 @@
 talkcalendar_src = [  
-  'dbmanager.c',
-  'wavplay.c',      
+  'dbmanager.c',      
   'main.c',  
 ]
 compiler = meson.get_compiler('c')
@@ -8,8 +7,7 @@ compiler = meson.get_compiler('c')
 talkcalendar_deps = [  
  compiler.find_library('m', required : false), 
  dependency('gtk+-3.0', version : '>=3.22'),  
- dependency('sqlite3', version : '>= 3.27.2'),
- dependency('alsa', version : '>=0.9.1')
+ dependency('sqlite3', version : '>= 3.27.2') 
 ]
 
 executable(

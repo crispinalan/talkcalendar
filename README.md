@@ -15,16 +15,18 @@ To run Talk Calendar from the terminal use:
 ```
 ./talkcalendar
 ```
-You need to install the Flite speech synthesizer for audio output. With Debian, Ubuntu and derivatives use
+You need to install the eSpeak speech synthesizer for audio output. 
+
+With Debian, Ubuntu and derivatives use
 
 ```
-sudo apt install flite
+sudo apt install espeak
 ```
 
 With Fedora use
 
 ```
-sudo dnf install flite
+sudo dnf install espeak
 ```
 
 
@@ -208,6 +210,13 @@ removed implicit dependency on Flite library header files
 generic binary for 64-bit distributions (Debian, Ubuntu, Fedora)
 requires Flite to be install independently
 ```
+Talk Calendar Version 1.4.2
+```
+built with Gtk3.0
+replaced flite with espeak
+generic binary for 64-bit distributions (Debian, Ubuntu, Fedora)
+requires espeak to be install independently
+```
 
 ## Roadmap
 ```
@@ -253,8 +262,9 @@ sudo dnf install -y flite
 Fedora Gnome is using an older version of Flite compared to Debian and Ubuntu. A version check (flite --version) reveals that Fedora is using version "flite-1.3-release October 2005". The same version check with Ubuntu Mate reveals "flite-2.1-release Dec 2017". Debian Bullseye is using "flite 2.2". This has meant that I have had to change the Talk Calendar code base so that there is not longer an implicit dependency on Flite C library header files. Flite has to be installed independently and the code now uses a C system command which allows speech to be generated with Linux distributions using an older version of Flite e.g. 1.3. I am wondering if Fedora Gnome wants users to use  Festival rather than [Flite] given the version being [used](https://repology.org/project/flite/versions). 
 
 
-<ins>Gtk 4.0:</ins> At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories and so the migration to using Gtk 4.0 will have to wait until the Gtk 4.0 package is added to the mainstream distributions. Gtk 4.0 is available with Fedora as is the Gtk 3.0 library (Talk Calendar runs as a Gtk 3.0 application).  Migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+<ins>Version 1.4.2: </ins> Replaced Flite speech synthesizer with eSpeak. This has to be installed independently. The older version of Flite (Flite 1.3) used by Fedora 34 and other distros has an EOF (end of file) issue causing overrun of audio. 
 
+<ins>Gtk 4.0:</ins> At time of writing surprisingly Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Some initial testing reveals that migration will likley require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). The current version Talk Calendar runs as a Gtk 3.0 application when using Fedora.
 
 <ins>Packages:</ins> In the blog called [The GNOME Way](https://blogs.gnome.org/tbernard/2021/07/13/community-power-4/) they say "Flatpak is the future of app distribution" and so it is not clear if a deb package would be useful but I have kept it in the roadmap for now. 
 
