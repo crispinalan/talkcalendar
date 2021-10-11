@@ -221,14 +221,13 @@ requires espeak to be install independently
 ## Roadmap
 ```
 review text-to-speech approach
-migrate to using Gtk4
 new features
 full code review
 package installer (deb)
 ```
 ## Project History and Notes
 
-C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [Gtk](https://docs.gtk.org/gtk3/). The Gtk3 package contains libraries used for creating graphical user interfaces for applications and is available in most Linux distributions (Debian, Ubuntu etc.).  It seemed to be the best alternative to Qt for open source Linux development. However, since the Qt Company moved Qt 5.15 LTS to a commercial-only phase KDE is now maintaining set of [patches](https://dot.kde.org/2021/04/06/announcing-kdes-qt-5-patch-collection) for Qt 5 [news](https://www.phoronix.com/scan.php?page=news_item&px=KDE-Qt-5-Patch-Collection). This has been welcomed by distributions such as KaOS who say in their recent [release](https://distrowatch.com/?newsid=11326) "Qt 5.15 does not receive updates or maintenance from the Qt company (only closed source, paid support is available). KDE has stepped up though and published a maintained 5.15 fork". Although it appears to be possible to use the KDE patches to update Qt I decided to use the open source Gtk toolkit to avoid any future commercial licensing issues. The old Qt Diary project has been removed and replaced with this new Gtk project called Talk Calendar.
+C++ and Qt were used to develop the original calendar diary project but when the Qt Company announced that Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch by researching and using alternative GUI tool kits  such as [CopperSpice](https://www.copperspice.com/), [EFL](https://www.enlightenment.org/about-efl.md), [Flutter](https://flutter.dev/) and [Gtk](https://docs.gtk.org/gtk3/). Gtk seemed to be the best alternative to Qt for open source Linux development as the Gtk3 package is available in most Linux distributions. However, since the Qt Company moved Qt 5.15 LTS to a commercial-only phase KDE is now maintaining set of [patches](https://dot.kde.org/2021/04/06/announcing-kdes-qt-5-patch-collection) for Qt 5 [news](https://www.phoronix.com/scan.php?page=news_item&px=KDE-Qt-5-Patch-Collection). This has been welcomed by distributions such as KaOS who say in their recent [release](https://distrowatch.com/?newsid=11326) "Qt 5.15 does not receive updates or maintenance from the Qt company (only closed source, paid support is available). KDE has stepped up though and published a maintained 5.15 fork". Although it appears to be possible to use the KDE patches to update Qt I decided to use the open source Gtk toolkit to avoid any future commercial licensing issues. 
 
 <ins>Version 1.3: </ins> The internal word concatenation based speech engine has been replaced with the Flite speech synthesis system. The gtk_widget_override_font function has been replaced with a custom CSS style, through an application-specific GtkStyleProvider to allow the application font size to be changed as an accessibility feature.  Both gtk_widget_modify_font and gtk_widget_override_font have been deprecated as Gtk say these functions are ["not useful in the context of CSS-based rendering"](https://docs.gtk.org/gtk3/method.Widget.override_font.html). The gtk_widget_override_font function is not listed when using the [Gtk 4.0 API](https://docs.gtk.org/gtk4/) search.
 
@@ -256,14 +255,47 @@ Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the 
 
 <ins>Version 1.4.2: </ins> Replaced Flite speech synthesizer with eSpeak. This has to be installed independently. The older version of Flite (Flite 1.3) used by Fedora 34 and other distros has an EOF (end of file) issue causing overrun of audio. 
 
-## Gtk 4.0
+## Gtk 4.0 Migration
 
-At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). The first testing build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
+At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+
+The first testing build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
 
 ![](talkcalendar-gtk4.png)
 
-GTK 4 uses list models instead of tree models and cell renderers (i.e. GtkTreeModel and GtkCellRenderer are used with the current Gtk 3.0 version of Talk Calendar) and porting so far has involved learning about these [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). 
+GTK 4 uses list models instead of tree models and cell renderers which  are used with the current Gtk 3.0 version of Talk Calendar and porting so far has involved learning about these [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). 
 
+In Gtk4.0, the function 
+```
+gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+```
+has been depreciated and so has had to be removed from the code. See this [discussion](https://discourse.gnome.org/t/how-to-center-gtkwindows-in-gtk4/3112).
+
+In Gtk 4.0, the function
+```
+gtk_dialog_run() 
+```
+
+has been depreciated. This has been less of an issue as callback functions have been written for the “response” [events](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
+
+The biggest issue with porting has been the functions 
+```
+gtk_calendar_mark_day()
+gtk_calendar_clear_marks()
+gtk_calendar_unmark_day()
+```
+With the test platform that I have been using (Fedora 34 Mate spin) gtk_calendar_mark_day does not place a visual marker on a particular Calendar day. Simple test code such as
+
+```
+gtk_calendar_mark_day(GTK_CALENDAR(calendar), 14);  
+gboolean isMarked = gtk_calendar_get_day_is_marked (GTK_CALENDAR(calendar), 14);  
+g_print("Calendar isMarked test =%d\n",isMarked);
+```
+show that a day has been marked but no visual mark is placed on the calendar. The GtkInspector debugging tool does not reveal any obvious CSS style setting that has to be used. It is surprising the GtkCalendar has not been overhauled with the release of Gtk4.0 to bring it in line with Calendar widgets used by  other GUI toolkits.
+
+The Solus Project has decided not to use Gtk4 for their Budgie desktop as explained in this [post](https://joshuastrobl.com/2021/09/14/building-an-alternative-ecosystem/).  They have expressed a number of concerns regarding Gtk4 and have decided to adopt the Enlightenment Desktop (EFL). An overview of the reasons are explained in this [article](https://www.debugpoint.com/2021/09/solus-exit-gtk/).
+
+Will Talk Calendar be ported to Gtk4? Not sure. It depends if I can sort out some of the GtkCalendar issues. If [CopperSpice](https://download.copperspice.com/copperspice/binary/) had been in the mainstream Debian or Ubuntu package repositories I would have been tempted to use this instead.
 
 ## Acknowledgements
 
