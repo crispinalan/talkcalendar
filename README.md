@@ -257,45 +257,12 @@ Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the 
 
 ## Gtk 4.0 Migration
 
-At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3 and has a strong GNOME focus. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
-The first testing build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
+The first test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
 
 ![](talkcalendar-gtk4.png)
 
-GTK 4 uses list models instead of tree models and cell renderers which  are used with the current Gtk 3.0 version of Talk Calendar and porting so far has involved learning about these [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). 
-
-In Gtk4.0, the function 
-```
-gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-```
-has been depreciated and so has had to be removed from the code. See this [discussion](https://discourse.gnome.org/t/how-to-center-gtkwindows-in-gtk4/3112).
-
-In Gtk 4.0, the function
-```
-gtk_dialog_run() 
-```
-
-has been depreciated. This has been less of an issue as callback functions have been written for the “response” [events](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
-
-The biggest issue with porting has been the functions 
-```
-gtk_calendar_mark_day()
-gtk_calendar_clear_marks()
-gtk_calendar_unmark_day()
-```
-With the test platform that I have been using (Fedora 34 Mate spin) gtk_calendar_mark_day does not place a visual marker on a particular Calendar day. Simple test code such as
-
-```
-gtk_calendar_mark_day(GTK_CALENDAR(calendar), 14);  
-gboolean isMarked = gtk_calendar_get_day_is_marked (GTK_CALENDAR(calendar), 14);  
-g_print("Calendar isMarked test =%d\n",isMarked);
-```
-show that a day has been marked but no visual mark is placed on the calendar. The GtkInspector debugging tool does not reveal any obvious CSS style setting that has to be used. It is surprising the GtkCalendar has not been overhauled with the release of Gtk4.0 to bring it in line with Calendar widgets used by  other GUI toolkits.
-
-The Solus Project has decided not to use Gtk4 for their Budgie desktop as explained in this [post](https://joshuastrobl.com/2021/09/14/building-an-alternative-ecosystem/).  They have expressed a number of concerns regarding Gtk4 and have decided to adopt the Enlightenment Desktop (EFL). An overview of the reasons are explained in this [article](https://www.debugpoint.com/2021/09/solus-exit-gtk/).
-
-Will Talk Calendar be ported to Gtk4? Not sure. It depends if I can sort out some of the GtkCalendar issues. If [CopperSpice](https://download.copperspice.com/copperspice/binary/) had been in the mainstream Debian or Ubuntu package repositories I would have been tempted to use this instead.
 
 ## Acknowledgements
 
