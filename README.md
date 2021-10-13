@@ -259,7 +259,7 @@ Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the 
 
 At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3 and has a strong GNOME focus. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
-The first test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
+The current test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
 
 ![](talkcalendar-gtk4.png)
 
