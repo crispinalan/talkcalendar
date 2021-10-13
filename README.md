@@ -259,9 +259,28 @@ Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the 
 
 At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3 and has a strong GNOME focus. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
-The current test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
+A screenshot of the current test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
 
 ![](talkcalendar-gtk4.png)
+
+GTK 4 uses list models and porting has involved replacing the current tree-based event display with the [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). 
+
+In Gtk4.0, the function 
+```
+gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+```
+has been depreciated and so has had to be removed from the code. See this [discussion](https://discourse.gnome.org/t/how-to-center-gtkwindows-in-gtk4/3112).
+
+In Gtk 4.0, the function
+```
+gtk_dialog_run() 
+```
+
+has been depreciated. This has been less of an issue as callback functions have been written for the “response” [events](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
+
+I could not not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme setting that should to be used to do this. I have ended up writing a bespoke month calendar which allows days with events to be colour marked (see screenshot).
+
+Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
 
 
 ## Acknowledgements
