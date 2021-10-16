@@ -220,10 +220,9 @@ requires espeak to be install independently
 
 ## Roadmap
 ```
-review text-to-speech approach
-new features
-full code review
-package installer (deb)
+replace sqlite with flat file database
+migrate to gtk4
+package installer (deb, rpm)
 ```
 ## Project History and Notes
 
@@ -255,15 +254,15 @@ Talk Calendar has been tested with Fedora 34 Gnome live edition as shown in the 
 
 <ins>Version 1.4.2: </ins> Replaced Flite speech synthesizer with eSpeak. This has to be installed independently. The older version of Flite (Flite 1.3) used by Fedora 34 and other distros has an EOF (end of file) issue causing overrun of audio. 
 
-## Gtk 4.0 Migration
+## Progress with Gtk 4.0 Migration
 
-At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora (including the Fedora Mate spin). Gtk4 is markedly different from Gtk3 and has a strong GNOME focus. Some initial testing reveals that migration will  require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
+At time of writing Gtk 4.0 is not in the Debian or Ubuntu repositories. Gtk 4.0 is available with Fedora including the Fedora Mate spin which is being used for development. Gtk4 is markedly different from Gtk3.  Some initial testing reveals that migration will require a great deal of code to be rewritten as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). 
 
 A screenshot of the current test build of the Gtk4 version of Talk Calendar developed using Fedora Mate 34 is shown below.
 
 ![](talkcalendar-gtk4.png)
 
-GTK 4 uses list models and porting has involved replacing the current tree-based event display with the [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). 
+GTK 4 uses list models and porting has involved replacing the current tree-based event display with the [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). A significant effort has had to be invested in this aspect of the porting.
 
 In Gtk4.0, the function 
 ```
@@ -278,7 +277,12 @@ gtk_dialog_run()
 
 has been depreciated. This has been less of an issue as callback functions have been written for the “response” [events](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
 
-I could not not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme setting that should to be used to do this. I have ended up writing a bespoke month calendar which allows days with events to be colour marked (see screenshot).
+I could not not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day()" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme option that should to be used to do this. I have ended up writing a bespoke month calendar which allows days with events to be colour marked (see screenshot). The calendar has been developed using the Gtk4 grid layout [manager](https://docs.gtk.org/gtk4/class.Grid.html) which arranges child widgets in rows and columns.
+
+Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone and in the context of menus can be replaced with "gtk_menu_button_set_icon_name()".
+
+The current Gtk4 testing version is using a new flat file csv database.
+
 
 Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
 
