@@ -2,12 +2,16 @@
  * 
  * @title: Talk Calendar
  * @short_description: Gtk 4 version of Talk Calendar
+ * @author: Alan Crispin
  * 
  * New features include grid button calendar,listview and 
  * flat-file csv database.
  * DisplayObject inherits from GObject. Consequently, 
  * You can call g_object_get or g_object_set on a property and the 
  * system will know how to handle it.
+ *
+ * GNU General Public Licence, version 2 or later (GPLv2+).
+ * 
  *   
  * main.c file
  * 
