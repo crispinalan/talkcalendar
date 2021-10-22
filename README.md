@@ -222,7 +222,8 @@ requires espeak to be install independently
 ```
 replace sqlite with flat file database
 migrate to gtk4
-package installer (deb, rpm)
+speech engine 
+package installers (deb, rpm)
 ```
 ## Project History and Notes
 
@@ -262,7 +263,8 @@ A screenshot of the current test build of the Gtk4 version of Talk Calendar deve
 
 ![](talkcalendar-gtk4.png)
 
-GTK 4 uses list models and porting has involved replacing the current tree-based event display with the [new list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). A significant effort has had to be invested in this aspect of the porting.
+GTK 4 uses model-based list widgets (GtkListBox) and porting has involved replacing the current GtkTreeView display of events with this [new list widget](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). A significant effort has had to be invested into this aspect of the porting. Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with the model-based [list widget](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and if using an object which derives from GObject can be sorted (in this application events are sorted by start time and then displayed). The application workflow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the listview.
+
 
 In Gtk4.0, the function 
 ```
@@ -277,11 +279,19 @@ gtk_dialog_run()
 
 has been depreciated. This has been less of an issue as callback functions have been written for the “response” [events](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
 
-I could not not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day()" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme option that should to be used to do this. I have ended up writing a bespoke month calendar which allows days with events to be colour marked (see screenshot). The calendar has been developed using the Gtk4 grid layout [manager](https://docs.gtk.org/gtk4/class.Grid.html) which arranges child widgets in rows and columns.
 
-Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone and in the context of menus can be replaced with "gtk_menu_button_set_icon_name()".
+I could not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day()" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme option that should to be used to do this. Consequently, I have ended up writing a bespoke month calendar which allows days with events to be colour marked. 
 
-The current Gtk4 testing version is using a new flat file csv database.
+The calendar has been developed using the Gtk4 grid layout [manager](https://docs.gtk.org/gtk4/class.Grid.html) which arranges child widgets in rows and columns. In this case the layout manager arranges buttons in a grid. I have found there is a small glitch with my approach relating to the initial focus of buttons and so this will need revisiting. Again a significant effort has had to be invested in this aspect of the porting.
+
+The function "gtk_spin_button_set_text()" has gone. The documented approach for showing spin button [leading zeros](https://people.gnome.org/~ebassi/docs/_build/Gtk/4.0/signal.SpinButton.output.html) doesn't work with gtk4. Consequently, I have had to change the new and edit event dialogs. The spin boxes for the start and end times now accept floating point values which are now stored in the database as floating point values. I have also removed the priority combobox as comboboxes appears to be on the Gtk depreciation hit list (see listview discussion above). A screenshot of the current new event dialog for the Gtk4 version of Talk Calendar is shown below.
+
+![](talkcalendar-gtk4-new-event.png)
+
+
+Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
+
+The current Gtk4 testing version is now using a new flat-file csv database with memory dynamically allocated for up to 5000 records. There is still much work to do in porting this application to Gtk4.
 
 
 Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
