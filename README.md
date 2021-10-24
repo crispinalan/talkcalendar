@@ -8,13 +8,10 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 
 ## Deployment
 
-A binary package developed using 64-bit Fedora 34 Mate spin can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages).  Alternatively, Talk Calendar can be built from source using the instructions below. Check that gtk4 is installed (use dnf list installed). If not then install using
+A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the instructions below. 
 
-```
-sudo dnf install gtk4-devel
-```
 
-To run Talk Calendar from the terminal use: 
+Assuming Gtk 4 ins installed the Talk Calendar binary can be run from the terminal using: 
 
 ```
 ./talkcalendar
@@ -25,6 +22,16 @@ With Fedora use
 
 ```
 sudo dnf install espeak
+```
+With Debian (as superuser) use
+
+```
+apt install espeak
+```
+
+Check that the Talk Calendar binary has execute permissions. If not use 
+```
+chmod +x talkcalendar
 ```
 
 Create a launcher (Mate desktop) to launch Talk Calendar and add Talk Calendar to your start-up programs to read out events when the computer is switched on.
@@ -81,18 +88,53 @@ Quit		<Ctrl>Q
 * Click on a calendar date with events
 * Press the spacebar to speak 
 
+## Debian Testing (Bookworm)
+
+Talk Calendar has been tested with Debian Bookworm (testing) which has gtk4 in the respositories. A screenshot of Talk  Calendar running with Debian is shown below.
+
+![](talkcalendar-gtk4-debian-bookworm.png)
+
+You need to install the following packages.
+
+```
+apt install build-essential
+apt install libgtk-4-dev
+apt install gtk-4-examples
+apt install espeak
+```
+
+The packages:
+```
+apt install libglib2.0-dev
+apt install alsa-utils
+```
+are needed but should be installed by default
+
+
 
 ## Build From Source
 
 The gtk4 source code for Talk Calendar is provided in the src directory.
 
-You need the gtk4 development libraries and the gcc compiler.
+You need the gtk4 development libraries and the gcc compiler. With Fedora you need to install the following packages.
 
 ```
 sudo dnf install gtk4-devel
 sudo dnf install gtk4-devel-docs
 sudo dnf install glib-devel
+sudo dnf install alsa-lib-devel
 sudo dnf install espeak
+```
+
+With Debian Bookworm you need to install the following packages
+
+```
+apt install build-essential
+apt install libgtk-4-dev
+apt install gtk-4-examples
+apt install espeak
+apt install libglib2.0-dev
+apt install alsa-utils
 ```
 
 Compile with
@@ -138,6 +180,7 @@ This is the first gtk4 version. Any bugs that arise will be fixed.
 The database called events.csv has memory dynamically allocated for up to 5000 records. The database is located in the run directory and can be backed up by copying to another location.
 
 Speech requires espeak to be install independently.
+
 
 
 ## Roadmap
