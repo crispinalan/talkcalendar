@@ -172,7 +172,7 @@ gtk4 new listview used for displaying events
 speak at startup option
 font change option
 flat-file csv database
-binary for 64-bit Fedora 34 Mate
+binary for 64-bit distributions (tested with Fedora 34 Mate and Debian Bookworm Mate)
 ```
 
 This is the first gtk4 version. Any bugs that arise will be fixed.
