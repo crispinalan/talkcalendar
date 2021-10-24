@@ -11,7 +11,7 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the instructions below. 
 
 
-Assuming Gtk 4 ins installed the Talk Calendar binary can be run from the terminal using: 
+Assuming Gtk 4 is installed the Talk Calendar binary can be run from the terminal using: 
 
 ```
 ./talkcalendar
@@ -29,7 +29,7 @@ With Debian (as superuser) use
 apt install espeak
 ```
 
-Check that the Talk Calendar binary has execute permissions. If not use 
+Check that the Talk Calendar binary has executable permissions. If not use 
 ```
 chmod +x talkcalendar
 ```
