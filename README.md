@@ -40,6 +40,7 @@ Create a launcher (Mate desktop) to launch Talk Calendar and add Talk Calendar t
 
 ### Adding New Event
 
+* Select event date using the calendar.
 * Click the New button on the headerbar to invoke the "New Event" dialog.
 * Enter the event title, description notes, start and end times etc.
 * Events are sorted by start time when displayed.
@@ -59,17 +60,17 @@ Create a launcher (Mate desktop) to launch Talk Calendar and add Talk Calendar t
 
 ![](preferences-dialog.png)
 
-* Use the Font dialog to change the application font size
+* Use the Font dialog to change the application font name and size.
 
 ![](font-dialog.png)
 
 ### Help
 
-* Use the Information dialog to display app preferences
+* Use the Information dialog to display current application preferences.
 
 ![](information-dialog.png)
 
-* Use the About dialog to display current version
+* Use the About dialog to display current version.
 
 ![](about-dialog.png)
 
@@ -185,15 +186,47 @@ Speech requires espeak to be install independently.
 
 ## Roadmap
 ```
-more features and enhancements to be added
+code refactoring and enhancements 
+new features to be added
 speech engine options
 package installers (deb, rpm)
 ```
+
+## Gtk 4.0 Migration Notes
+
+GTK 4 uses model-based list widgets (GtkListBox) and porting the Gtk 3 version of Talk Calendar has involved replacing the  GtkTreeView display of events with this [new list widget](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets). A significant effort had to be invested into this aspect of the porting. Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with the model-based [list widget](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and if using an object which derives from GObject can be sorted (in this application events are sorted by start time and then displayed). The application workflow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the listview. I have used buttons with text labels (New, Edit, Delete) but will look into using Adwaita icons in future updates. 
+
+
+In Gtk4.0, the function 
+```
+gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+```
+has been depreciated and so has had to be removed from the code. See this [discussion](https://discourse.gnome.org/t/how-to-center-gtkwindows-in-gtk4/3112).
+
+In Gtk 4.0, the function
+```
+gtk_dialog_run() 
+```
+
+has been depreciated. This has been less of an issue as callback functions have been written for the “response” events. See this [discussion](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
+
+I could not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day()" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme option that should to be used to do this. Consequently, I have ended up writing a bespoke month calendar which allows days with events to be colour marked. 
+
+The calendar has been developed using the Gtk4 grid layout [manager](https://docs.gtk.org/gtk4/class.Grid.html) which arranges child widgets in rows and columns. In this case the layout manager arranges buttons in a grid. Again a significant effort has had to be invested in this aspect of the porting.
+
+The function "gtk_spin_button_set_text()" has gone. The documented approach for showing spin button [leading zeros](https://people.gnome.org/~ebassi/docs/_build/Gtk/4.0/signal.SpinButton.output.html) doesn't work with gtk4. Consequently, I have had to change the new and edit event dialogs. The spin boxes for the start and end times now accept floating point values which are now stored in the database as floating point values. I have also removed the priority combobox as comboboxes appear to be on the Gtk depreciation hit list (see listview discussion above) and replaced it with a high prirority check button. 
+
+Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
+
+The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. If running Talk Calendar from the terminal the database called "events.csv" is located in the current working directory. Currently, if using a Mate launcher or setting up a main menu item then the database will be located in the home user directory. 
+
 
 ## Acknowledgements
 
 * [Gtk](https://www.gtk.org/)
 * GTK is a free and open-source project maintained by GNOME and an active community of contributors. GTK is released under the terms of the [GNU Lesser General Public License version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html).
+
+Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
 
 * [Geany](https://www.geany.org/)
 * Geany is a small and lightweight Integrated Development Environment which only requires the GTK+ runtime libraries. It has features including syntax highlighting, code completion, auto completion of often used constructs (e.g. if, for and while), code folding, embedded terminal emulation and extensibility through plugins. Geany uses the GPLv2 license. 
