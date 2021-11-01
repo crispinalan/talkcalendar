@@ -11,22 +11,10 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the instructions below. 
 
 
-Assuming Gtk 4 is installed the Talk Calendar binary can be run from the terminal using: 
+Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
 
 ```
 ./talkcalendar
-```
-You need to install the eSpeak speech synthesizer for audio output. 
-
-With Fedora use
-
-```
-sudo dnf install espeak
-```
-With Debian (as superuser) use
-
-```
-apt install espeak
 ```
 
 Check that the Talk Calendar binary has executable permissions. If not use 
@@ -34,7 +22,14 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-Create a launcher (Mate desktop) to launch Talk Calendar and add Talk Calendar to your start-up programs to read out events when the computer is switched on.
+If you create a launcher (Mate desktop) to launch Talk Calendar then the working directory will be your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory. In this case, copy the flite executable into your home directory. Use
+ 
+```
+Help->Information
+```
+to show the current working directory where both the speech engine and the events database should be located.
+
+Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
 ## Usage
 
@@ -89,7 +84,7 @@ Quit		<Ctrl>Q
 * Click on a calendar date with events
 * Press the spacebar to speak 
 
-## Debian Testing (Bookworm)
+## Debian Bookworm (Testing)
 
 Talk Calendar has been tested with Debian Bookworm (testing) which has gtk4 in the respositories. A screenshot of Talk  Calendar running with Debian is shown below.
 
@@ -124,7 +119,6 @@ sudo dnf install gtk4-devel
 sudo dnf install gtk4-devel-docs
 sudo dnf install glib-devel
 sudo dnf install alsa-lib-devel
-sudo dnf install espeak
 ```
 
 With Debian Bookworm you need to install the following packages
@@ -133,7 +127,6 @@ With Debian Bookworm you need to install the following packages
 apt install build-essential
 apt install libgtk-4-dev
 apt install gtk-4-examples
-apt install espeak
 apt install libglib2.0-dev
 apt install alsa-utils
 ```
@@ -156,12 +149,18 @@ I used Geany as the IDE for developing the project as it has an integrated termi
 
 * **Alan Crispin** [Github](https://github.com/crispinalan)
 
-
-
+ 
 ## License
 
-GNU General Public Licence, [Version 3](https://www.gnu.org/licenses/gpl-3.0.en.html). 
+GNU General Public Licence, version 2 or later (GPLv2+). 
 
+## License Note
+
+The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
+
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).
+
+The Flite (Festival Lite) speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I). Flite is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis) and so it used with Talk Calendar.
 
 ## Releases
 
@@ -178,19 +177,23 @@ binary for 64-bit distributions (tested with Fedora 34 Mate and Debian Bookworm 
 
 This is the first gtk4 version. Any bugs that arise will be fixed.
 
-The database called events.csv has memory dynamically allocated for up to 5000 records. The database is located in the run directory and can be backed up by copying to another location.
+The database called events.csv has memory dynamically allocated for up to 5000 records. The database is located in the Talk Calendar working directory and can be backed up by copying to another location.
 
-Speech requires espeak to be install independently.
 
 Talk Calendar Gtk 4 Version 1.0.1
 ```
 built with Gtk4.0
-removal of semi-colons from text entry
+removal of semi-colons from text entry to prevent a database error
 removal of apostrophes from text entry
+binary for 64-bit gtk4 distributions 
+```
+Talk Calendar Gtk 4 Version 1.0.2
+```
+built with Gtk4.0
+local build of Flite version 2.2 used for speech synthesis 
 option to use adwaita button icons
 binary for 64-bit gtk4 distributions 
 ```
-
 
 
 ## Roadmap
@@ -234,14 +237,11 @@ The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with me
 
 * [Gtk](https://www.gtk.org/)
 * GTK is a free and open-source project maintained by GNOME and an active community of contributors. GTK is released under the terms of the [GNU Lesser General Public License version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html).
-
-Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
+* Gtk4 [manual](https://developer-old.gnome.org/gtk4/stable/).
 
 * [Geany](https://www.geany.org/)
 * Geany is a small and lightweight Integrated Development Environment which only requires the GTK+ runtime libraries. It has features including syntax highlighting, code completion, auto completion of often used constructs (e.g. if, for and while), code folding, embedded terminal emulation and extensibility through plugins. Geany uses the GPLv2 license. 
 
-* [eSpeak](http://espeak.sourceforge.net/)
-* eSpeak is a software speech synthesizer for English, and some other languages. eSpeak uses a "formant synthesis" method. eSpeak uses the GPLv3 [license](https://www.gnu.org/licenses/gpl-3.0.en.html).
-
-
+* [Flite](http://www.festvox.org/flite/)
+* Flite (festival-lite) is a small fast portable speech synthesis system developed. The core Flite library was originally developed by Alan W Black and the history of the project can be found [here](https://github.com/festvox/flite). Flite is free software and the core code has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). It is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis). Because different distributions are using different versions of Flite the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. Should you wish to do this for yourself the latest C source code can be downloaded from [github](https://github.com/festvox/flite). 
 

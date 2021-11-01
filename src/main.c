@@ -1590,7 +1590,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.0.1");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.0.2");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -1621,17 +1621,28 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 //---------------------------------------------------------------------
 static gpointer thread_speak_func(gpointer user_data)
 {     
-    gchar *text =user_data;   
-    gchar * command_str ="espeak --stdout";
-    gchar *m_str = g_strdup_printf("%i", m_speed); 
-    gchar *speed_str ="-s ";
-    speed_str= g_strconcat(speed_str,m_str, NULL);   
-    command_str= g_strconcat(command_str," '",speed_str,"' "," '",text,"' ", "| aplay", NULL);
-    system(command_str);
+       
+    char* text =user_data;
+	gchar * command_str ="./flite";
+	gchar *cur_dir;	
+	cur_dir = g_get_current_dir ();	
+	//g_print("current directory = %s\n", cur_dir);
+	
+	if (g_file_test(g_build_filename(cur_dir, "flite", NULL), G_FILE_TEST_IS_REGULAR)) {		
+		
+		//g_print("flite exists\n");
+		command_str= g_strconcat(command_str," -t "," '",text,"' ", NULL);
+		system(command_str);
+	}
+	else {
+		g_print("flite does not exist\n");
+	}
+	
+    
     g_mutex_unlock (&lock); //thread mutex unlock 
-    return NULL;   
+    return NULL;      
+     
 }
-
 
 void callbk_font_response(GtkDialog *dialog, gint response_id,  gpointer  user_data){
 	
@@ -1872,6 +1883,7 @@ static void callbk_info(GSimpleAction *action, GVariant *parameter,  gpointer us
 	GtkWidget *label_record_number;	
 	GtkWidget *label_font_name;
 	GtkWidget *label_font_size;	
+	GtkWidget *label_cur_dir;	
                                                
    dialog = gtk_dialog_new_with_buttons ("Information", GTK_WINDOW(window), 
    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1897,26 +1909,34 @@ static void callbk_info(GSimpleAction *action, GVariant *parameter,  gpointer us
 	char* font_n_str = g_strdup_printf("%d", m_font_size);   
 	font_size_str = g_strconcat(font_size_str, font_n_str,NULL);   
 	label_font_size =gtk_label_new(font_size_str); 
-  
-  gtk_box_append(GTK_BOX(box), label_record_number);
-  gtk_box_append(GTK_BOX(box), label_font_name);
-  gtk_box_append(GTK_BOX(box),label_font_size);
-  
-  GtkStyleContext *context_dialog;	
-  gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-  GtkCssProvider *cssProvider;	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-  
-  // get GtkStyleContext from widget
-  context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-  //finally load style provider 
-  gtk_style_context_add_provider(context_dialog,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-  
-  gtk_window_present (GTK_WINDOW (dialog));
-  g_signal_connect (dialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
+		
+	char *cur_dir;	
+	cur_dir = g_get_current_dir ();	
+	char* dir_str ="Current Working Directory = ";
+	dir_str = g_strconcat(dir_str, cur_dir,NULL);
+	label_cur_dir=gtk_label_new(dir_str); 
+	//g_print("current directory = %s\n", cur_dir);
+	
+	gtk_box_append(GTK_BOX(box), label_record_number);
+	gtk_box_append(GTK_BOX(box), label_font_name);
+	gtk_box_append(GTK_BOX(box),label_font_size);
+	gtk_box_append(GTK_BOX(box),label_cur_dir);
+	
+	GtkStyleContext *context_dialog;	
+	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+	GtkCssProvider *cssProvider;	
+	cssProvider = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
+	
+	// get GtkStyleContext from widget
+	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
+	//finally load style provider 
+	gtk_style_context_add_provider(context_dialog,    
+	GTK_STYLE_PROVIDER(cssProvider), 
+	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+	
+	gtk_window_present (GTK_WINDOW (dialog));
+	g_signal_connect (dialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
  	
 }
 
@@ -2347,7 +2367,7 @@ static void callbk_speak_about(GSimpleAction *action,
 		
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. Gtk4 Version 1.0.1";    
+	gchar* message_speak ="Talk Calendar. G t k Four Version 1 0 2";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);
