@@ -182,11 +182,12 @@ The database called events.csv has memory dynamically allocated for up to 5000 r
 
 Speech requires espeak to be install independently.
 
-Talk Calendar Gtk 4 Version 1.010
+Talk Calendar Gtk 4 Version 1.0.1
 ```
 built with Gtk4.0
 removal of semi-colons from text entry
 removal of apostrophes from text entry
+option to use adwaita button icons
 binary for 64-bit gtk4 distributions 
 ```
 
