@@ -160,7 +160,7 @@ The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar 
 
 When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).
 
-The Flite (Festival Lite) speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I). Flite is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis) and so it used with Talk Calendar.
+The Flite (Festival Lite) speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I). Flite is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis) and so it is used with Talk Calendar.
 
 ## Releases
 
@@ -200,7 +200,6 @@ binary for 64-bit gtk4 distributions
 ```
 code refactoring and enhancements 
 new features to be added 
-natural speech 
 package installers (deb, rpm)
 ```
 
