@@ -24,7 +24,7 @@
 #include <glib/gstdio.h>
 
 #include <math.h>  //compile with -lm
-#include <string.h>
+//#include <string.h>
 
 /**
  * 
@@ -82,6 +82,8 @@ static int m_font_size=20;
 static const gchar* m_font_name="Sans";
 static int m_holidays=0; //show holidays
 static int m_show_end_time=0; //show end_time
+
+static int m_use_adwaita_icons=0;
 
 
 static int m_row_index=-1; //selection index
@@ -172,7 +174,7 @@ static void config_load_default()
 	if(!m_font_size) m_font_size=22;  	
 	if(!m_holidays) m_holidays=0;
 	if(!m_show_end_time) m_show_end_time=0;	
-	
+	if(!m_use_adwaita_icons) m_use_adwaita_icons=0;
 }
 
 static void config_read()
@@ -183,7 +185,8 @@ static void config_read()
 	m_font_name="Sans"; 
 	m_font_size=22; 	
 	m_holidays=0;
-	m_show_end_time=0;		
+	m_show_end_time=0;	
+	m_use_adwaita_icons=0;	
 	
 	// Load keys from keyfile
 	GKeyFile * kf = g_key_file_new();
@@ -193,7 +196,8 @@ static void config_read()
 	m_holidays = g_key_file_get_integer(kf, "calendar_settings", "holidays", NULL);	
 	m_show_end_time = g_key_file_get_integer(kf, "calendar_settings", "show_end_time", NULL);				
 	m_font_name=g_key_file_get_string(kf, "calendar_settings", "font_name", NULL);	
-	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font_size", NULL);	
+	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font_size", NULL);
+	m_use_adwaita_icons=g_key_file_get_integer(kf, "calendar_settings", "adwaita_icons", NULL);	
 	g_key_file_free(kf);	
 		
 }
@@ -207,7 +211,8 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "holidays", m_holidays);
 	g_key_file_set_integer(kf, "calendar_settings", "show_end_time", m_show_end_time);	
 	g_key_file_set_string(kf, "calendar_settings", "font_name", m_font_name);
-	g_key_file_set_integer(kf, "calendar_settings", "font_size", m_font_size);	
+	g_key_file_set_integer(kf, "calendar_settings", "font_size", m_font_size);
+	g_key_file_set_integer(kf, "calendar_settings", "adwaita_icons", m_use_adwaita_icons);		
 	gsize length;
 	gchar * data = g_key_file_to_data(kf, &length, NULL);
 	g_file_set_contents(m_config_file, data, -1, NULL);
@@ -354,6 +359,40 @@ static GtkWidget *create_widget (gpointer item, gpointer user_data)
 }
 
 //--------------------------------------------------------------------
+// Remove unwanted characters
+//--------------------------------------------------------------------
+
+char* allowed_chars(const char* cstr)
+{    
+const char* c;
+gchar* ret_val;
+GString* s = g_string_new("");
+
+	//c strings terminated by a null character '\0'
+	for ( c = cstr; *c != '0'; c = g_utf8_next_char(c) ) {
+	gunichar cp = g_utf8_get_char(c); 
+		if ( cp == 0 ) break;
+		
+		if (g_unichar_isalnum(cp)){ // allow alphabet number characters		 
+		g_string_append_unichar( s, cp);
+		} 
+		
+		if ( cp == '-' ){ //allow dashes
+            g_string_append_unichar( s, cp);            
+        }
+        if ( cp == ' '){ //allow spaces
+            g_string_append_unichar( s, cp);          
+        }		
+		
+	} 
+ret_val = s->str;
+g_string_free(s, FALSE);
+return ret_val; 
+
+}
+
+
+//--------------------------------------------------------------------
 // Compare
 //---------------------------------------------------------------------
 
@@ -463,10 +502,24 @@ static void callbk_new_event_response(GtkDialog *dialog, gint response_id,  gpoi
 	{
 	
 	//set data
+	//char* title ="";
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
-	m_title= gtk_entry_buffer_get_text (buffer_title);		
+	m_title= gtk_entry_buffer_get_text (buffer_title);	
+	g_print("m_title (before) = %s\n",m_title);
+	
+	
+	//remove_semicolons(m_title);
+	//remove_apostrophes(m_title);
+	
+	m_title =allowed_chars(m_title);
+	
+	g_print("m_title (after) = %s\n",m_title);
+	//strcpy(m_title,title);
+	//strcpy(m_title, remove_semicolons(title));
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
+	
+	m_location =allowed_chars(m_location);
 	int fd;
 	Event event;
 	event.id =m_db_size;	
@@ -624,21 +677,21 @@ static void callbk_new_event(GtkButton *button, gpointer  user_data){
   g_object_set_data(G_OBJECT(dialog), "check-button-isyearly-key",check_button_isyearly);
   g_object_set_data(G_OBJECT(dialog), "check-button-priority-key",check_button_priority);
   
-
-    GtkStyleContext *context_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	//gtk_widget_show(dialog);	  
-   
+  
+  GtkStyleContext *context_dialog;	
+  gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
+  GtkCssProvider *cssProvider;	
+  cssProvider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
+  
+  // get GtkStyleContext from widget
+  context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
+  //finally load style provider 
+  gtk_style_context_add_provider(context_dialog,    
+  GTK_STYLE_PROVIDER(cssProvider), 
+  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
+  //gtk_widget_show(dialog);	  
+  
   
   g_signal_connect (dialog, "response", G_CALLBACK (callbk_new_event_response),window);
   
@@ -680,14 +733,20 @@ void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  
 	//set data
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
 	m_title= gtk_entry_buffer_get_text (buffer_title);	
-		buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
-	m_location= gtk_entry_buffer_get_text (buffer_location);	
+	
+	m_title =allowed_chars(m_title);
+	
+	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
+	m_location= gtk_entry_buffer_get_text (buffer_location);
+	
+	m_location =allowed_chars(m_location);	
 		
-	//insert cahnge into database	
+	//insert change into database	
 	Event event;
     for(int i=0; i<m_db_size; i++)
     {
 	event=db_store[i];
+	
 	if(event.id==m_id_selection){		
 	
 	strcpy(event.title, m_title); 
@@ -711,9 +770,9 @@ void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  
 	event.priority=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_priority));	
 	db_store[i]=event;	
 	break;	
-	}
+	} //if
 	
-    }
+    } //for
 		
 	update_calendar(GTK_WINDOW(window));
 	update_store(m_year,m_month,m_day);
@@ -1342,7 +1401,7 @@ static void update_store(int year, int month, int day) {
 	display_str = g_strconcat(display_str,time_str,title_str,".\n", NULL);  
   }
   else { 
-   display_str = g_strconcat(display_str,time_str,title_str, " at ",e.location, ".", NULL);
+   display_str = g_strconcat(display_str,time_str,title_str, " ",e.location, ".", NULL);
   }
   
   if(e.priority) {	  
@@ -1531,7 +1590,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.0");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.0.1");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -1651,6 +1710,7 @@ void callbk_preferences_response(GtkDialog *dialog, gint response_id,  gpointer 
     GtkWidget *check_button_talk_startup= g_object_get_data(G_OBJECT(dialog), "check-button-talk-startup-key");  
     GtkWidget *check_button_holidays= g_object_get_data(G_OBJECT(dialog), "check-button-holidays-key");
     GtkWidget *check_button_end_time= g_object_get_data(G_OBJECT(dialog), "check-button-display-end-time-key");
+    GtkWidget *check_button_adwaita_icons= g_object_get_data(G_OBJECT(dialog), "check-button-adwaita-icons-key");
     
 	if(response_id==GTK_RESPONSE_OK)
 	{
@@ -1658,9 +1718,12 @@ void callbk_preferences_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_talk_at_startup=gtk_check_button_get_active (GTK_CHECK_BUTTON(check_button_talk_startup));
 	m_holidays=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_holidays));
 	m_show_end_time=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_end_time));
+	m_use_adwaita_icons=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_adwaita_icons));
+	
 	config_write();	
 	update_calendar(GTK_WINDOW(window));
 	update_store(m_year,m_month,m_day);
+	update_header(GTK_WINDOW(window));
 	}	
 	gtk_window_destroy(GTK_WINDOW(dialog));	
 }
@@ -1678,6 +1741,7 @@ static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpoint
 	GtkWidget *check_button_talk_startup;
 	GtkWidget *check_button_holidays;
 	GtkWidget *check_button_end_time;
+	GtkWidget *check_button_adwaita_icons;
 	
 	dialog = gtk_dialog_new_with_buttons ("New Event", GTK_WINDOW(window),   
 	GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT|GTK_DIALOG_USE_HEADER_BAR,
@@ -1694,23 +1758,26 @@ static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpoint
 	check_button_talk_startup = gtk_check_button_new_with_label ("Talk At Startup");
 	check_button_holidays = gtk_check_button_new_with_label ("Show UK Public Holidays");
 	check_button_end_time = gtk_check_button_new_with_label ("Display End Time");
+	check_button_adwaita_icons = gtk_check_button_new_with_label ("Use Adwaita Button Icons");
 	
 	gtk_box_append(GTK_BOX(box), check_button_talk);
 	gtk_box_append(GTK_BOX(box), check_button_talk_startup);
 	gtk_box_append(GTK_BOX(box), check_button_holidays);
 	gtk_box_append(GTK_BOX(box), check_button_end_time);
+	gtk_box_append(GTK_BOX(box), check_button_adwaita_icons);
 	
 	
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-key",check_button_talk);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-startup-key",check_button_talk_startup);
 	g_object_set_data(G_OBJECT(dialog), "check-button-holidays-key",check_button_holidays);
 	g_object_set_data(G_OBJECT(dialog), "check-button-display-end-time-key",check_button_end_time);
-	
+	g_object_set_data(G_OBJECT(dialog), "check-button-adwaita-icons-key",check_button_adwaita_icons);
 	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk), m_talk);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_startup), m_talk_at_startup);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_holidays), m_holidays);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_end_time), m_show_end_time);	
+	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_adwaita_icons), m_use_adwaita_icons);	
 	
 	
 	GtkStyleContext *context_dialog;	
@@ -1993,8 +2060,98 @@ int compare (const void * a, const void * b)
 
 static void speak_events() {
 	
-	if(m_talk==0) return;
-	int event_count=0;
+  if(m_talk==0) return;
+	
+  char* speak_str ="";
+  char* speak_str_date ="";
+  char* speak_str_events="";
+  char* weekday_str="";
+  char* day_month_str="";
+  
+  GDate* day_date;
+  day_date = g_date_new_dmy(m_day, m_month, m_year);
+  GDateWeekday weekday =g_date_get_weekday(day_date);
+  
+  switch(weekday)
+  {
+  case G_DATE_MONDAY:                    
+  weekday_str="Monday";
+  break;
+  case G_DATE_TUESDAY:          
+  weekday_str="Tuesday";
+  break;
+  case G_DATE_WEDNESDAY:          
+  weekday_str="Wednesday";
+  break;
+  case G_DATE_THURSDAY:          
+  weekday_str="Thursday";
+  break;
+  case G_DATE_FRIDAY:          
+  weekday_str="Friday";
+  break;
+  case G_DATE_SATURDAY:          
+  weekday_str="Saturday";
+  break;
+  case G_DATE_SUNDAY:         
+  weekday_str="Sunday";
+  break;
+  default:
+  weekday_str="Unknown";  
+  }//switch
+  
+  
+  gchar* day_str =	g_strdup_printf("%d",m_day);    
+      
+  day_month_str =g_strconcat(day_month_str,weekday_str," ", day_str, " ", NULL);
+  
+  switch(m_month)
+     {
+         case G_DATE_JANUARY:                    
+          day_month_str =g_strconcat(day_month_str,"January ", NULL);
+          break;
+         case G_DATE_FEBRUARY:          
+           day_month_str =g_strconcat(day_month_str,"February ", NULL);
+           break;
+         case G_DATE_MARCH:
+           day_month_str =g_strconcat(day_month_str,"March ", NULL);
+           break;
+          case G_DATE_APRIL:
+           day_month_str =g_strconcat(day_month_str,"April ", NULL); 
+           break;        
+          case G_DATE_MAY:
+           day_month_str =g_strconcat(day_month_str,"May ", NULL);
+           break;         
+          case G_DATE_JUNE:
+          day_month_str =g_strconcat(day_month_str,"June ", NULL); 
+           break;        
+          case G_DATE_JULY:
+           day_month_str =g_strconcat(day_month_str,"July ", NULL);
+           break;         
+          case G_DATE_AUGUST:
+           day_month_str =g_strconcat(day_month_str,"August ", NULL);
+           break;         
+          case G_DATE_SEPTEMBER:
+           day_month_str =g_strconcat(day_month_str,"September ", NULL); 
+           break;                  
+          case G_DATE_OCTOBER:
+           day_month_str =g_strconcat(day_month_str,"October ", NULL);
+           break;         
+          case G_DATE_NOVEMBER:
+           day_month_str =g_strconcat(day_month_str,"November ", NULL);
+           break;         
+          case G_DATE_DECEMBER:
+           day_month_str =g_strconcat(day_month_str,"December ", NULL);
+           break;         
+         default:
+           day_month_str =g_strconcat(day_month_str,"Unknown ", NULL);
+    }
+      
+	//speak_str= g_strconcat(speak_str, day_month_year_str,NULL);
+  speak_str_date =g_strconcat(speak_str_date, day_month_str, NULL);
+  
+  
+
+ int event_count=0;
 	Event e;  
 	for (int i=0; i<m_db_size; i++)
 	{  
@@ -2004,7 +2161,14 @@ static void speak_events() {
 	event_count++;
 	}//if		
 	}//for
-      
+  
+  if (event_count==0) {
+	   speak_str_events =g_strconcat(speak_str_events, " No events today", NULL);
+  	
+  }
+  else { //get time sorted event    
+  
+   
    Event day_events[event_count]; 
    
    //load day events 
@@ -2025,9 +2189,10 @@ static void speak_events() {
    
    Event day;
    
+   
    for(int i=0; i<event_count; i++)
    {
-   char *speak_str ="";
+   
    char *starts;   
    char *start_time_str="";
    char *time_str="";
@@ -2147,23 +2312,25 @@ static void speak_events() {
    location_str=""; 
    }
    else { 
-   location_str = g_strconcat(location_str, " at ",day.location, ".", NULL);  }
+   location_str = g_strconcat(location_str, "  ",day.location, ".", NULL);  }
       
-   speak_str= g_strconcat(speak_str, time_str, title_str, ".  ",location_str,". ", NULL);
+   speak_str_events= g_strconcat(speak_str_events, time_str, title_str, ".  ",location_str,". ", NULL);
    
    if(day.priority) {
-   speak_str=g_strconcat(speak_str, " This is a high priority event.  ", NULL);
-   }
+   speak_str_events=g_strconcat(speak_str_events, " This is a high priority event.  ", NULL);
+   }  
+   //speak_str_events =g_strconcat(speak_str_events, NULL);   	
+ } //for i day events 
  
-   GThread *thread_speak;   
+ } //else if event_count !=0
+ 
+speak_str=g_strconcat(speak_str_date, speak_str_events, NULL);
+GThread *thread_speak;   
     if(m_talk) {	
 	g_mutex_lock (&lock);
     thread_speak = g_thread_new(NULL, thread_speak_func, speak_str);   
 	}	
-	g_thread_unref (thread_speak);	
- } 
-
-		
+	g_thread_unref (thread_speak);		
 }
 
 static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer user_data){
@@ -2180,7 +2347,7 @@ static void callbk_speak_about(GSimpleAction *action,
 		
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. Gtk4 Version 1.0";    
+	gchar* message_speak ="Talk Calendar. Gtk4 Version 1.0.1";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);
@@ -2508,21 +2675,56 @@ static void update_calendar(GtkWindow *window) {
   //mark days with events
   reset_marked_dates();
   update_marked_dates(m_month,m_year);
-     
-   grid =gtk_grid_new();
-   gtk_window_set_child (GTK_WINDOW (window), grid);
   
-   //GListStore *store;		
-   m_store = g_list_store_new (display_object_get_type ()); 
-   
-   gchar* day_str =	g_strdup_printf("%d",m_day);    
-   gchar *year_str = g_strdup_printf("%d",m_year ); 
-   
-   gchar * day_month_year_str="";
-   
-   day_month_year_str =g_strconcat(day_month_year_str,day_str, " ", NULL);
-   
-   switch(m_month)
+  grid =gtk_grid_new();
+  gtk_window_set_child (GTK_WINDOW (window), grid);
+  
+  //GListStore *store;		
+  m_store = g_list_store_new (display_object_get_type ()); 
+  
+  char* weekday_str="";
+  GDate *day_date;
+  day_date = g_date_new_dmy(m_day, m_month, m_year);
+  GDateWeekday weekday =g_date_get_weekday(day_date);
+  
+  switch(weekday)
+  {
+  case G_DATE_MONDAY:                    
+  weekday_str="Monday";
+  break;
+  case G_DATE_TUESDAY:          
+  weekday_str="Tuesday";
+  break;
+  case G_DATE_WEDNESDAY:          
+  weekday_str="Wednesday";
+  break;
+  case G_DATE_THURSDAY:          
+  weekday_str="Thursday";
+  break;
+  case G_DATE_FRIDAY:          
+  weekday_str="Friday";
+  break;
+  case G_DATE_SATURDAY:          
+  weekday_str="Saturday";
+  break;
+  case G_DATE_SUNDAY:         
+  weekday_str="Sunday";
+  break;
+  default:
+  weekday_str="Unknown";  
+  }//switch
+  
+  
+  
+  
+  gchar* day_str =	g_strdup_printf("%d",m_day);    
+  gchar *year_str = g_strdup_printf("%d",m_year ); 
+  
+  gchar * day_month_year_str="";
+  
+  day_month_year_str =g_strconcat(day_month_year_str,weekday_str," ", day_str, " ", NULL);
+  
+  switch(m_month)
      {
          case G_DATE_JANUARY:                    
           day_month_year_str =g_strconcat(day_month_year_str,"January ",year_str, NULL);
@@ -2843,20 +3045,63 @@ static void update_header (GtkWindow *window)
 	GtkWidget *button_delete_selected;
 	GtkWidget *button_test;
 	GtkWidget *menu_button; 
-	GtkCssProvider *cssProvider;	
+	GtkCssProvider *cssProvider;
+	
+	//GtkWidget *icon;
+    GtkStyleContext *context;  	
 		
 	header = gtk_header_bar_new ();	
 	gtk_window_set_titlebar (GTK_WINDOW(window), header);
-	button_new_event = gtk_button_new_with_label ("New");	
+	
+	//button new event
+	
+	g_print("update header: adwaita icons = %d\n",m_use_adwaita_icons);
+		
+	if(m_use_adwaita_icons){
+	//appointment-new-symbolic document-new-symbolic
+	button_new_event = gtk_button_new_from_icon_name ("appointment-new-symbolic"); 	
+	context = gtk_widget_get_style_context (button_new_event);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button_new_event, GTK_ALIGN_CENTER); 
+	} else {
+		
+		button_new_event = gtk_button_new_with_label ("New");
+	}
+			
 	gtk_widget_set_tooltip_text(button_new_event, "New Event");
 	g_signal_connect (button_new_event, "clicked", G_CALLBACK (callbk_new_event), window);	
 	g_object_set_data(G_OBJECT(button_new_event), "button-window-key",window); 
 	
+	//button edit selected event
+	
+	if(m_use_adwaita_icons) {	
+	//document-edit-symbolic edit-redo-symbolic edit-select-symbolic
+	//legacy:appointment-missed.png appointment-new.png appointment-soon.png
+	button_edit_event = gtk_button_new_from_icon_name ("appointment-soon-symbolic"); 
+	context = gtk_widget_get_style_context (button_edit_event);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button_edit_event, GTK_ALIGN_CENTER); 
+	} else {
 	button_edit_event = gtk_button_new_with_label ("Edit");	
+	}
+	
 	gtk_widget_set_tooltip_text(button_edit_event, "Edit Selected Event");
 	g_signal_connect (button_edit_event, "clicked", G_CALLBACK (callbk_edit_event), window);    
 	
-	button_delete_selected = gtk_button_new_with_label ("Delete"); 
+	//button delete selected event
+		
+	if(m_use_adwaita_icons) {
+	button_delete_selected = gtk_button_new_from_icon_name ("edit-delete-symbolic");
+	context = gtk_widget_get_style_context (button_delete_selected);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button_delete_selected, GTK_ALIGN_CENTER); 
+	} else {
+	button_delete_selected = gtk_button_new_with_label ("Delete");
+	}
+		
 	gtk_widget_set_tooltip_text(button_delete_selected, "Delete Selected");  
 	g_signal_connect (button_delete_selected, "clicked", G_CALLBACK (callbk_delete_selected), window);
 	

@@ -1,6 +1,6 @@
 # Talk Calendar (Gtk4 Version)
 
-Talk Calendar is a Linux desktop calendar with speech capability. 
+Talk Calendar is a Linux desktop calendar with some speech capability. 
 
 ![](talkcalendar-gtk4.png)
 
@@ -182,13 +182,21 @@ The database called events.csv has memory dynamically allocated for up to 5000 r
 
 Speech requires espeak to be install independently.
 
+Talk Calendar Gtk 4 Version 1.010
+```
+built with Gtk4.0
+removal of semi-colons from text entry
+removal of apostrophes from text entry
+binary for 64-bit gtk4 distributions 
+```
+
 
 
 ## Roadmap
 ```
 code refactoring and enhancements 
-new features to be added
-speech engine options
+new features to be added 
+natural speech 
 package installers (deb, rpm)
 ```
 
