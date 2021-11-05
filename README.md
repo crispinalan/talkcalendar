@@ -196,6 +196,30 @@ binary for 64-bit gtk4 distributions
 ```
 Different distributions are using different versions of the Flite speech synthesiser (e.g. Fedora 34 is using version 1.3, while Debian Bullseye is using version 2.2). Consequently, the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. Should you wish to do this for yourself the latest C source code can be downloaded from [github](https://github.com/festvox/flite). The compiled executable should be located in the Talk Calendar working directory.
 
+## Known Issues
+
+Testing Talk Calendar with Fedora 35 Gnome Classic Wayland as shown in the screenshot below reveals that some of the shortcut keys are not working. Also there is a small speak delay. I will look into these issues.
+
+![](talkcalendar-fedora-35-gnome-classic-wayland.png)
+
+To add Talk Calendar to the startup applications when using Gnome you need to create a desktop file (talkcalendar.desktop). A generic example is shown below where you should replace "/path/to" with your local path.
+
+```
+[Desktop Entry]
+Type=Application
+Name[en_GB]=Talk Calendar
+Name=Talk Calendar
+Exec=/path/to/talkcalendar-gtk4-1.0.2/talkcalendar
+Path=/path/to/talkcalendar-gtk4-1.0.2
+```
+
+Then copy this to the autostart directory
+
+```
+sudo cp talkcalendar.desktop  /etc/xdg/autostart/
+```
+
+
 ## Roadmap
 ```
 code refactoring and enhancements 
