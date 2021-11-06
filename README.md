@@ -231,11 +231,11 @@ binary for 64-bit gtk4 distributions
 
 ## Known Issues
 
-### Speak Delay
+#### Speak Delay
 
 When using Fedora 35 I have noticed that there is a small speak delay. Fedora 35 now uses the Pipewire server by default for handling audio streams. I am investigating if the delay is anything to do with the Pipewire config settings. The same delay is observed when using ALSA directly to play a wav file e.g. "aplay test.wav".
 
-### Shortcut keys
+#### Shortcut keys
 
 When using Fedora 35 I had to recompile the application to get the shortcut keys to work. I have added a speak button on the headerbar. Use this if you encounter this problem when using the spacebar.
 
@@ -272,7 +272,7 @@ The function "gtk_spin_button_set_text()" has gone. The documented approach for 
 
 Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
 
-The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. If running Talk Calendar from the terminal the database called "events.csv" is located in the current working directory. 
+The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. The database called "events.csv" should be located in the current working directory. 
 
 ## Versioning
 
