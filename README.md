@@ -272,7 +272,7 @@ The function "gtk_spin_button_set_text()" has gone. The documented approach for 
 
 Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
 
-The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. If running Talk Calendar from the terminal the database called "events.csv" is located in the current working directory. Currently, if using a Mate launcher or setting up a main menu item then the database will be located in the home user directory. 
+The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. If running Talk Calendar from the terminal the database called "events.csv" is located in the current working directory. 
 
 ## Versioning
 
