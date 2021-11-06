@@ -4,12 +4,11 @@ Talk Calendar is a Linux desktop calendar with some speech capability.
 
 ![](talkcalendar-gtk4.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version. It will NOT compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). A older gtk3 version of Talk Calendar can be found [here](https://gitlab.com/crispinalan/talkcalendar).
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version. It will **NOT** compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). See my migration notes below.
 
 ## Deployment
 
-A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the instructions below. 
-
+A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34, Fedora 35 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the code in this respository. 
 
 Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
 
@@ -22,7 +21,7 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-If you create a launcher (Mate desktop) to launch Talk Calendar then the working directory will be your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory. In this case, copy the flite executable into your home directory. Use
+If you create a default launcher (Mate desktop) to launch Talk Calendar then the default working directory will likely be your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  Many menu editors allow you to specify the working directory path. Use
  
 ```
 Help->Information
@@ -37,7 +36,7 @@ Add Talk Calendar to your start-up programs to read out events when the computer
 
 * Select event date using the calendar.
 * Click the New button on the headerbar to invoke the "New Event" dialog.
-* Enter the event title, description notes, start and end times etc.
+* Enter the event title, location, start and end times etc.
 * Events are sorted by start time when displayed.
 * A visual marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
@@ -55,9 +54,41 @@ Add Talk Calendar to your start-up programs to read out events when the computer
 
 ![](preferences-dialog.png)
 
-* Use the Font dialog to change the application font name and size.
+### Font
 
-![](font-dialog.png)
+With GNOME you change the desktop 'font-name' and 'document-font-name' using gsettings.
+
+Cantarell is the default font supplied with GNOME since version 3.0. Fedora ships with 'Cantarell 11' as the default font. This can be checked using the following commands.
+
+```
+gsettings get org.gnome.desktop.interface font-name 
+gsettings get org.gnome.desktop.interface document-font-name
+```
+Talk Calendar uses the default GNOME desktop font-name.
+
+To change the desktop font to say 'Sans 11' you would use the following commands.
+```
+gsettings set org.gnome.desktop.interface document-font-name 'Sans 11'
+gsettings set org.gnome.desktop.interface font-name 'Sans 11'
+```
+
+Talk Calendar allows the calendar font size to be changed using the Preferences Dialog. The actual size of the calendar font depends on the GNOME text scaling factor which can found using the following command.
+
+```
+gsettings get org.gnome.desktop.interface text-scaling-factor
+```
+For a larger font size, the text-scaling factor is typically set to 1.3 using the following command.
+```
+gsettings set org.gnome.desktop.interface text-scaling-factor 1.3
+```
+
+To reset the text scaling factor use.
+```
+gsettings reset org.gnome.desktop.interface text-scaling-factor
+```
+
+The current system desktop font, the GNOME text scaling factor and the Talk Calendar font size chosen by the user are shown in the information panel in the Help menu section.
+
 
 ### Help
 
@@ -74,7 +105,7 @@ Add Talk Calendar to your start-up programs to read out events when the computer
 Speak		Spacebar
 Today		Home Key
 About		<Ctrl>A
-Version     <Ctrl>V
+Version		<Ctrl>V
 Quit		<Ctrl>Q
 ```
 
@@ -82,29 +113,40 @@ Quit		<Ctrl>Q
 
 * Enable talking in options (use hamburger menu)
 * Click on a calendar date with events
-* Press the spacebar to speak 
+* Press the spacebar to speak or click the speak button 
+
+
+## Startup Applications
+
+To add Talk Calendar to the startup applications when using GNOME you need to create a desktop launcher file with a '.desktop' extension such as talkcalendar.desktop. A generic example is shown below where you should replace "/path/to" with your own path. Exec is the full path to the Talk Calendar executable file. Path sets the working directory.
+
+```
+[Desktop Entry]
+Type=Application
+Name[en_GB]=Talk Calendar
+Name=Talk Calendar
+Exec=/path/to/talkcalendar-gtk4/talkcalendar
+Path=/path/to/talkcalendar-gtk4
+```
+
+Then copy this to the autostart directory
+
+```
+sudo cp talkcalendar.desktop  /etc/xdg/autostart/
+```
+
+## Wayland
+
+Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor as shown in the screenshot below. 
+
+![](talkcalendar-wayland-fedora35.png)
+
 
 ## Debian Bookworm (Testing)
 
 Talk Calendar has been tested with Debian Bookworm (testing) which has gtk4 in the respositories. A screenshot of Talk  Calendar running with Debian is shown below.
 
 ![](talkcalendar-gtk4-debian-bookworm.png)
-
-You need to install the following packages.
-
-```
-apt install build-essential
-apt install libgtk-4-dev
-apt install gtk-4-examples
-apt install espeak
-```
-
-The packages:
-```
-apt install libglib2.0-dev
-apt install alsa-utils
-```
-are needed but should be installed by default
 
 
 
@@ -130,37 +172,21 @@ apt install gtk-4-examples
 apt install libglib2.0-dev
 apt install alsa-utils
 ```
-
-Compile with
-
+The packages:
 ```
-gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
-
+apt install libglib2.0-dev
+apt install alsa-utils
 ```
+are needed but should be installed by default
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
+### Compiling Flite
 
-## Versioning
+Different distributions are using different versions of the Flite speech synthesiser (e.g. Fedora 34 is using version 1.3, while Debian Bullseye is using version 2.2). Consequently, the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. 
 
-[SemVer](http://semver.org/) is used for versioning. The version number has the form 0.0.0 representing major, minor and bug fix changes. 
+To compile Flite you should use the latest C source code which can can be downloaded from [github](https://github.com/festvox/flite). The compiled executable should be located in the Talk Calendar working directory. Binary packages of both the latest version of Talk Calendar and Flite can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). 
 
-## Author
-
-* **Alan Crispin** [Github](https://github.com/crispinalan)
-
- 
-## License
-
-GNU General Public Licence, version 2 or later (GPLv2+). 
-
-## License Note
-
-The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
-
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).
-
-The Flite (Festival Lite) speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I). Flite is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis) and so it is used with Talk Calendar.
 
 ## Releases
 
@@ -174,8 +200,6 @@ font change option
 flat-file csv database
 binary for 64-bit distributions (tested with Fedora 34 Mate and Debian Bookworm Mate)
 ```
-
-This is the first gtk4 version. Any bugs that arise will be fixed.
 
 The database called events.csv has memory dynamically allocated for up to 5000 records. The database is located in the Talk Calendar working directory and can be backed up by copying to another location.
 
@@ -192,33 +216,28 @@ Talk Calendar Gtk 4 Version 1.0.2
 built with Gtk4.0
 local build of Flite version 2.2 used for speech synthesis 
 option to use adwaita button icons
-binary for 64-bit gtk4 distributions 
+binary for 64-bit gtk4 distributions
 ```
-Different distributions are using different versions of the Flite speech synthesiser (e.g. Fedora 34 is using version 1.3, while Debian Bullseye is using version 2.2). Consequently, the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. Should you wish to do this for yourself the latest C source code can be downloaded from [github](https://github.com/festvox/flite). The compiled executable should be located in the Talk Calendar working directory.
+
+Talk Calendar Gtk 4 Version 1.1.0
+
+```
+built with Gtk4.0
+local build of Flite version 2.2 used for speech synthesis 
+startup notification option
+font size code refactoring
+binary for 64-bit gtk4 distributions
+```
 
 ## Known Issues
 
-Testing Talk Calendar with Fedora 35 Gnome Classic Wayland as shown in the screenshot below reveals that some of the shortcut keys are not working. Also there is a small speak delay. I will look into these issues.
+### Speak Delay
 
-![](talkcalendar-fedora-35-gnome-classic-wayland.png)
+When using Fedora 35 I have noticed that there is a small speak delay. Fedora 35 now uses the Pipewire server by default for handling audio streams. I am investigating if the delay is anything to do with the Pipewire config settings. The same delay is observed when using ALSA directly to play a wav file e.g. "aplay test.wav".
 
-To add Talk Calendar to the startup applications when using Gnome you need to create a desktop file (talkcalendar.desktop). A generic example is shown below where you should replace "/path/to" with your local path.
+### Shortcut keys
 
-```
-[Desktop Entry]
-Type=Application
-Name[en_GB]=Talk Calendar
-Name=Talk Calendar
-Exec=/path/to/talkcalendar-gtk4-1.0.2/talkcalendar
-Path=/path/to/talkcalendar-gtk4-1.0.2
-```
-
-Then copy this to the autostart directory
-
-```
-sudo cp talkcalendar.desktop  /etc/xdg/autostart/
-```
-
+When using Fedora 35 I had to recompile the application to get the shortcut keys to work. I have added a speak button on the headerbar. Use this if you encounter this problem when using the spacebar.
 
 ## Roadmap
 ```
@@ -255,6 +274,26 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 
 The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. If running Talk Calendar from the terminal the database called "events.csv" is located in the current working directory. Currently, if using a Mate launcher or setting up a main menu item then the database will be located in the home user directory. 
 
+## Versioning
+
+[SemVer](http://semver.org/) is used for versioning. The version number has the form 0.0.0 representing major, minor and bug fix changes. 
+
+## Author
+
+* **Alan Crispin** [Github](https://github.com/crispinalan)
+
+ 
+## License
+
+GNU General Public Licence, version 2 or later (GPLv2+). 
+
+## License Note
+
+The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
+
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).
+
+The Flite (Festival Lite) speech sythesiser has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). The BSD license is compatible with just about everything [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I). Flite is an official Debian package and labeled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis) and so it is used with Talk Calendar.
 
 ## Acknowledgements
 

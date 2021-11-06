@@ -5,7 +5,7 @@
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 3 of the License.
+ * the Free Software Foundation; version 2+ of the License.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,23 +21,11 @@
  */
 
 #include <gtk/gtk.h>
-#include <glib/gstdio.h>
-
+#include <glib/gstdio.h>  //needed for g_mkdir
 #include <math.h>  //compile with -lm
-//#include <string.h>
 
-/**
- * 
- * @title: Talk Calendar
- * @short_description: Gtk 4 version of Talk Calendar
- * @author Alan crispin
- * Compile with:  
- * gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
- * 
-*/
-
-#define CONFIG_DIRNAME "talkcal-gtk4-1"
-#define CONFIG_FILENAME "talkcal-gtk4-config-1"
+#define CONFIG_DIRNAME "talkcal-gtk4"
+#define CONFIG_FILENAME "talkcal-gtk4-config"
 
 //declarations
 
@@ -71,18 +59,18 @@ static void set_button_blue(GtkButton *button);
 static void set_button_red_with_borders(GtkButton *button);
 static void set_button_red(GtkButton *button);
 static void set_button_green(GtkButton *button);
+//notifications
+static void show_notification(gchar *message); 
 
 static GMutex lock; //talking thread locked
 //config
 static char * m_config_file = NULL;
 static int m_talk =1;
-static int m_speed = 160; //espeak words per minute (fixed)
 static int m_talk_at_startup=0;
 static int m_font_size=20;
-static const gchar* m_font_name="Sans";
 static int m_holidays=0; //show holidays
 static int m_show_end_time=0; //show end_time
-
+static int m_startup_notification=0;
 static int m_use_adwaita_icons=0;
 
 
@@ -170,8 +158,8 @@ static void config_load_default()
 {		
 	if(!m_talk) m_talk=1;
 	if(!m_talk_at_startup) m_talk_at_startup=1;		
-	m_font_name="Sans";
-	if(!m_font_size) m_font_size=22;  	
+	if(!m_startup_notification) m_startup_notification=1;
+	if(!m_font_size) m_font_size=14;  	
 	if(!m_holidays) m_holidays=0;
 	if(!m_show_end_time) m_show_end_time=0;	
 	if(!m_use_adwaita_icons) m_use_adwaita_icons=0;
@@ -182,8 +170,8 @@ static void config_read()
 	// Clean up previously loaded configuration values	
 	m_talk = 1;	
 	m_talk_at_startup=1;	
-	m_font_name="Sans"; 
-	m_font_size=22; 	
+	m_startup_notification=0;
+	m_font_size=14; 	
 	m_holidays=0;
 	m_show_end_time=0;	
 	m_use_adwaita_icons=0;	
@@ -195,7 +183,7 @@ static void config_read()
 	m_talk_at_startup=g_key_file_get_integer(kf, "calendar_settings", "talk_startup", NULL);	
 	m_holidays = g_key_file_get_integer(kf, "calendar_settings", "holidays", NULL);	
 	m_show_end_time = g_key_file_get_integer(kf, "calendar_settings", "show_end_time", NULL);				
-	m_font_name=g_key_file_get_string(kf, "calendar_settings", "font_name", NULL);	
+	m_startup_notification=g_key_file_get_integer(kf, "calendar_settings", "startup_notification", NULL);	
 	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font_size", NULL);
 	m_use_adwaita_icons=g_key_file_get_integer(kf, "calendar_settings", "adwaita_icons", NULL);	
 	g_key_file_free(kf);	
@@ -210,7 +198,7 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "talk_startup", m_talk_at_startup);		
 	g_key_file_set_integer(kf, "calendar_settings", "holidays", m_holidays);
 	g_key_file_set_integer(kf, "calendar_settings", "show_end_time", m_show_end_time);	
-	g_key_file_set_string(kf, "calendar_settings", "font_name", m_font_name);
+	g_key_file_set_integer(kf, "calendar_settings", "startup_notification", m_startup_notification);
 	g_key_file_set_integer(kf, "calendar_settings", "font_size", m_font_size);
 	g_key_file_set_integer(kf, "calendar_settings", "adwaita_icons", m_use_adwaita_icons);		
 	gsize length;
@@ -362,36 +350,23 @@ static GtkWidget *create_widget (gpointer item, gpointer user_data)
 // Remove unwanted characters
 //--------------------------------------------------------------------
 
-char* allowed_chars(const char* cstr)
-{    
-const char* c;
-gchar* ret_val;
-GString* s = g_string_new("");
-
-	//c strings terminated by a null character '\0'
-	for ( c = cstr; *c != '0'; c = g_utf8_next_char(c) ) {
-	gunichar cp = g_utf8_get_char(c); 
-		if ( cp == 0 ) break;
-		
-		if (g_unichar_isalnum(cp)){ // allow alphabet number characters		 
-		g_string_append_unichar( s, cp);
-		} 
-		
-		if ( cp == '-' ){ //allow dashes
-            g_string_append_unichar( s, cp);            
-        }
-        if ( cp == ' '){ //allow spaces
-            g_string_append_unichar( s, cp);          
-        }		
-		
-	} 
-ret_val = s->str;
-g_string_free(s, FALSE);
-return ret_val; 
-
+static char* remove_semicolons (const char *text)
+{
+	GString *str;
+	const char *p;	
+	str = g_string_new ("");	
+	p = text;
+	while (*p)
+	{
+	gunichar cp = g_utf8_get_char(p);	
+	if ( cp != ';' ){ //do not allow semicolons into database
+	g_string_append_unichar (str, *p);           
+	}//if
+	++p;
+	}
+	
+	return g_string_free (str, FALSE);
 }
-
-
 //--------------------------------------------------------------------
 // Compare
 //---------------------------------------------------------------------
@@ -448,6 +423,164 @@ GDate* calculate_easter(gint year) {
 	return edate;
 }
 
+//---------------------------------------------------------------------
+// Notifications
+//---------------------------------------------------------------------
+
+static int get_number_of_events()
+{
+	int event_count=0;
+	Event e;  
+	for (int i=0; i<m_db_size; i++)
+	{  
+	e=db_store[i];
+	if(m_year==e.year && m_month ==e.month && m_day==e.day)
+	{		
+	event_count++;
+	}//if		
+	}//for
+  
+ return event_count;
+}
+
+
+static void show_notification(gchar *message)
+{ 
+ gchar* command_str ="notify-send ";
+ command_str= g_strconcat(command_str," \"Talk Calendar\"" ," \"",message," \"", NULL);
+ system(command_str);
+}
+
+//------------------------------------------------------------------
+//font style
+//--------------------------------------------------------------------
+gchar* get_css_string() {
+	
+	char *size_str = g_strdup_printf("%i", m_font_size); 
+	size_str =g_strconcat(size_str,"px;", NULL);
+	gchar* css_str = g_strdup_printf ("#cssView {font-size: %s }", size_str);	
+	return css_str;	
+}
+
+
+
+static void set_widget_font_size(GtkWidget* widget) {
+	
+	GtkStyleContext *context;
+	GtkCssProvider *cssProvider;	
+	gtk_widget_set_name(GTK_WIDGET(widget), "cssView"); 		
+	cssProvider = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
+	context = gtk_widget_get_style_context(GTK_WIDGET(widget));		 
+	gtk_style_context_add_provider(context,    
+	GTK_STYLE_PROVIDER(cssProvider), 
+	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+
+//--------------------------------------------------------------------
+static void set_button_blue(GtkButton *button){
+	
+  GtkStyleContext *context_button;
+  GtkCssProvider *cssProvider; 	
+  cssProvider = gtk_css_provider_new();	
+  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
+   
+  gchar* css_str = g_strdup_printf (
+  "#cssView {" 
+  "color: blue;" 
+  "font-weight: bold;"
+  "border-top-width: 3px;" 
+  "border-top-color: blue;"
+  "border-left-width: 3px;" 
+  "border-left-color: blue;"
+  "border-bottom-width: 3px;" 
+  "border-bottom-color: blue;"
+  "border-right-width: 3px;" 
+  "border-right-color: blue;" 
+  " }");
+  
+    
+  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
+  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
+  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+}
+
+
+//---------------------------------------------------------------------
+static void set_button_green(GtkButton *button){
+	
+  GtkStyleContext *context_button;
+  GtkCssProvider *cssProvider; 	
+  cssProvider = gtk_css_provider_new();	
+  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
+ 
+  
+  gchar* css_str = g_strdup_printf (
+  "#cssView {" 
+  "color: green;" 
+  "font-weight: bold;"
+  "border-top-width: 3px;" 
+  "border-top-color: green;"
+  "border-left-width: 3px;" 
+  "border-left-color: green;"
+  "border-bottom-width: 3px;" 
+  "border-bottom-color: green;"
+  "border-right-width: 3px;" 
+  "border-right-color: green;" 
+  " }");
+  
+  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
+  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
+  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+}
+
+static void set_button_red_with_borders(GtkButton *button){
+	
+  GtkStyleContext *context_button;
+  GtkCssProvider *cssProvider; 	
+  cssProvider = gtk_css_provider_new();	
+  gtk_widget_set_name (GTK_WIDGET(button), "cssView");  
+    
+  gchar* css_str = g_strdup_printf (
+  "#cssView {" 
+  "color: red;" 
+  "font-weight: bold;"
+  "border-top-width: 3px;" 
+  "border-top-color: red;"
+  "border-left-width: 3px;" 
+  "border-left-color: red;"
+  "border-bottom-width: 3px;" 
+  "border-bottom-color: red;"
+  "border-right-width: 3px;" 
+  "border-right-color: red;" 
+  " }");  
+  
+  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
+  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
+  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+}
+
+static void set_button_red(GtkButton *button){
+	
+  GtkStyleContext *context_button;
+  GtkCssProvider *cssProvider; 	
+  cssProvider = gtk_css_provider_new();	
+  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
+    
+  gchar* css_str = g_strdup_printf (
+  "#cssView {" 
+  "color: red;" 
+  "font-weight: bold;"  
+  " }");
+  
+  
+  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
+  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
+  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+}
+
+//--------------------------------------------------------------------
+
 //--------------------------------------------------------------------
 // new event
 //---------------------------------------------------------------------
@@ -500,26 +633,17 @@ static void callbk_new_event_response(GtkDialog *dialog, gint response_id,  gpoi
 	
 	if(response_id==GTK_RESPONSE_OK)
 	{
-	
-	//set data
-	//char* title ="";
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
 	m_title= gtk_entry_buffer_get_text (buffer_title);	
 	g_print("m_title (before) = %s\n",m_title);
 	
+	m_title =remove_semicolons(m_title);
 	
-	//remove_semicolons(m_title);
-	//remove_apostrophes(m_title);
-	
-	m_title =allowed_chars(m_title);
-	
-	g_print("m_title (after) = %s\n",m_title);
-	//strcpy(m_title,title);
-	//strcpy(m_title, remove_semicolons(title));
+	g_print("m_title (after) = %s\n",m_title);	
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
 	
-	m_location =allowed_chars(m_location);
+	m_location =remove_semicolons(m_location);
 	int fd;
 	Event event;
 	event.id =m_db_size;	
@@ -676,23 +800,8 @@ static void callbk_new_event(GtkButton *button, gpointer  user_data){
   g_object_set_data(G_OBJECT(dialog), "check-button-allday-key",check_button_allday);
   g_object_set_data(G_OBJECT(dialog), "check-button-isyearly-key",check_button_isyearly);
   g_object_set_data(G_OBJECT(dialog), "check-button-priority-key",check_button_priority);
-  
-  
-  GtkStyleContext *context_dialog;	
-  gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-  GtkCssProvider *cssProvider;	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-  
-  // get GtkStyleContext from widget
-  context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-  //finally load style provider 
-  gtk_style_context_add_provider(context_dialog,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-  //gtk_widget_show(dialog);	  
-  
-  
+   
+  set_widget_font_size(dialog);
   g_signal_connect (dialog, "response", G_CALLBACK (callbk_new_event_response),window);
   
   gtk_window_present (GTK_WINDOW (dialog)); 
@@ -704,10 +813,7 @@ static void callbk_new_event(GtkButton *button, gpointer  user_data){
 
 void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  user_data)
 {
-	  
-  
-	
-	
+		
 	if(!GTK_IS_DIALOG(dialog)) { 
 	g_print("New Event Response: not a dialog\n");	
 	return;
@@ -728,18 +834,15 @@ void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  
 	
 			
 	if(response_id==GTK_RESPONSE_OK)
-	{
-	
+	{	
 	//set data
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
-	m_title= gtk_entry_buffer_get_text (buffer_title);	
-	
-	m_title =allowed_chars(m_title);
+	m_title= gtk_entry_buffer_get_text (buffer_title);
+	m_title =remove_semicolons(m_title);
 	
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
-	
-	m_location =allowed_chars(m_location);	
+	m_location =remove_semicolons(m_location);		
 		
 	//insert change into database	
 	Event event;
@@ -916,8 +1019,7 @@ static void callbk_edit_event(GtkButton *button, gpointer  user_data){
   gtk_box_append (GTK_BOX(box_end_time),spin_button_end_time);  
   gtk_box_append(GTK_BOX(box), box_end_time);
   g_object_set_data(G_OBJECT(dialog), "spin-end-time-key",spin_button_end_time);  
-  
-  
+    
   //check buttons 
   check_button_allday = gtk_check_button_new_with_label ("Is All Day");
   gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_allday), e.is_allday);  
@@ -951,20 +1053,7 @@ static void callbk_edit_event(GtkButton *button, gpointer  user_data){
   g_object_set_data(G_OBJECT(dialog), "check-button-isyearly-key",check_button_isyearly);
   g_object_set_data(G_OBJECT(dialog), "check-button-priority-key",check_button_priority);
     
-   GtkStyleContext *context_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	//gtk_widget_show(dialog);	    
-  
+   set_widget_font_size(dialog);
   g_signal_connect (dialog, "response", G_CALLBACK (callbk_edit_event_response),window);
   
   gtk_window_present (GTK_WINDOW (dialog)); 
@@ -1033,19 +1122,14 @@ int break_fields(char *s, char** data, int n)
 			start=end+1;
 			end=start;
 			fields++;
-		}
-		
-	}
-		
-	return fields;
-	
+		}		
+	}		
+	return fields;	
 } 
 
-void load_csv_file(){
+void load_csv_file(){	
 	
-	
-	int field_num =11;
-	
+	int field_num =11; //fix for now?	
 	char *data[field_num]; // fields
 	int i = 0; //counter	
     int total_num_lines = 0; //total number of lines
@@ -1429,106 +1513,7 @@ static void update_store(int year, int month, int day) {
   } //for
 }
 
-static void set_button_blue(GtkButton *button){
-	
-  GtkStyleContext *context_button;
-  GtkCssProvider *cssProvider; 	
-  cssProvider = gtk_css_provider_new();	
-  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
-   
-  gchar* css_str = g_strdup_printf (
-  "#cssView {" 
-  "color: blue;" 
-  "font-weight: bold;"
-  "border-top-width: 3px;" 
-  "border-top-color: blue;"
-  "border-left-width: 3px;" 
-  "border-left-color: blue;"
-  "border-bottom-width: 3px;" 
-  "border-bottom-color: blue;"
-  "border-right-width: 3px;" 
-  "border-right-color: blue;" 
-  " }");
-  
-    
-  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
-  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
-  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-}
 
-
-//---------------------------------------------------------------------
-static void set_button_green(GtkButton *button){
-	
-  GtkStyleContext *context_button;
-  GtkCssProvider *cssProvider; 	
-  cssProvider = gtk_css_provider_new();	
-  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
- 
-  
-  gchar* css_str = g_strdup_printf (
-  "#cssView {" 
-  "color: green;" 
-  "font-weight: bold;"
-  "border-top-width: 3px;" 
-  "border-top-color: green;"
-  "border-left-width: 3px;" 
-  "border-left-color: green;"
-  "border-bottom-width: 3px;" 
-  "border-bottom-color: green;"
-  "border-right-width: 3px;" 
-  "border-right-color: green;" 
-  " }");
-  
-  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
-  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
-  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-}
-
-static void set_button_red_with_borders(GtkButton *button){
-	
-  GtkStyleContext *context_button;
-  GtkCssProvider *cssProvider; 	
-  cssProvider = gtk_css_provider_new();	
-  gtk_widget_set_name (GTK_WIDGET(button), "cssView");  
-    
-  gchar* css_str = g_strdup_printf (
-  "#cssView {" 
-  "color: red;" 
-  "font-weight: bold;"
-  "border-top-width: 3px;" 
-  "border-top-color: red;"
-  "border-left-width: 3px;" 
-  "border-left-color: red;"
-  "border-bottom-width: 3px;" 
-  "border-bottom-color: red;"
-  "border-right-width: 3px;" 
-  "border-right-color: red;" 
-  " }");  
-  
-  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
-  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
-  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-}
-
-static void set_button_red(GtkButton *button){
-	
-  GtkStyleContext *context_button;
-  GtkCssProvider *cssProvider; 	
-  cssProvider = gtk_css_provider_new();	
-  gtk_widget_set_name (GTK_WIDGET(button), "cssView");
-    
-  gchar* css_str = g_strdup_printf (
-  "#cssView {" 
-  "color: red;" 
-  "font-weight: bold;"  
-  " }");
-  
-  
-  gtk_css_provider_load_from_data(cssProvider, css_str,-1);   
-  context_button= gtk_widget_get_style_context(GTK_WIDGET(button));		 
-  gtk_style_context_add_provider(context_button, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-}
 //----------------------------------------------------------------------
 static void reset_marked_dates() {
 	
@@ -1556,15 +1541,7 @@ static void update_marked_dates(int month, int year) {
 }
 
 
-gchar* get_css_string() {
-	
-	char *size_str = g_strdup_printf("%i", m_font_size); 
-	size_str =g_strconcat(size_str,"px;", NULL);	
-	const gchar* font_name = m_font_name; 
-    font_name =g_strconcat(font_name,";", NULL); 	
-	gchar* css_str = g_strdup_printf ("#cssView {font-family: %s font-size: %s }", font_name, size_str);
-	return css_str;	
-}
+
 //--------------------------------------------------------------------
 // About
 //----------------------------------------------------------------------
@@ -1590,7 +1567,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.0.2");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.1.0");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_2_0);
@@ -1600,18 +1577,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	//gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), NULL);	
 	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(about_dialog), "x-office-calendar");
 	
-	GtkStyleContext *context_about_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(about_dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_about_dialog = gtk_widget_get_style_context(GTK_WIDGET(about_dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_about_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
+	set_widget_font_size(about_dialog);
 	gtk_widget_show(about_dialog);	
 		
 }
@@ -1644,69 +1610,6 @@ static gpointer thread_speak_func(gpointer user_data)
      
 }
 
-void callbk_font_response(GtkDialog *dialog, gint response_id,  gpointer  user_data){
-	
-	if(!GTK_IS_DIALOG(dialog)) { 
-	g_print("Font callbk: error not a dialog\n");	
-	return;
-	}
-	
-	GtkWidget *window = user_data;
-	
-	if(response_id==GTK_RESPONSE_OK)
-	{
-	  char* font_str=gtk_font_chooser_get_font (GTK_FONT_CHOOSER(dialog));
-	  //g_print("OK button clicked: selected font = %s\n",font_str);
-	  
-	  PangoFontFamily* font_family =gtk_font_chooser_get_font_family(GTK_FONT_CHOOSER(dialog));	  
-	  const char* font_name =pango_font_family_get_name (font_family);
-	
-	  m_font_name =font_name;
-	  //g_print("m_font name = %s\n",m_font_name); 
-	  	  
-	  int font_size =gtk_font_chooser_get_font_size(GTK_FONT_CHOOSER(dialog));
-	  
-	  m_font_size=font_size/1024;
-	  //g_print("m_font_size = %d\n", m_font_size);
-	  
-	  config_write();
-	  update_calendar(GTK_WINDOW(window));
-	  update_header(GTK_WINDOW(window));
-	  
-	}
-	
-	gtk_window_destroy(GTK_WINDOW(dialog));	
-	
-}
-
-static void callbk_font(GSimpleAction* action, GVariant *parameter,gpointer user_data)
-{
-	GtkWindow *window = GTK_WINDOW (gtk_widget_get_ancestor (GTK_WIDGET (user_data),
-	GTK_TYPE_WINDOW));
-	
-	if (!GTK_IS_WINDOW (window))
-	{      
-	g_print("callbk font: error not a window\n");
-	return;      
-	}
-	
-	GtkWidget *dialog;
-    dialog = g_object_new (GTK_TYPE_FONT_CHOOSER_DIALOG,
-                         "title", "Choose a font",
-                         "transient-for", window,
-                         NULL);
-                         
-  gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (window));
-  gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);  
-  const char *size_str = g_strdup_printf("%i", m_font_size); 		
-  const gchar* font = m_font_name; 
-  font =g_strconcat(font," ",size_str, NULL); 
-  //g_print("set font = %s\n", font);  
-  gtk_font_chooser_set_font (GTK_FONT_CHOOSER(dialog), font);    
-  gtk_window_present (GTK_WINDOW (dialog));  
-  g_signal_connect (dialog, "response", G_CALLBACK (callbk_font_response),window);
-}
-
 void callbk_preferences_response(GtkDialog *dialog, gint response_id,  gpointer  user_data)
 {
 		
@@ -1722,7 +1625,11 @@ void callbk_preferences_response(GtkDialog *dialog, gint response_id,  gpointer 
     GtkWidget *check_button_holidays= g_object_get_data(G_OBJECT(dialog), "check-button-holidays-key");
     GtkWidget *check_button_end_time= g_object_get_data(G_OBJECT(dialog), "check-button-display-end-time-key");
     GtkWidget *check_button_adwaita_icons= g_object_get_data(G_OBJECT(dialog), "check-button-adwaita-icons-key");
+    GtkWidget *check_button_startup_notification= g_object_get_data(G_OBJECT(dialog), "check-button-startup-notification-key");
     
+    GtkWidget *spin_button_font_size= g_object_get_data(G_OBJECT(dialog), "spin-font-size-key");  
+	
+	
 	if(response_id==GTK_RESPONSE_OK)
 	{
 	m_talk=gtk_check_button_get_active (GTK_CHECK_BUTTON(check_button_talk));
@@ -1730,8 +1637,12 @@ void callbk_preferences_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_holidays=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_holidays));
 	m_show_end_time=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_end_time));
 	m_use_adwaita_icons=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_adwaita_icons));
+	m_startup_notification=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_startup_notification));	
+	
+	m_font_size =gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button_font_size));
 	
 	config_write();	
+	//set_widget_font_size(dialog);
 	update_calendar(GTK_WINDOW(window));
 	update_store(m_year,m_month,m_day);
 	update_header(GTK_WINDOW(window));
@@ -1752,7 +1663,12 @@ static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpoint
 	GtkWidget *check_button_talk_startup;
 	GtkWidget *check_button_holidays;
 	GtkWidget *check_button_end_time;
+	GtkWidget *check_button_startup_notification;
 	GtkWidget *check_button_adwaita_icons;
+	//font size
+	GtkWidget *label_font_size;  
+    GtkWidget *spin_button_font_size;  
+    GtkWidget *box_font_size;
 	
 	dialog = gtk_dialog_new_with_buttons ("New Event", GTK_WINDOW(window),   
 	GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT|GTK_DIALOG_USE_HEADER_BAR,
@@ -1770,41 +1686,45 @@ static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpoint
 	check_button_holidays = gtk_check_button_new_with_label ("Show UK Public Holidays");
 	check_button_end_time = gtk_check_button_new_with_label ("Display End Time");
 	check_button_adwaita_icons = gtk_check_button_new_with_label ("Use Adwaita Button Icons");
+	check_button_startup_notification= gtk_check_button_new_with_label ("Startup Notification");
 	
 	gtk_box_append(GTK_BOX(box), check_button_talk);
 	gtk_box_append(GTK_BOX(box), check_button_talk_startup);
+	gtk_box_append(GTK_BOX(box), check_button_startup_notification);
 	gtk_box_append(GTK_BOX(box), check_button_holidays);
 	gtk_box_append(GTK_BOX(box), check_button_end_time);
 	gtk_box_append(GTK_BOX(box), check_button_adwaita_icons);
 	
-	
+		
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-key",check_button_talk);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-startup-key",check_button_talk_startup);
 	g_object_set_data(G_OBJECT(dialog), "check-button-holidays-key",check_button_holidays);
 	g_object_set_data(G_OBJECT(dialog), "check-button-display-end-time-key",check_button_end_time);
 	g_object_set_data(G_OBJECT(dialog), "check-button-adwaita-icons-key",check_button_adwaita_icons);
+	g_object_set_data(G_OBJECT(dialog), "check-button-startup-notification-key",check_button_startup_notification);
 	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk), m_talk);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_startup), m_talk_at_startup);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_holidays), m_holidays);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_end_time), m_show_end_time);	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_adwaita_icons), m_use_adwaita_icons);	
-	
-	
-	GtkStyleContext *context_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	gtk_widget_show(dialog);
-	
+	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_startup_notification), m_startup_notification);
+
+  GtkAdjustment *adjustment;
+  //value,lower,upper,step_increment,page_increment,page_size
+  adjustment = gtk_adjustment_new (14.00, 8.0, 30.0, 1.0, 1.0, 0.0);
+  spin_button_font_size = gtk_spin_button_new (adjustment, 1.0, 0);      
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_font_size),m_font_size);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin_button_font_size),TRUE);		
+  label_font_size =gtk_label_new("Font Size: "); 
+  
+  box_font_size=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,1);
+  gtk_box_append (GTK_BOX(box_font_size),label_font_size);
+  gtk_box_append (GTK_BOX(box_font_size),spin_button_font_size);  
+  gtk_box_append(GTK_BOX(box), box_font_size);
+  g_object_set_data(G_OBJECT(dialog), "spin-font-size-key",spin_button_font_size); 
+  		
+	set_widget_font_size(dialog);		
 	g_signal_connect (dialog, "response", G_CALLBACK (callbk_preferences_response),window);
 	
 	gtk_window_present (GTK_WINDOW (dialog)); 	
@@ -1816,8 +1736,6 @@ static void callbk_preferences(GSimpleAction* action, GVariant *parameter,gpoint
 
 static void callbk_shortcuts(GSimpleAction * action, GVariant *parameter, gpointer user_data){
 
-		
-	
 	GtkWidget *window =user_data;
 	GtkWidget *dialog; 
 	GtkWidget *box; 
@@ -1853,20 +1771,7 @@ static void callbk_shortcuts(GSimpleAction * action, GVariant *parameter, gpoint
 	gtk_box_append(GTK_BOX(box), label_about_sc);
 	gtk_box_append(GTK_BOX(box), label_version_sc);
 	gtk_box_append(GTK_BOX(box),label_quit_sc);
-	
-	GtkStyleContext *context_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-	
+		
 	gtk_window_present (GTK_WINDOW (dialog));
 	g_signal_connect (dialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
 
@@ -1881,9 +1786,17 @@ static void callbk_info(GSimpleAction *action, GVariant *parameter,  gpointer us
 	gint response; 	
 	//Check buttons
 	GtkWidget *label_record_number;	
-	GtkWidget *label_font_name;
+	
+	GtkWidget *label_desktop_font;
+	
+	
+	GtkWidget *label_gnome_text_scale;
 	GtkWidget *label_font_size;	
-	GtkWidget *label_cur_dir;	
+	
+	GtkWidget *label_work_dir;
+	GtkWidget *label_working_dir;
+		
+	GSettings *settings;
                                                
    dialog = gtk_dialog_new_with_buttons ("Information", GTK_WINDOW(window), 
    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1900,41 +1813,45 @@ static void callbk_info(GSimpleAction *action, GVariant *parameter,  gpointer us
 	record_num_str = g_strconcat(record_num_str, n_str,NULL);   
 	label_record_number =gtk_label_new(record_num_str); 
 	
-	char* font_str ="Font name = ";
-	font_str = g_strconcat(font_str, m_font_name,NULL); 
-	label_font_name=gtk_label_new(font_str);
 	
+	settings = g_settings_new ("org.gnome.desktop.interface");	
 	
-	char* font_size_str =" Font size = ";
+	gchar* desktop_font_str = g_settings_get_string (settings, "font-name");
+	//gsettings get org.gnome.desktop.interface font-name 
+	//g_print("desktop font = %s\n",desktop_font_str);
+	char* desktop_str = "Desktop Font = ";
+	desktop_str =g_strconcat(desktop_str, desktop_font_str,NULL); 	
+	label_desktop_font=gtk_label_new(desktop_str); 
+	
+	gdouble sf =g_settings_get_double (settings,"text-scaling-factor");    
+    //g_print("scale factor =%0.1lf\n",sf);
+	char* gnome_text_scale_factor ="Gnome Text Scale Factor = ";
+	char* font_scale_value_str = g_strdup_printf("%0.2lf", sf);
+	gnome_text_scale_factor=g_strconcat(gnome_text_scale_factor, font_scale_value_str,NULL); 
+	label_gnome_text_scale=gtk_label_new(gnome_text_scale_factor); 
+	
+	char* font_size_str =" Talk Calendar Font size = ";
 	char* font_n_str = g_strdup_printf("%d", m_font_size);   
 	font_size_str = g_strconcat(font_size_str, font_n_str,NULL);   
 	label_font_size =gtk_label_new(font_size_str); 
 		
 	char *cur_dir;	
 	cur_dir = g_get_current_dir ();	
-	char* dir_str ="Current Working Directory = ";
+	char* dir_str ="";
 	dir_str = g_strconcat(dir_str, cur_dir,NULL);
-	label_cur_dir=gtk_label_new(dir_str); 
+	label_work_dir=gtk_label_new("Working Directory"); 
+	label_working_dir=gtk_label_new(dir_str); 
 	//g_print("current directory = %s\n", cur_dir);
 	
 	gtk_box_append(GTK_BOX(box), label_record_number);
-	gtk_box_append(GTK_BOX(box), label_font_name);
+	//gtk_box_append(GTK_BOX(box), label_font_name);	
+	gtk_box_append(GTK_BOX(box),label_desktop_font);
+	gtk_box_append(GTK_BOX(box),label_gnome_text_scale);
 	gtk_box_append(GTK_BOX(box),label_font_size);
-	gtk_box_append(GTK_BOX(box),label_cur_dir);
+	gtk_box_append(GTK_BOX(box),label_work_dir);
+	gtk_box_append(GTK_BOX(box),label_working_dir);
 	
-	GtkStyleContext *context_dialog;	
-	gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-	GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_dialog,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-	
+	set_widget_font_size(dialog);	
 	gtk_window_present (GTK_WINDOW (dialog));
 	g_signal_connect (dialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
  	
@@ -1946,8 +1863,7 @@ static void callbk_delete_all_response(GtkDialog *dialog, gint response_id, gpoi
 	
 	GtkWindow *window = user_data; //window data
     if(response_id==GTK_RESPONSE_OK)
-	{
-    
+	{    
     //g_print("Danger: Deleting everything\n");
     
     Event e_empty;
@@ -1965,8 +1881,7 @@ static void callbk_delete_all_response(GtkDialog *dialog, gint response_id, gpoi
     
     for(int i=0;  i<m_db_size; i++)
     {
-		db_store[i]=e_empty;
-		
+		db_store[i]=e_empty;		
 	}
     
     reset_marked_dates();  
@@ -2009,20 +1924,8 @@ static void callbk_delete_all(GSimpleAction *action, GVariant *parameter,  gpoin
                           "Delete", GTK_RESPONSE_OK,
                           NULL);  
 
-  
-  GtkStyleContext *context_dialog;	
-  gtk_widget_set_name (GTK_WIDGET(dialog), "cssView"); 
-  GtkCssProvider *cssProvider;	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-  
-  // get GtkStyleContext from widget
-  context_dialog = gtk_widget_get_style_context(GTK_WIDGET(dialog));	
-  //finally load style provider 
-  gtk_style_context_add_provider(context_dialog,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-  
+  set_widget_font_size(dialog);
+    
   g_signal_connect (dialog, "response", G_CALLBACK (callbk_delete_all_response),window);
   gtk_window_present (GTK_WINDOW (dialog));
 }
@@ -2358,7 +2261,6 @@ static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer use
 	speak_events();	
 	
 }
-	
 
 
 static void callbk_speak_about(GSimpleAction *action,
@@ -2367,7 +2269,7 @@ static void callbk_speak_about(GSimpleAction *action,
 		
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. G t k Four Version 1 0 2";    
+	gchar* message_speak ="Talk Calendar. G t k Four Version 1 point 1 ";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);
@@ -2452,8 +2354,7 @@ gboolean is_public_holiday(int day) {
 	//boxing day
 	return TRUE;	  
 	}
-	
-	
+		
 	if (m_month == 5) {
      //May complicated
      GDate *first_monday_may;
@@ -2673,8 +2574,6 @@ char* get_holiday(int day) {
 	return "";
 }
 
-
-
 //---------------------------------------------------------------------
 // update ui
 //---------------------------------------------------------------------
@@ -2691,8 +2590,7 @@ static void update_calendar(GtkWindow *window) {
   GtkWidget *label; //for days of week Mon, Tue etc..
   GtkCssProvider *cssProvider;
   
-  
-  //mark days with events
+   //mark days with events
   reset_marked_dates();
   update_marked_dates(m_month,m_year);
   
@@ -2733,10 +2631,7 @@ static void update_calendar(GtkWindow *window) {
   default:
   weekday_str="Unknown";  
   }//switch
-  
-  
-  
-  
+ 
   gchar* day_str =	g_strdup_printf("%d",m_day);    
   gchar *year_str = g_strdup_printf("%d",m_year ); 
   
@@ -2785,7 +2680,6 @@ static void update_calendar(GtkWindow *window) {
          default:
            day_month_year_str =g_strconcat(day_month_year_str,"Unknown ",year_str, NULL);
     }
-      
    
    if (m_holidays) {
 	   
@@ -2829,88 +2723,31 @@ static void update_calendar(GtkWindow *window) {
     	
  
   label= gtk_label_new("Mon");
-  
-  GtkStyleContext *context_label_mon;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_mon = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_mon,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label); 
   gtk_grid_attach(GTK_GRID(grid),label,0,1,1,1);
   
   label= gtk_label_new("Tue");
-  GtkStyleContext *context_label_tue;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
- 
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_tue = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_tue,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	  
+  set_widget_font_size(label);   
   gtk_grid_attach(GTK_GRID(grid),label,1,1,1,1);
   
   label= gtk_label_new("Wed");
-  GtkStyleContext *context_label_wed;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-  	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_wed = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_wed,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label);
   gtk_grid_attach(GTK_GRID(grid),label,2,1,1,1);
   
   label= gtk_label_new("Thu");
-  GtkStyleContext *context_label_thur;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
- 	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_thur = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_thur,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label);
   gtk_grid_attach(GTK_GRID(grid),label,3,1,1,1);
   
   label= gtk_label_new("Fri");
-  GtkStyleContext *context_label_fri;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-  	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_fri = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_fri,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label);
   gtk_grid_attach(GTK_GRID(grid),label,4,1,1,1);
   
   label= gtk_label_new("Sat");
-  GtkStyleContext *context_label_sat;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-  	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_sat = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_sat,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label); 
   gtk_grid_attach(GTK_GRID(grid),label,5,1,1,1);
   
   label= gtk_label_new("Sun");
-  GtkStyleContext *context_label_sun;	
-  gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-  	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-  context_label_sun = gtk_widget_get_style_context(GTK_WIDGET(label));		
-  gtk_style_context_add_provider(context_label_sun,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
+  set_widget_font_size(label);
   gtk_grid_attach(GTK_GRID(grid),label,6,1,1,1);
   
   GDate *today_date; 
@@ -2953,24 +2790,9 @@ static void update_calendar(GtkWindow *window) {
 		if(day==today_day && m_month==today_month && m_year==today_year) {
 			set_button_green(GTK_BUTTON(button));
 		}
-		
-		GtkStyleContext *context_button;	
-		gtk_widget_set_name (GTK_WIDGET(button), "cssView"); 
-			
-		cssProvider = gtk_css_provider_new();
-		gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-		context_button = gtk_widget_get_style_context(GTK_WIDGET(button));		
-		gtk_style_context_add_provider(context_button,    
-		GTK_STYLE_PROVIDER(cssProvider), 
-		GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-		
-		
-		
-		g_object_set_data(G_OBJECT(button), "button-window-key",window);  
-       
+		set_widget_font_size(button);
+		g_object_set_data(G_OBJECT(button), "button-window-key",window);         
         g_signal_connect (button, "clicked", G_CALLBACK (callbk_day_selected), current_date);
-		
-        
         gtk_grid_attach(GTK_GRID(grid),button,col,row,1,1);	
         btn_str="";         
          }                        
@@ -2999,62 +2821,11 @@ static void update_calendar(GtkWindow *window) {
   g_object_set_data(G_OBJECT(window), "window-listbox-key",listbox);
   
   
-    //---------------------------------------------------------------
-    GtkStyleContext *context_label_date;	
-	gtk_widget_set_name (GTK_WIDGET(label_date), "cssView"); 
-	//GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1);	
-	context_label_date = gtk_widget_get_style_context(GTK_WIDGET(label_date));		
-	gtk_style_context_add_provider(context_label_date,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-    
-    //------------------------------------------------------------------
-    GtkStyleContext *context_button_next_month;	
-	gtk_widget_set_name (GTK_WIDGET(button_next_month), "cssView"); 
-	//GtkCssProvider *cssProvider;	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-	context_button_next_month = gtk_widget_get_style_context(GTK_WIDGET(button_next_month));		
-	gtk_style_context_add_provider(context_button_next_month,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-    //------------------------------------------------------------------
-    GtkStyleContext *context_button_prev_month;	
-	gtk_widget_set_name (GTK_WIDGET(button_prev_month), "cssView"); 
-		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-	context_button_prev_month = gtk_widget_get_style_context(GTK_WIDGET(button_prev_month));		
-	gtk_style_context_add_provider(context_button_prev_month,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-    //------------------------------------------------------------------
-        
-    GtkStyleContext *context_listbox;	
-	gtk_widget_set_name (GTK_WIDGET(listbox), "cssView"); 
-		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1);
-	context_listbox = gtk_widget_get_style_context(GTK_WIDGET(listbox));
-	gtk_style_context_add_provider(context_listbox,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-	
-	//------------------------------------------------------------------
-	
-	GtkStyleContext *context_label;	
-	gtk_widget_set_name (GTK_WIDGET(label), "cssView"); 
-		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 	
-	context_label = gtk_widget_get_style_context(GTK_WIDGET(label));		
-	gtk_style_context_add_provider(context_label,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-    //------------------------------------------------------------------
-
+  set_widget_font_size(label_date);
+  set_widget_font_size(button_next_month);
+  set_widget_font_size(button_prev_month);
+  set_widget_font_size(listbox);
+  //set_widget_font_size(label);  
 }
 
 static void update_header (GtkWindow *window)
@@ -3063,22 +2834,16 @@ static void update_header (GtkWindow *window)
 	GtkWidget *button_new_event;
 	GtkWidget *button_edit_event;
 	GtkWidget *button_delete_selected;
-	GtkWidget *button_test;
+	GtkWidget *button_speak;
 	GtkWidget *menu_button; 
-	GtkCssProvider *cssProvider;
-	
-	//GtkWidget *icon;
-    GtkStyleContext *context;  	
-		
+	GtkStyleContext *context;  //needed for adwaita button icons
+				
 	header = gtk_header_bar_new ();	
 	gtk_window_set_titlebar (GTK_WINDOW(window), header);
 	
-	//button new event
-	
-	g_print("update header: adwaita icons = %d\n",m_use_adwaita_icons);
 		
 	if(m_use_adwaita_icons){
-	//appointment-new-symbolic document-new-symbolic
+	//appointment-new-symbolic or document-new-symbolic
 	button_new_event = gtk_button_new_from_icon_name ("appointment-new-symbolic"); 	
 	context = gtk_widget_get_style_context (button_new_event);
 	gtk_style_context_add_class (context, "circular");
@@ -3096,7 +2861,7 @@ static void update_header (GtkWindow *window)
 	//button edit selected event
 	
 	if(m_use_adwaita_icons) {	
-	//document-edit-symbolic edit-redo-symbolic edit-select-symbolic
+	//what to use --- document-edit-symbolic edit-redo-symbolic edit-select-symbolic
 	//legacy:appointment-missed.png appointment-new.png appointment-soon.png
 	button_edit_event = gtk_button_new_from_icon_name ("appointment-soon-symbolic"); 
 	context = gtk_widget_get_style_context (button_edit_event);
@@ -3123,14 +2888,29 @@ static void update_header (GtkWindow *window)
 	}
 		
 	gtk_widget_set_tooltip_text(button_delete_selected, "Delete Selected");  
+	
 	g_signal_connect (button_delete_selected, "clicked", G_CALLBACK (callbk_delete_selected), window);
 	
+	
+	//Add speak button (in case of other shortcut issues with gtk4)	
+	if(m_use_adwaita_icons) {
+	button_speak = gtk_button_new_from_icon_name ("media-playback-start-symbolic");
+	context = gtk_widget_get_style_context (button_speak);
+	gtk_style_context_add_class (context, "circular");
+	gtk_style_context_add_class (context, "flat");
+	gtk_widget_set_valign (button_speak, GTK_ALIGN_CENTER); 
+	} else {
+	button_speak = gtk_button_new_with_label ("Speak");
+	}
+		
+	gtk_widget_set_tooltip_text(button_speak, "Speak");  
+	g_signal_connect (button_speak, "clicked", G_CALLBACK (callbk_speak), NULL);
 		
 	//Packing
 	gtk_header_bar_pack_start(GTK_HEADER_BAR (header),button_new_event);
 	gtk_header_bar_pack_start(GTK_HEADER_BAR (header),button_edit_event);   
 	gtk_header_bar_pack_start(GTK_HEADER_BAR (header), button_delete_selected);
-	//gtk_header_bar_pack_end(GTK_HEADER_BAR (header), button_test);
+	//gtk_header_bar_pack_start(GTK_HEADER_BAR (header), button_speak);
 	
 	
 	//Menu model
@@ -3143,9 +2923,14 @@ static void update_header (GtkWindow *window)
 	g_object_unref (section);
 	
 	section = g_menu_new ();
-	g_menu_append (section, "Font", "app.font"); 	
+	g_menu_append (section, "Speak", "app.speak"); 	
 	g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
 	g_object_unref (section);
+	
+	//section = g_menu_new ();
+	//g_menu_append (section, "Font", "app.font"); 	
+	//g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
+	//g_object_unref (section);
 	
 	section = g_menu_new ();
 	g_menu_append (section, "Delete All", "app.delete");	
@@ -3173,80 +2958,14 @@ static void update_header (GtkWindow *window)
 	
 	//gtk_widget_show (menu_button);  
 	gtk_header_bar_pack_end(GTK_HEADER_BAR (header), menu_button);
-	//gtk_header_bar_pack_end(GTK_HEADER_BAR (header), button_test);
-	
-	//Style
-	
-	GtkStyleContext *context_header;	
-	gtk_widget_set_name (GTK_WIDGET(header), "cssView"); 
+	gtk_header_bar_pack_end(GTK_HEADER_BAR (header), button_speak);
 		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_header = gtk_widget_get_style_context(GTK_WIDGET(header));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_header,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);	
-	//--------------------------------------------------------------
-	
-	GtkStyleContext *context_button_new_event;	
-	gtk_widget_set_name (GTK_WIDGET(button_new_event), "cssView"); 
-		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_button_new_event = gtk_widget_get_style_context(GTK_WIDGET(button_new_event));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_button_new_event,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	
-	//--------------------------------------------------------------
-	
-	GtkStyleContext *context_button_edit_event;	
-	gtk_widget_set_name (GTK_WIDGET(button_edit_event), "cssView"); 
-		
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_button_edit_event = gtk_widget_get_style_context(GTK_WIDGET(button_edit_event));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_button_edit_event,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	
-	//--------------------------------------------------------------
-	GtkStyleContext *context_button_delete_selected;	
-	gtk_widget_set_name (GTK_WIDGET(button_delete_selected), "cssView"); 
-	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_button_delete_selected = gtk_widget_get_style_context(GTK_WIDGET(button_delete_selected));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_button_delete_selected,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-	//-----------------------------------------------------------------
-	
-	GtkStyleContext *context_menu_button;	
-	gtk_widget_set_name (GTK_WIDGET(menu_button), "cssView"); 
-	
-	cssProvider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-	
-	// get GtkStyleContext from widget
-	context_menu_button = gtk_widget_get_style_context(GTK_WIDGET(menu_button));	
-	//finally load style provider 
-	gtk_style_context_add_provider(context_menu_button,    
-	GTK_STYLE_PROVIDER(cssProvider), 
-	GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-
+	set_widget_font_size(header);
+	set_widget_font_size(button_new_event);
+	set_widget_font_size(button_edit_event);
+	set_widget_font_size(button_delete_selected);
+	set_widget_font_size(button_speak);
+	set_widget_font_size(menu_button);
 	
 }
 
@@ -3255,30 +2974,14 @@ static void update_header (GtkWindow *window)
 static void activate (GtkApplication *app, gpointer  user_data)
 {
   GtkWidget *window;
-  //header
-  GtkWidget *header;
-  GtkWidget *button_header;	
-  GtkWidget *menu_button; 
-  GtkWidget *icon;
-  GtkStyleContext *context;  
-  
-  GtkWidget *button_new_event;
-  GtkWidget *button_edit_event;
-  GtkWidget *button_delete_selected;
-  GtkWidget *button_test;
-  GtkWidget *button_store;
-  
-  GtkCssProvider *cssProvider;
-  
-  // define keyboard accelerators
+  GtkWidget *header;  
   
   const gchar *speak_accels[2] = { "space", NULL };
   const gchar *version_accels[2] = { "<Ctrl>V", NULL };
   const gchar *home_accels[2] = { "Home", NULL };
   const gchar *about_accels[2] =  { "<Ctrl>A", NULL };
   const gchar *quit_accels[2] =   { "<Ctrl>Q", NULL };
-  
-  
+    
   // create a new window, and set its title 
   window = gtk_application_window_new (app);
   gtk_window_set_title (GTK_WINDOW (window), "Talk Calendar");
@@ -3294,7 +2997,26 @@ static void activate (GtkApplication *app, gpointer  user_data)
   m_year =g_date_get_year(current_date);
   g_date_free (current_date);
   
+  //startup notifcation
+  if(m_startup_notification) {
+  char* message="You have ";
+  char *event_number_str;
+  int event_number=get_number_of_events();
   
+  if (event_number==0) event_number_str = "no events today";
+  else if (event_number==1) {
+  event_number_str = g_strdup_printf("%i", event_number); 
+  event_number_str =g_strconcat(event_number_str," event today", NULL);
+  }
+  else {
+  event_number_str = g_strdup_printf("%i", event_number); 
+  event_number_str =g_strconcat(event_number_str," events today", NULL);	  
+  }
+  message=g_strconcat(message,event_number_str, NULL);	
+  show_notification(message);
+  } //if startup notification
+  
+    
   //mark days with events
   reset_marked_dates();
   update_marked_dates(m_month,m_year);  
@@ -3321,10 +3043,10 @@ static void activate (GtkApplication *app, gpointer  user_data)
 	g_signal_connect(preferences_action, "activate",  G_CALLBACK(callbk_preferences), window);
 	
 		
-	GSimpleAction *font_action;	
-	font_action=g_simple_action_new("font",NULL); //app.font
-	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(font_action)); //make visible	
-	g_signal_connect(font_action, "activate",  G_CALLBACK(callbk_font), window);
+	//GSimpleAction *font_action;	
+	//font_action=g_simple_action_new("font",NULL); //app.font
+	//g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(font_action)); //make visible	
+	//g_signal_connect(font_action, "activate",  G_CALLBACK(callbk_font), window);
 	
 	
 	GSimpleAction *home_action;	
@@ -3355,9 +3077,7 @@ static void activate (GtkApplication *app, gpointer  user_data)
 	g_signal_connect(quit_action, "activate",  G_CALLBACK(callbk_quit), app);
 	
     
-  // connect keyboard accelerators
-	
-	
+  // connect keyboard accelerators  
 	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
 	"app.speak", speak_accels); 
 	
@@ -3373,28 +3093,15 @@ static void activate (GtkApplication *app, gpointer  user_data)
 	
 	gtk_application_set_accels_for_action(GTK_APPLICATION(app),
 	"app.quit", quit_accels);
-	
+		
+	//g_object_set_data(G_OBJECT(window), "app-key",app);
 	
     update_header(GTK_WINDOW(window));
-  
-  //----------------------------------------------------------------
-  GtkStyleContext *context_window;	
-  gtk_widget_set_name (GTK_WIDGET(window), "cssView"); 
-  	
-  cssProvider = gtk_css_provider_new();
-  gtk_css_provider_load_from_data(cssProvider, get_css_string(),-1); 
-  
-  // get GtkStyleContext from widget
-  context_window = gtk_widget_get_style_context(GTK_WIDGET(window));	
-  //finally load style provider 
-  gtk_style_context_add_provider(context_window,    
-  GTK_STYLE_PROVIDER(cssProvider), 
-  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);		
-  //gtk_widget_show(dialog);
-  //-----------------------------------------------------------------
-     
+    
+    set_widget_font_size(window);
+    
   update_calendar(GTK_WINDOW (window));  
-  //gtk_widget_show (window);
+  //gtk_widget_show (window); //use present with gtk4
   gtk_window_present (GTK_WINDOW (window));     
   update_store(m_year,m_month,m_day);    
   if(m_talk && m_talk_at_startup) speak_events(); 
