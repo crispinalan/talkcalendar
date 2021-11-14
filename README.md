@@ -135,20 +135,6 @@ Then copy this to the autostart directory
 sudo cp talkcalendar.desktop  /etc/xdg/autostart/
 ```
 
-## Wayland
-
-Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor as shown in the screenshot below. 
-
-![](talkcalendar-wayland-fedora35.png)
-
-
-## Debian Bookworm (Testing)
-
-Talk Calendar has been tested with Debian Bookworm (testing) which has gtk4 in the respositories. A screenshot of Talk  Calendar running with Debian is shown below.
-
-![](talkcalendar-gtk4-debian-bookworm.png)
-
-
 
 ## Build From Source
 
@@ -228,21 +214,27 @@ startup notification option
 font size code refactoring
 binary for 64-bit gtk4 distributions
 ```
+Talk Calendar Gtk 4 Version 1.1.1
 
-## Known Issues
+```
+built with Gtk4.0
+colour changes: today red events green
+binary for 64-bit gtk4 distributions
+```
 
-#### Speak Delay
+## Wayland
 
-When using Fedora 35 I have noticed that there is a small speak delay. Fedora 35 now uses the Pipewire server by default for handling audio streams. I am investigating if the delay is anything to do with the Pipewire config settings. The same delay is observed when using ALSA directly to play a wav file e.g. "aplay test.wav".
+Talk Calendar has been tested and works with Fedora 35 GNOME using the Wayland display compositor. 
 
-#### Shortcut keys
+## Debian Bookworm (Testing)
 
-When using Fedora 35 I had to recompile the application to get the shortcut keys to work. I have added a speak button on the headerbar. Use this if you encounter this problem when using the spacebar.
+Talk Calendar has been tested and works with Debian Bookworm (testing) which has gtk4 in the respositories. 
+
 
 ## Roadmap
 ```
 code refactoring and enhancements 
-new features to be added 
+new features and options to be added 
 package installers (deb, rpm)
 ```
 

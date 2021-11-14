@@ -2778,7 +2778,7 @@ static void update_calendar(GtkWindow *window) {
 		
 		//markup event days
 		if(marked_date[day-1]) {			
-			set_button_red_with_borders(GTK_BUTTON(button));			
+			set_button_green(GTK_BUTTON(button));			
 		}
 		
 		if(is_public_holiday(day) && m_holidays) {
@@ -2788,7 +2788,7 @@ static void update_calendar(GtkWindow *window) {
 		
 		
 		if(day==today_day && m_month==today_month && m_year==today_year) {
-			set_button_green(GTK_BUTTON(button));
+			set_button_red_with_borders(GTK_BUTTON(button));
 		}
 		set_widget_font_size(button);
 		g_object_set_data(G_OBJECT(button), "button-window-key",window);         
