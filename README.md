@@ -167,6 +167,13 @@ are needed but should be installed by default
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
+Compile with
+
+```
+gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
+
+```
+
 ### Compiling Flite
 
 Different distributions are using different versions of the Flite speech synthesiser (e.g. Fedora 34 is using version 1.3, while Debian Bullseye is using version 2.2). Consequently, the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. 
