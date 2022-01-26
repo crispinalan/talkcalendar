@@ -226,6 +226,7 @@ Talk Calendar Gtk 4 Version 1.1.1
 ```
 built with Gtk4.0
 colour changes: today red events green
+fixed removal of apostrophes from text entry
 binary for 64-bit gtk4 distributions
 ```
 

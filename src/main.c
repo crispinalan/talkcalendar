@@ -20,6 +20,12 @@
  * 
  */
 
+/*compile with
+ * 
+ * gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
+ * 
+*/
+
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>  //needed for g_mkdir
 #include <math.h>  //compile with -lm
@@ -217,8 +223,8 @@ void config_initialize() {
 	// Make sure config directory exists
 	if(!g_file_test(config_dir, G_FILE_TEST_IS_DIR))
 		g_mkdir(config_dir, 0777);
-
 	// If a config file doesn't exist, create one with defaults otherwise
+	
 	// read the existing one
 	if(!g_file_test(m_config_file, G_FILE_TEST_EXISTS))
 	{
@@ -367,6 +373,54 @@ static char* remove_semicolons (const char *text)
 	
 	return g_string_free (str, FALSE);
 }
+
+static char* remove_punctuations(const char *text)
+{
+	GString *str;
+	const char *p;	
+	str = g_string_new ("");	
+	p = text;
+	while (*p)
+	{
+	gunichar cp = g_utf8_get_char(p);	
+	if ( cp != '\'' ){ //remove all apostrophes as cause tts errors
+	g_string_append_unichar (str, *p);           
+	}//if
+	++p;
+	}
+	
+	return g_string_free (str, FALSE);
+}
+
+
+//char* allowed_chars(const char* cstr)
+//{    
+//const char* c;
+//gchar* ret_val;
+//GString* s = g_string_new("");
+
+	////c strings terminated by a null character '\0'
+	//for ( c = cstr; *c != '0'; c = g_utf8_next_char(c) ) {
+	//gunichar cp = g_utf8_get_char(c); 
+		//if ( cp == 0 ) break;
+		
+		//if (g_unichar_isalnum(cp)){ // allow alphabet number characters		 
+		//g_string_append_unichar( s, cp);
+		//} 
+		
+		//if ( cp == '-' ){ //allow dashes
+            //g_string_append_unichar( s, cp);            
+        //}
+        //if ( cp == ' '){ //allow spaces
+            //g_string_append_unichar( s, cp);          
+        //}		
+		
+	//} 
+//ret_val = s->str;
+//g_string_free(s, FALSE);
+//return ret_val; 
+
+//}
 //--------------------------------------------------------------------
 // Compare
 //---------------------------------------------------------------------
@@ -638,12 +692,14 @@ static void callbk_new_event_response(GtkDialog *dialog, gint response_id,  gpoi
 	g_print("m_title (before) = %s\n",m_title);
 	
 	m_title =remove_semicolons(m_title);
+	//m_title =remove_punctuations(m_title);
 	
 	g_print("m_title (after) = %s\n",m_title);	
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
 	
 	m_location =remove_semicolons(m_location);
+	//m_location =remove_punctuations(m_location);
 	int fd;
 	Event event;
 	event.id =m_db_size;	
@@ -839,10 +895,13 @@ void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
 	m_title= gtk_entry_buffer_get_text (buffer_title);
 	m_title =remove_semicolons(m_title);
+	//m_title =remove_punctuations(m_title);
 	
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
-	m_location =remove_semicolons(m_location);		
+	m_location =remove_semicolons(m_location);
+	//m_location =remove_punctuations(m_location);
+			
 		
 	//insert change into database	
 	Event event;
@@ -1566,10 +1625,10 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_window_set_transient_for(GTK_WINDOW(about_dialog),GTK_WINDOW(window));
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
-	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Gtk Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Gtk4 Version 1.1.0");
+	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.1");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2021");
-	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Calendar Assistant"); 
+	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Gtk4 Calendar Assistant"); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_2_0);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_dialog),"https://github.com/crispinalan/"); 
 	gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(about_dialog),"Talk Calendar Website");
@@ -2229,6 +2288,7 @@ static void speak_events() {
    
       
    title_str=day.title;
+   title_str =remove_punctuations(title_str);
       
    if(strlen(day.location) ==0)
    {
@@ -2236,6 +2296,7 @@ static void speak_events() {
    }
    else { 
    location_str = g_strconcat(location_str, "  ",day.location, ".", NULL);  }
+   location_str =remove_punctuations(location_str);
       
    speak_str_events= g_strconcat(speak_str_events, time_str, title_str, ".  ",location_str,". ", NULL);
    
@@ -2269,7 +2330,7 @@ static void callbk_speak_about(GSimpleAction *action,
 		
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. G t k Four Version 1 point 1 ";    
+	gchar* message_speak ="Talk Calendar. Version 1 point 1 point 1";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);
