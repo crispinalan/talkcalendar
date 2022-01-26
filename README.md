@@ -238,12 +238,15 @@ Talk Calendar has been tested and works with Fedora 35 GNOME using the Wayland d
 
 Talk Calendar has been tested and works with Debian Bookworm (testing) which has gtk4 in the respositories. 
 
+## Package Installers 
+
+A basic AppImage can be found in the bin-packages directory which assumes gtk4 and associated libraries are installed.
 
 ## Roadmap
 ```
 code refactoring and enhancements 
 new features and options to be added 
-package installers (deb, rpm)
+package installers (appimage, deb, rpm)
 ```
 
 ## Gtk 4.0 Migration Notes
