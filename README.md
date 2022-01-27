@@ -21,7 +21,9 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-Use a menu editor (e.g. menu Libre) to create a launcher Talk Calendar. Use the menu editor to set the working directory i.e. the directory where you are launching Talk Calendar and make sure the flite speech engine file is located in this. If you do not set the a working directory it will most likly default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  Use
+Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. Make sure that the flite speech engine file is located in working directory. If you do not set the a working directory it will most likly default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  
+
+With Talk Calendar you can use the menu action
  
 ```
 Help->Information
@@ -30,7 +32,7 @@ to show the current working directory where both the speech engine and the event
 
 Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
-## Usage
+## Talk Calendar Usage
 
 ### Adding New Event
 
@@ -243,7 +245,7 @@ Talk Calendar has been tested and works with Debian Bookworm (testing) which has
 ```
 code refactoring and enhancements 
 new features and options to be added 
-package installers (appimage, deb, rpm)
+package installers (e.g. deb, AppImage)
 ```
 
 ## Gtk 4.0 Migration Notes
