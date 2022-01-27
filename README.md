@@ -8,7 +8,7 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 
 ## Deployment
 
-A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Fedora 34, Fedora 35 and Debian Bookworm (testing) as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the code in this respository. 
+A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Debian Bookworm (testing) and Fedora as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the code in this respository. 
 
 Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
 
@@ -21,7 +21,7 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-If you create a default launcher (Mate desktop) to launch Talk Calendar then the default working directory will likely be your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  Many menu editors allow you to specify the working directory path. Use
+Use a menu editor (e.g. menu Libre) to create a launcher Talk Calendar. Use the menu editor to set the working directory i.e. the directory where you are launching Talk Calendar and make sure the flite speech engine file is located in this. If you do not set the a working directory it will most likly default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  Use
  
 ```
 Help->Information
@@ -238,9 +238,6 @@ Talk Calendar has been tested and works with Fedora 35 GNOME using the Wayland d
 
 Talk Calendar has been tested and works with Debian Bookworm (testing) which has gtk4 in the respositories. 
 
-## Package Installers 
-
-A basic AppImage can be found in the bin-packages directory which assumes gtk4 and associated libraries are installed.
 
 ## Roadmap
 ```
