@@ -4,7 +4,7 @@ Talk Calendar is a Linux desktop calendar with some speech capability.
 
 ![](talkcalendar-gtk4.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version. It will **NOT** compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). See my migration notes below.
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version which replaces the older Gtk3 version. It will **NOT** compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). Also, see my migration notes below which outline the code changes that had to made to use Gtk4.
 
 ## Deployment
 
@@ -21,7 +21,7 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. Make sure that the flite speech engine file is located in working directory. If you do not set the a working directory it will most likly default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  
+Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. Make sure that the flite speech engine file is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  
 
 With Talk Calendar you can use the menu action
  
