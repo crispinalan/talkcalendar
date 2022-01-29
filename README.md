@@ -1,6 +1,6 @@
 # Talk Calendar (Gtk4 Version)
 
-Talk Calendar is a Linux desktop calendar with some speech capability. 
+Talk Calendar is a Linux desktop calendar with speech capability. 
 
 ![](talkcalendar-gtk4.png)
 
@@ -8,7 +8,9 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 
 ## Deployment
 
-A 64 bit binary package developed and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been tested using Debian Bookworm (testing) and Fedora as these distributions have Gtk4 in their repositories. Alternatively, Talk Calendar can be built from source using the code in this respository. 
+### Binary Image
+
+A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Debian Bookworm, Fedora 35 and Ubuntu MATE 21.10 etc.
 
 Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
 
@@ -21,16 +23,44 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. Make sure that the flite speech engine file is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.  
+Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. 
 
-With Talk Calendar you can use the menu action
+Alternatively, Talk Calendar can be built from source using the code in this respository. See notes below which explain how to do this.
+
+### Debian Bookworm Package Installer
+
+A basic deb package installer can found in [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been developed and tested using the standard Debian Bookworm Gnome edition (in testing). 
+
+To install Talk Calendar using the deb package installer, right click on the deb file and select "Open With Other Application" and then select "Software Installer". Click "Install" and enter your root password.
+
+Talk Calendar is installed to /usr/bin and the desktop file to /usr/share/applications. The default working directory is the user home directory and the compiled flite text-to-speech engine (i.e. the flite executable file) should be copied to the home directory to enable talking.
+
+The deb package installs a manual for Talk Calendar.
+
+```
+man talkcalendar
+```
+
+### Verify Deb Package
+
+You can verify the deb package by checking the md5sum of the deb package with the read-only md5 file provided. To do this use the terminal commands:
+
+```
+cat talkcalendar_1.1.1_amd64_bookworm.md5
+md5sum talkcalendar_1.1.1_amd64_bookworm.deb
+```
+Both sums (numbers) should be the same.
+
+### Working Directory 
+
+Make sure that the flite speech engine file is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the speech engine (flite) should be located in the working directory.
+
+With Talk Calendar you can use the following menu item
  
 ```
 Help->Information
 ```
 to show the current working directory where both the speech engine and the events database should be located.
-
-Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
 ## Talk Calendar Usage
 
@@ -38,7 +68,7 @@ Add Talk Calendar to your start-up programs to read out events when the computer
 
 * Select event date using the calendar.
 * Click the New button on the headerbar to invoke the "New Event" dialog.
-* Enter the event title, location, start and end times etc.
+* Enter the event title, location, start and end times.
 * Events are sorted by start time when displayed.
 * A visual marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
@@ -117,39 +147,18 @@ Quit		<Ctrl>Q
 * Click on a calendar date with events
 * Press the spacebar to speak or click the speak button 
 
-
 ## Startup Applications
 
-To add Talk Calendar to the startup applications when using GNOME you need to create a desktop launcher file with a '.desktop' extension such as talkcalendar.desktop. A generic example is shown below where you should replace "/path/to" with your own path. Exec is the full path to the Talk Calendar executable file. Path sets the working directory.
+Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
-```
-[Desktop Entry]
-Type=Application
-Name[en_GB]=Talk Calendar
-Name=Talk Calendar
-Exec=/path/to/talkcalendar-gtk4/talkcalendar
-Path=/path/to/talkcalendar-gtk4
-```
-
-Then copy this to the autostart directory
-
-```
-sudo cp talkcalendar.desktop  /etc/xdg/autostart/
-```
+With the Gnome desktop use the Gnome "Tweak Tool" to add Talk Calendar to your startup applications.
 
 
 ## Build From Source
 
 The gtk4 source code for Talk Calendar is provided in the src directory.
 
-You need the gtk4 development libraries and the gcc compiler. With Fedora you need to install the following packages.
-
-```
-sudo dnf install gtk4-devel
-sudo dnf install gtk4-devel-docs
-sudo dnf install glib-devel
-sudo dnf install alsa-lib-devel
-```
+You need the gtk4 development libraries and the gcc compiler. 
 
 With Debian Bookworm you need to install the following packages
 
@@ -166,6 +175,15 @@ apt install libglib2.0-dev
 apt install alsa-utils
 ```
 are needed but should be installed by default
+
+With Fedora you need to install the following packages.
+
+```
+sudo dnf install gtk4-devel
+sudo dnf install gtk4-devel-docs
+sudo dnf install glib-devel
+sudo dnf install alsa-lib-devel
+```
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
