@@ -10,8 +10,10 @@ Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/)
 
 ### Binary Image
 
-A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Debian Bookworm, Fedora 35 and Ubuntu 21.10 etc.
-
+A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Debian Bookworm, Fedora 35 and Ubuntu 21.10 etc. With Ubuntu the base Gtk4 libraries can be installed using
+```
+sudo apt install libgtk-4-1
+```
 Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
 
 ```
@@ -23,62 +25,12 @@ Check that the Talk Calendar binary has executable permissions. If not use
 chmod +x talkcalendar
 ```
 
-Use a menu editor such as Menu Libre to create a launcher for Talk Calendar. Menu Libre allows the working directory to be set. 
+Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below.
 
-Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
+![](menulibre.png)
 
-### Debian Package Installer
+Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this. Using the binary image with a menu editor is the most straightforward way of getting Talk Calendar installed on most distros.
 
-#### Debian Bookworm
-
-A basic deb package installer can found in [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages). This has been developed using the standard Debian Bookworm GNOME edition (in testing) and can be used to install Talk Calendar locally. 
-
-To install Talk Calendar using the talkcalendar.deb file and the GNOME software installer, right click on the deb file and select "Open With Other Application" and then select "Software Installer". Click "Install" and enter your root password.
-
-The Talk Calendar binary is put  into /usr/bin and the desktop file is put into /usr/share/applications. The default working directory is the user home directory and the compiled Flite text-to-speech engine (i.e. the Flite executable file) should be copied to the home directory to enable talking.
-
-The deb package installs a manual for Talk Calendar. To run this from the terminal use
-
-```
-man talkcalendar
-```
-
-#### Ubuntu MATE 21.10
-
-The deb package has also been tested with Ubuntu MATE 21.10. Unfortunately, unlike other distros Ubuntu MATE (and I assume Ubuntu) does not ship with the base Gtk4 libraries out of the box and so these have to installed using
-
-```
-sudo apt install libgtk-4-1
-```
-
-In my test these were broken and I had to run the following command to fix them
-
-```
-sudo apt --fix-broken install
-```
-
-Once this issues had been sorted out I was able to install Talk Calendar using the terminal command
-
-```
-sudo dpkg -i talkcalendar_1.1.1_amd64.deb
-```
-
-Their graphical Gdebi installer was not able to install the Talk Calendar deb file ending with a "Bad file descriptor" error. Ubuntu appears to be moving away from deb packages in favour of their own proprietary package system which they call snaps. There is a review of the Ubuntu 21.10 release [here](https://www.youtube.com/watch?v=QsuI-nLqwhg&ab_channel=DistroTube).
-
-Given all the issues that I had with using a simple local deb file with Ubuntu I think the easiest way to test Talk Calendar with Ubuntu is to just use the binary image but the Talk Calendar deb file does work if you follow the instructions above.
-
-
-### Verify Deb Package
-
-You can verify the deb package by checking the md5sum of the deb package with the read-only md5 file provided. To do this use the terminal commands:
-
-```
-cat talkcalendar_1.1.1_amd64.md5
-md5sum talkcalendar_1.1.1_amd64.deb
-```
-Both sums (numbers) should be the same. If they are not the same do not use the deb package and use the binary image instead.
-
-This method of checking is the same approach used when a Linux distribution ISO file is download to ensure that the file has downloaded properly and is free of errors or unauthorized modifications. The unique md5 checksum is a fingerprint of the file. 
 
 ### Working Directory 
 
@@ -282,18 +234,20 @@ deb package installer
 
 ## Wayland
 
-Talk Calendar has been tested and works with Fedora 35 GNOME using the Wayland display compositor. 
+Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor. 
 
 ## Debian Bookworm (Testing)
 
-Talk Calendar has been tested and works with Debian Bookworm (testing) which has Gtk4 in the respositories. 
+Talk Calendar has been tested with Debian Bookworm (testing) which has Gtk4 in the respositories. 
+
 
 
 ## Roadmap
 ```
 code refactoring and enhancements 
-new features and options to be added 
-deployment (e.g. binary image, deb)
+calendar colour options (coming)
+new features 
+deployment (e.g. binary image)
 ```
 
 ## Gtk 4.0 Migration Notes
