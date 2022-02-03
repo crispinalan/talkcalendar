@@ -4,37 +4,35 @@ Talk Calendar is a Linux desktop calendar with speech capability.
 
 ![](talkcalendar-gtk4.png)
 
-Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version which replaces the older Gtk3 version. It will **NOT** compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). Also, see my migration notes below which outline the code changes that had to made to use Gtk4.
+Talk Calendar is free and open source and built with [Gtk](https://www.gtk.org/). This is the Gtk4 version which replaces the older Gtk3 version. It will **NOT** compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that had to made to use Gtk4.
 
 ## Deployment
 
 ### Binary Image
 
-A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Debian Bookworm, Fedora 35 and Ubuntu 21.10 etc. With Ubuntu the base Gtk4 libraries can be installed using
-```
-sudo apt install libgtk-4-1
-```
-Assuming Gtk4 is installed the Talk Calendar binary can be run from the terminal using: 
+A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Fedora 35, Debian Bookworm (in testing) and Ubuntu 21.10* etc. 
+
+Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can be run from the terminal using: 
 
 ```
 ./talkcalendar
-```
-
-Check that the Talk Calendar binary has executable permissions. If not use 
-```
-chmod +x talkcalendar
 ```
 
 Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below.
 
 ![](menulibre.png)
 
-Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this. Using the binary image with a menu editor is the most straightforward way of getting Talk Calendar installed on most distros.
+Using the binary image with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
 
+*With Ubuntu 21.10 the base Gtk4 libraries can be installed using
+```
+sudo apt install libgtk-4-1
+```
+Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
 ### Working Directory 
 
-Make sure that the Flite speech engine file is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the speech engine (Flite) should be located in the working directory.
+Make sure that the Flite speech engine file is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the speech engine (the flite executable) should be located in the working directory.
 
 With Talk Calendar you can use the following menu item
  
@@ -226,28 +224,29 @@ Talk Calendar Gtk 4 Version 1.1.1
 
 ```
 built with Gtk4.0
-colour changes: today red events green
+colour changes
 fixed removal of apostrophes from text entry
 binary for 64-bit gtk4 distributions
 deb package installer
+```
+Talk Calendar Gtk 4 Version 1.1.2
+```
+colour changes
+next month button goes to first of next month
+previous month button goes to first of previous month
 ```
 
 ## Wayland
 
 Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor. 
 
-## Debian Bookworm (Testing)
-
-Talk Calendar has been tested with Debian Bookworm (testing) which has Gtk4 in the respositories. 
-
-
 
 ## Roadmap
 ```
+calendar colour and grid options
 code refactoring and enhancements 
-calendar colour options (coming)
 new features 
-deployment (e.g. binary image)
+deployment binary image
 ```
 
 ## Gtk 4.0 Migration Notes
@@ -277,6 +276,10 @@ The function "gtk_spin_button_set_text()" has gone. The documented approach for 
 Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
 
 The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. The database called "events.csv" should be located in the current working directory. 
+
+##Deployment Notes
+
+Deployment is via a binary image and use of a menu editor for Gtk4 distributions (Debian Bookworm, Fedora 35, Ubuntu 21.10 etc.) which allows Talk Calendar to be run from the user home directory. This is a universal approach rather than developing separate packages for each Linux distribution i.e. deb package for Debian distributions, a snap package for Ubuntu distributions and a rpm package for Fedora distributions etc. A compilation-from-source installation can be done using the code in the source directory.
 
 ## Versioning
 
