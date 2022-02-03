@@ -170,9 +170,7 @@ Compile with
 
 ```
 gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
-
 ```
-
 ### Compiling Flite
 
 Different distributions are using different versions of the Flite speech synthesiser (e.g. Fedora 34 is using version 1.3, while Debian Bullseye is using version 2.2). Consequently, the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. 
@@ -277,7 +275,7 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 
 The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database with memory dynamically allocated for up to 5000 records. The database called "events.csv" should be located in the current working directory. 
 
-##Deployment Notes
+## Deployment Notes
 
 Deployment is via a binary image and use of a menu editor for Gtk4 distributions (Debian Bookworm, Fedora 35, Ubuntu 21.10 etc.) which allows Talk Calendar to be run from the user home directory. This is a universal approach rather than developing separate packages for each Linux distribution i.e. deb package for Debian distributions, a snap package for Ubuntu distributions and a rpm package for Fedora distributions etc. A compilation-from-source installation can be done using the code in the source directory.
 
