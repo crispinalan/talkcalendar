@@ -233,6 +233,14 @@ colour changes
 next month button goes to first of next month
 previous month button goes to first of previous month
 ```
+Talk Calendar Gtk 4 Version 1.2
+```
+calendar colour options
+change current day (today) text and background colour
+change event day text and background colour
+change holiday text and background colour
+border options
+```
 
 ## Wayland
 
