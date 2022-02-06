@@ -249,10 +249,9 @@ Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display com
 
 ## Roadmap
 ```
-calendar colour and grid options
+colorbuttons for calendar options
 code refactoring and enhancements 
 new features 
-deployment binary image
 ```
 
 ## Gtk 4.0 Migration Notes
