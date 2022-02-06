@@ -124,7 +124,12 @@ Quit		<Ctrl>Q
 
 * Enable talking in options (use hamburger menu)
 * Click on a calendar date with events
-* Press the spacebar to speak or click the speak button 
+* Press the spacebar to speak or click the speak button
+
+### Calendar Settings
+
+* Use the Calendar Settings item in the hamburger menu to change RGB colour and border options for the current day (today), event days and holidays
+ 
 
 ## Startup Applications
 
