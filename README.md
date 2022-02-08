@@ -128,8 +128,11 @@ Quit		<Ctrl>Q
 
 ### Calendar Settings
 
-* Use the Calendar Settings item in the hamburger menu to change RGB colour and border options for the current day (today), event days and holidays
- 
+* Use the Calendar Settings item in the hamburger menu to change colour and border options for the current day (today), event days and holidays
+
+![](calendar-colour-options.png)
+
+![](colour-selector.png)
 
 ## Startup Applications
 
@@ -246,6 +249,10 @@ change event day text and background colour
 change holiday text and background colour
 border options
 ```
+Talk Calendar Gtk 4 Version 1.2.1
+```
+colorbuttons
+```
 
 ## Wayland
 
@@ -254,9 +261,11 @@ Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display com
 
 ## Roadmap
 ```
-colorbuttons for calendar options
+~~colorbuttons for calendar options~~
 code refactoring and enhancements 
-new features 
+new features
+calendar assistant
+packaging
 ```
 
 ## Gtk 4.0 Migration Notes
