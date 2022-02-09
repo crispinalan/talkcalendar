@@ -251,7 +251,12 @@ border options
 ```
 Talk Calendar Gtk 4 Version 1.2.1
 ```
-colorbuttons
+colorbuttons for today, event and holiday colours
+```
+Talk Calendar Gtk 4 Version 1.2.2
+```
+fixed border colour issue
+added colorbutton for days with priority events
 ```
 
 ## Wayland
@@ -261,10 +266,9 @@ Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display com
 
 ## Roadmap
 ```
-~~colorbuttons for calendar options~~
 code refactoring and enhancements 
-new features
-calendar assistant
+calendar display (pop-up window on hover etc.)
+enhance and improve calendar assistant
 packaging
 ```
 
