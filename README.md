@@ -1,12 +1,12 @@
 # Talk Calendar (Gtk4 Version)
 
-Talk Calendar is a Linux desktop calendar with some integral speech capability.
+Talk Calendar is a Linux personal desktop calendar with some integral speech capability.
 
 ## Important Note
 
-**This is the Gtk4 version of Talk Calendar with an integral speech generator licensed with the GNU Lesser General Public License version 2 or later which was chosen so as to be compatible with the [Gtk](https://www.gtk.org/) project.**
+**This is the Gtk4 version of Talk Calendar which uses an integral self contained speech generator licensed with the GNU Lesser General Public License version 2 or later. The license was chosen so as to be compatible with the [Gtk](https://www.gtk.org/) project. It will not compile against the Gtk3 libraries and does not use an external speech synthesiser to avoid any license compatibility issues.**
 
-![](talkcalendar-original.png)
+![](talkcalendar.png)
 
  
 ## Deployment
@@ -23,7 +23,7 @@ Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can
 
 Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below.
 
-![](menulibre.png)
+![](menueditor.png)
 
 Using the binary image with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
 
@@ -35,7 +35,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 ### Working Directory 
 
-Make sure that the talk directory containing the speech files is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "events.csv" and the talk directory should be located in the working directory.
+Make sure that the talk directory containing the speech waveform files is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "eventsdb.csv" and the talk directory should be located in the working directory.
 
 With Talk Calendar you can use the following menu item
  
@@ -50,12 +50,34 @@ to show the current working directory where both the speech engine and the event
 
 * Select event date using the calendar.
 * Click the New button on the headerbar to invoke the "New Event" dialog.
-* Enter the event title, location, start and end times.
+* Enter the event title.
+* Enter the location.
+* Enter the **Event Type** such as "Birthday" which is used for speech.
+* Enter start and end times. 
 * Events are sorted by start time when displayed.
 * A visual marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
 ![](new-event-dialog.png)
+
+
+## Event Type Input
+
+Entering an **Event Type** word of phrase is important as it is used by Talk Calendar for speech. Example single word event types include anniversary, birthday, dentist, doctor, sport, social etc.
+
+The current list of event type words is:
+
+```
+allotment, anniversary, appointment, bank, bill, birthday; book, boxing, breakfast, business, car, Christmas ,church ,code, company, club, conference, database, day, dentist, development, diary, dinner, do, doctor, Easter,engagement, event, family, father's, film, friend's, funeral, garden, gala, general, go, graduation, gym, Halloween, hello, holiday, hospital, interview, leisure, lecture, Linux, lunch, meal, medical, meeting, mother's, music, party, payment, picnic, priority, project, pub, radio, religious, reminder, repeat, restaurant, school, seminar, service, shopping, social, software, sport, spring, subscription, teacher, team, theatre, to, travel, tutor, tv, university, valentine, walk, wedding, with, work, year plus days of week.
+```
+You can have any combination of words from the event type list such as:
+
+```
+Birthday Party
+Sport Event
+Company Meeting
+```
+More words will be added to the event type list over time as the project is developed further.
 
 ### Editing Existing Event
 
@@ -112,7 +134,6 @@ The current system desktop font, the GNOME text scaling factor and the Talk Cale
 * Use the About dialog to display current version.
 
 
-
 ### Keyboard Shortcuts
 ```
 Speak		Spacebar
@@ -124,7 +145,10 @@ Quit		<Ctrl>Q
 
 ### Talk
 
-* Enable talk at start up to read out date and events for the current day
+* Enable talking in options (use the preferences menu item in the hamburger menu)
+* Enable "Talk At Startup" in preferences to read out the date and event types for the current day when the calendar is started
+* Click on a calendar date with events
+* Press the spacebar to speak or use the speak menu item
 
 
 ### Calendar Settings
@@ -142,9 +166,10 @@ Add Talk Calendar to your start-up programs to read out events when the computer
 With the Gnome desktop use the Gnome "Tweak Tool" to add Talk Calendar to your startup applications.
 
 
+
 ## Build From Source
 
-The Gtk4 source code for Talk Calendar is provided in the src directory.
+The C source code for Talk Calendar is provided in the src directory.
 
 You need the Gtk4 development libraries and the gcc compiler. 
 
@@ -175,16 +200,39 @@ sudo dnf install alsa-lib-devel
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
-Compile using the MAKEFILE
+Use the MAKEFILE to compile.
 
-```
-make
-```
 
 ## Wayland
 
-Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor. 
+Talk Calendar has been tested with Fedora 35 GNOME using the Wayland display compositor.
 
+
+## Core Features
+
+* built with Gtk4.0
+* event title, location, type, start and end time can be entered and edited
+* bespoke month calendar which allows days with events to be colour marked
+* priority events can be separately colour marked
+* integral self contained speech generator
+* bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
+* binary for 64-bit Gtk4 distributions 
+
+### How is speech generated?
+
+Speech is generated using a simple concatenation text-to-speech (TTS) system which is based on the concatenation of pre-recorded words stored as wav files. It has two main components. The first is a text scanner which reads the "event type"  input text string and extracts words found in the pre-recorded dictionary of keywords and stores these in an array list. The second is the audio player which plays the sequence of event type words stored in the array list using the pre-recordings.
+
+With this approach, speech is limited by the number of words found in the dictionary of known words for event types. More words will be added to the dictionary as the project develops.
+
+## Roadmap
+```
+code refactoring and enhancements 
+improve audio latency and lock
+improve concatenation and audio player code
+add more event type words
+add repeating yearly events
+speak times
+```
 
 
 ## Versioning
@@ -204,7 +252,7 @@ GNU General Public Licence, version 2 or later (GPLv2+).
 
 The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
 
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). Consequently, this version of Talk Calendar does not use an external speech engine to avoid any license incompatibility.
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). Some open source licences are not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together. This version of Talk Calendar does **not** use an external speech engine to avoid license incompatibility issues and uses it own concatenation and audio player code.
 
 
 ## Acknowledgements
