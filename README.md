@@ -35,7 +35,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 ### Working Directory 
 
-Make sure that the talk directory containing the speech waveform files is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "eventsdb.csv" and the talk directory should be located in the working directory.
+Make sure that the <ins>talk</ins> directory containing the speech waveform files is located in working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "eventsdb.csv" and the talk directory should be located in the working directory.
 
 With Talk Calendar you can use the following menu item
  
@@ -63,13 +63,12 @@ to show the current working directory where both the speech engine and the event
 
 ## Event Type Input
 
-Entering an **Event Type** word of phrase is important as it is used by Talk Calendar for speech. Example single word event types include anniversary, birthday, dentist, doctor, sport, social etc.
+Entering an **Event Type** word or phrase is important as it is used by Talk Calendar for speech. Example single word event types include anniversary, birthday, dentist, doctor, sport, social etc.
 
 The current list of event type words is:
 
-```
-allotment, anniversary, appointment, bank, bill, birthday; book, boxing, breakfast, business, car, Christmas ,church ,code, company, club, conference, database, day, dentist, development, diary, dinner, do, doctor, Easter,engagement, event, family, father's, film, friend's, funeral, garden, gala, general, go, graduation, gym, Halloween, hello, holiday, hospital, interview, leisure, lecture, Linux, lunch, meal, medical, meeting, mother's, music, party, payment, picnic, priority, project, pub, radio, religious, reminder, repeat, restaurant, school, seminar, service, shopping, social, software, sport, spring, subscription, teacher, team, theatre, to, travel, tutor, tv, university, valentine, walk, wedding, with, work, year plus days of week.
-```
+allotment, anniversary, appointment, bank, bill, birthday; book, boxing, breakfast, business, car, Christmas ,church ,code, company, club, conference, database, day, dentist, development, diary, dinner, do, doctor, Easter, engagement, event, family, father's, film, friend's, funeral, garden, gala, general, go, graduation, gym, Halloween, hello, holiday, hospital, interview, leisure, lecture, Linux, lunch, meal, medical, meeting, mother's, music, party, payment, picnic, priority, project, pub, radio, religious, reminder, repeat, restaurant, school, seminar, service, shopping, social, software, sport, spring, subscription, teacher, team, theatre, to, travel, tutor, tv, university, valentine, walk, wedding, with, work, year plus days of week.
+
 You can have any combination of words from the event type list such as:
 
 ```
@@ -232,6 +231,7 @@ improve concatenation and audio player code
 add more event type words
 add repeating yearly events
 speak times
+scan for upcoming events
 ```
 
 
@@ -252,7 +252,7 @@ GNU General Public Licence, version 2 or later (GPLv2+).
 
 The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
 
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). Some open source licences are not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together. This version of Talk Calendar does **not** use an external speech engine to avoid license incompatibility issues and uses it own concatenation and audio player code.
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is disussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). Some open source licences are not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together. This version of Talk Calendar does **not** use an external speech engine to avoid license incompatibility issues and uses it own voice, concatenation and audio player code.
 
 
 ## Acknowledgements
