@@ -1,10 +1,7 @@
 # Talk Calendar (Gtk4 Version)
 
-Talk Calendar is a Linux personal desktop calendar with some integral speech capability.
+Talk Calendar is a Linux personal desktop calendar with some speech capability.
 
-## Preamble
-
-**This is the Gtk4 version of Talk Calendar which uses an integral self contained speech generator licensed with the GNU Lesser General Public License version 2 or later. The license was chosen so as to be compatible with the [Gtk](https://www.gtk.org/) project. It will not compile against the Gtk3 libraries and does not use an external speech synthesiser to avoid any license compatibility issues. See license note below.**
 
 ![](talkcalendar.png)
 
@@ -21,14 +18,30 @@ Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can
 ./talkcalendar
 ```
 
-Audio output requires that the alsa-utils package is installed. This is usually installed by default.
+Audio output requires that the alsa-utils package (usually installed by default) and the espeak package are installed. For Fedora systems use
 
+```
+sudo dnf install espeak
+```
+For Debian based systems use
 
-Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below.
+```
+sudo apt install espeak
+```
+
+Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below. 
 
 ![](menueditor.png)
 
+The database called "eventsdb.csv" is located in the working directory. With Talk Calendar you can use the following menu item
+ 
+```
+Help->Information
+```
+to show the current working directory where both the speech engine and the events database should be located with the correct permissions.
+
 Using the binary image together with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
+
 
 *With Ubuntu 21.10 the base Gtk4 libraries can be installed using
 ```
@@ -36,11 +49,6 @@ sudo apt install libgtk-4-1
 ```
 Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
-### Working Directory 
-
-Make sure that the <ins>talk</ins> directory containing the speech waveform files is located in the working directory. If you do not set the a working directory it will most likely default to your home directory. The database called "eventsdb.csv" and the talk directory should be located in the working directory.
-
-With Talk Calendar you can use the following menu item
  
 ```
 Help->Information
@@ -55,58 +63,13 @@ to show the current working directory where both the speech engine and the event
 * Click the New button on the headerbar to invoke the "New Event" dialog.
 * Enter the event title.
 * Enter the location.
-* Enter the **Event Type** such as "Birthday" which is used for speech.
 * Enter start and end times. 
 * Events are sorted by start time when displayed.
-* A visual marker is placed on a day in the calendar which has an event.
+* A colour marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
 ![](new-event-dialog.png)
 
-
-## Event Type Speech 
-
-Entering an **Event Type** or category word is important as it is used by Talk Calendar for speech. Example single word event types include anniversary, birthday, dentist, doctor, sport, social etc.
-
-The current list of event type words in the voice dictionary  is:
-
-
-| Letter        | Words         |
-| ------------- | ------------- |
-| A words:      | allotment, anniversary, appointment, |
-| B words:      | bank, bill, birthday; book, boxing, breakfast, business, |
-| C words:      | car, Christmas ,church ,code, company, club, conference, |
-| D words:      | database, daugther, day, dentist, development, diary, dinner, do, doctor, |
-| E words:      | Easter, engagement, event, |
-| F words:      | family, father's, film, food, friend's, funeral, |
-| G words:      | garden, gala, general, go, graduation, gym, |
-| H words:      | Halloween, hello, high, holiday, hospital, house |
-| I words:      | interview, |
-| L words:      | leisure, lecture, Linux, lunch, |
-| M words:      | meal, medical, meeting, mother's, music, |
-| P words:      | party, payment, personal, picnic, priority, project, pub, |
-| R words:      | radio, religious, reminder, repeat, restaurant, |
-| S words:      | school, seminar, service, shopping, social, software, son, special, sport, spring, station, subscription, |
-| T words:      | teacher, team, theatre, to, train, travel, tutor, tv, |
-| U words:      | university, |
-| V words:      | valentine, version, visit, |
-| W words:      | walk, wedding, with, work, |
-| Y words:      | year |
-
-
-You can have a combination of words from the event type list such as:
-
-```
-Birthday party
-Personal event
-Family visit
-Sport meeting
-Train station
-Online Shopping
-Bill Payment
-```
-
-Although the word voice dictionary is small it covers many personal event types. More voice words will be added  as the project is developed further.
 
 ### Editing Existing Event
 
@@ -229,7 +192,11 @@ sudo dnf install alsa-lib-devel
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
-Use the MAKEFILE to compile.
+To compile use
+
+```
+gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
+```
 
 
 ## Wayland
@@ -243,64 +210,17 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 * event title, location, type, start and end time can be entered and edited
 * bespoke month calendar which allows days with events to be colour marked
 * priority events can be separately colour marked
-* integral self contained speech generator
+* current version uses espeak speech sythensizer
 * bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
 * binary for 64-bit Gtk4 distributions 
 
-### How is speech generated?
-
-Speech is generated using a simple concatenation text-to-speech (TTS) system which is based on the concatenation of pre-recorded words stored as wav files. It has two main components. The first is a text scanner which reads the "event type"  input text string and extracts words found in the pre-recorded dictionary of keywords and stores these in an array list. The second is the audio player which plays the sequence of event type words stored in the array list using the pre-recordings.
-
-With this approach, speech is limited by the number of words found in the voice dictionary of known words for event types. More words will be added to the dictionary as the project develops.
-
-
-## Issues
-
-### Check Audio Playback (PipeWire ALSA)
-
-Fedora 35 and other distros are now using a PipeWire ALSA backend. Pipewire is a multimedia routing layer which sits on top of the drivers that applications use. Talk Calendar uses the ALSA aplay command. Check that ALSA connects to Pipewire.
-
-1. First check that PipeWire is enabled using 
-
-```
-systemctl --user enable --now wireplumber
-```
-
-2. Make sure the alsa-utils package is installed. For Fedora systems install the alsa-utils package using
-
-```
-sudo dnf install alsa-utils
-
-```
-For Gtk4 Debian based systems use
-
-``` 
-apt install alasa-utils
-```
-3. Finally test ALSA using the following
-
-```
-aplay -l
-aplay -D sysdefault <your_test_audio_file.wav>
-aplay -D pipewire <your_test_audio_file.wav>
-```
-
-The first command line lists all the sound devices known to ALSA. The second plays the audio test wav file (e.g. hello.wav) over the default device. The third line plays the audio file (wav) over the pipewire device. If all tests are successful then audio can be played using the aplay command and Talk Calendar.
-
-### Corrupted Audio Files
-
-Check that none of the audio wav files in the talk dictionary are corrupted.
 
 ## Roadmap
 ```
-code refactoring and enhancements 
-improve audio latency and lock
-improve concatenator
-add more event type words
-event type auto-completion
+fix speech for repeating yearly events
+code refactoring and enhancements
 event overlap alert
 scan for upcoming events
-repeating yearly events
 ```
 
 ## Versioning
@@ -314,15 +234,11 @@ repeating yearly events
  
 ## License
 
-GNU General Public Licence, version 2 or later (GPLv2+). 
+GNU General Public Licence, version 3. 
 
 ## License Note
 
-The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU Lesser General Public License version 2 or later to be compatible with Gtk.
-
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).  Surprisingly some open source licences are just not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together. This version of Talk Calendar does **not** use an external speech engine to avoid license incompatibility issues and uses it own voice and audio concatenation code.
-
-This is a hobby project. C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch using the [Gtk](https://www.gtk.org/) toolkit. This was a steep learning curve. A good open source alternative to Qt for C++ GUI development is [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase).
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). The GPL compatiblity [matrix](https://www.gnu.org/licenses/gpl-faq.en.html#compat-matrix-footnote-9) shows that if you want to use use a library under GPLv3 (i.e. the espeak speech synthesizer) then the combination should be under under GPLv3. As this version of Talk Calendar uses espeak it has been licensed under GPLv3.
 
 
 ## Acknowledgements
