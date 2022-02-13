@@ -31,7 +31,7 @@ sudo apt install espeak
 
 Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below. 
 
-![](menueditor.png)
+![](menueditor1.png)
 
 The database called "eventsdb.csv" is located in the working directory. With Talk Calendar you can use the following menu item
  
@@ -68,7 +68,7 @@ to show the current working directory where both the speech engine and the event
 * A colour marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
-![](new-event-dialog.png)
+![](new-event-dialog1.png)
 
 
 ### Editing Existing Event
