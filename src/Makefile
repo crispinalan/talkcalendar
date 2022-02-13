@@ -1,9 +1,9 @@
 CC ?= gcc
 PKGCONFIG = $(shell which pkg-config)
 CFLAGS = $(shell $(PKGCONFIG) --cflags gtk4)
-LIBS = $(shell $(PKGCONFIG) --libs gtk4) -lm  -lasound
+LIBS = $(shell $(PKGCONFIG) --libs gtk4) -lm 
 
-SRC = main.c wavcat.c wavplay.c
+SRC = main.c wavcat.c 
 
 OBJS = $(SRC:.c=.o)
 

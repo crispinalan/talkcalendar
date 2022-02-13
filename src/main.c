@@ -28,7 +28,7 @@
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>  //needed for g_mkdir
 #include <math.h>  //compile with -lm
-#include "wavplay.h"
+//#include "wavplay.h"
 #include "wavcat.h"
 
 
@@ -978,7 +978,7 @@ char* convert_date_to_weekday(int day, int month, int year) {
 	return weekday_str;
 }
 
-char* convert_day_to_string(int day) {
+char* convert_day_to_ordinal_string(int day) {
 	
 	char* day_str ="";
 	
@@ -1151,6 +1151,839 @@ char* convert_month_to_string(int month) {
 	return result;
 }
 
+char* convert_hour_to_cardinal_string(int hour){
+	
+	char* result ="";
+	
+			
+     switch(hour)
+     {
+         case 1: 
+		 result ="talk/cardinal/1.wav"; 
+		 break;
+		 case 2: 
+		 result ="talk/cardinal/2.wav";
+		 break;
+		 case 3: 
+		 result = "talk/cardinal/3.wav";
+		 break;
+		 case 4: 
+		 result ="talk/cardinal/4.wav"; 
+		 break;
+		 case 5: 
+		 result ="talk/cardinal/5.wav"; 
+		 break;
+		 case 6: 
+		 result ="talk/cardinal/6.wav"; 
+		 break;
+		 case 7: 
+		 result ="talk/cardinal/7.wav";
+		 break;
+		 case 8: 
+		 result="talk/cardinal/8.wav";
+		 break;
+		 case 9: 
+		 result="talk/cardinal/9.wav";
+		 break;
+		 case 10: 
+		 result="talk/cardinal/10.wav";
+		 break;
+		 case 11: 
+		 result="talk/cardinal/11.wav"; 
+		 break;
+		 case 12: 
+		 result="talk/cardinal/12.wav";
+		 break;
+		 case 13: 
+		 result="talk/cardinal/13.wav"; 
+		 break;
+		 case 14: 
+		 result ="talk/cardinal/14.wav"; 
+		 break;
+		 case 15: 
+		 result ="talk/cardinal/15.wav";
+		 break;
+		 case 16: 
+		 result="talk/cardinal/16.wav";
+		 break;
+		 case 17: 
+		 result="talk/cardinal/17.wav";
+		 break;
+		 case 18: 
+		 result="talk/cardinal/18.wav";
+		 break;
+		 case 19: 
+		 result="talk/cardinal/19.wav";
+		 break;
+		 case 20: 
+		 result ="talk/cardinal/20.wav";
+		 case 21: 
+		 result="talk/cardinal/21.wav";
+		 break;
+		 case 22: 
+		 result="talk/cardinal/22.wav";
+		 break;
+		 case 23: 
+		 result="talk/cardinal/23.wav";
+		 break; 
+         default:
+           g_print ("default: hour Value is: %i\n", hour);   
+	 }//switch start hour
+	
+	
+	return result;
+	
+}
+
+char* convert_min_to_cardinal_string(int min){
+	
+	char* result ="";
+	
+	switch(min)
+     {
+	    case 1: 
+	     //g_print("o wav");
+	    result="talk/cardinal/1.wav"; 
+		break;
+		case 2:
+		result="talk/cardinal/2.wav"; 
+		break;
+		case 3: 
+		result="talk/cardinal/3.wav"; 
+		break; 		
+		case 4:
+		result="talk/cardinal/4.wav"; 
+		break; 
+		case 5:
+		result="talk/cardinal/5.wav";
+		break;
+		case 6: 
+		result="talk/cardinal/6.wav"; 
+		break; 
+		case 7: 
+		result="talk/cardinal/7.wav";
+		break; 
+		case 8:
+		result="talk/cardinal/8.wav";
+		break; 
+		case 9: 
+		result="talk/cardinal/9.wav"; 
+		break; 
+		case 10: 
+		result ="talk/cardinal/10.wav";
+		break; 
+		case 11: 		
+	     result="talk/cardinal/11.wav";
+		break;
+		case 12:
+		result="talk/cardinal/12.wav";
+		break;
+		case 13: 
+		result="talk/cardinal/13.wav";
+		break;
+		case 14: 
+		result="talk/cardinal/14.wav";
+		break; 
+		case 15: 
+		result="talk/cardinal/15.wav";
+		break; 
+		case 16: 
+		result="talk/cardinal/16.wav";
+		break;
+		case 17: 
+		result="talk/cardinal/17.wav"; 
+		break; 
+		case 18: 
+		result="talk/cardinal/18.wav";
+		break;
+		case 19: 
+		result ="talk/cardinal/19.wav"; 
+		break; 
+		
+		case 20: 
+		result="talk/cardinal/20.wav"; 
+		break; 
+		case 21: 
+		result="talk/cardinal/21.wav"; 
+		break; 
+		case 22: 
+		result="talk/cardinal/22.wav"; 
+		break; 
+		case 23: 
+		result="talk/cardinal/23.wav"; 
+		break; 
+		case 24: 
+		result="talk/cardinal/24.wav"; 
+		break; 
+		case 25: 
+		result="talk/cardinal/25.wav"; 
+		break; 
+		case 26: 
+		result="talk/cardinal/26.wav"; 
+		break; 
+		case 27: 
+		result="talk/cardinal/27.wav"; 
+		break; 
+		case 28: 
+		result="talk/cardinal/28.wav"; 
+		break; 
+		case 29: 
+		result="talk/cardinal/29.wav"; 
+		break; 
+				
+		case 30: 
+		result= "talk/cardinal/30.wav";
+		break; 
+		case 31: 
+		result= "talk/cardinal/31.wav";
+		break; 
+		case 32: 
+		result= "talk/cardinal/32.wav";
+		break; 
+		case 33: 
+		result= "talk/cardinal/33.wav";
+		break; 
+		case 34: 
+		result= "talk/cardinal/34.wav";
+		break; 
+		case 35: 
+		result= "talk/cardinal/35.wav";
+		break; 
+		case 36: 
+		result= "talk/cardinal/36.wav";
+		break; 
+		case 37: 
+		result= "talk/cardinal/37.wav";
+		break; 
+		case 38: 
+		result= "talk/cardinal/38.wav";
+		break; 
+		case 39: 
+		result= "talk/cardinal/39.wav";
+		break; 
+		
+		case 40: 
+		result ="talk/cardinal/40.wav";
+		break;
+		case 41: 
+		result ="talk/cardinal/41.wav";
+		break; 		
+		case 42: 
+		result ="talk/cardinal/42.wav";
+		break; 		
+		case 43: 
+		result ="talk/cardinal/43.wav";
+		break; 		
+		case 44: 
+		result ="talk/cardinal/44.wav";
+		break; 		
+		case 45: 
+		result ="talk/cardinal/45.wav";
+		break; 		
+		case 46: 
+		result ="talk/cardinal/46.wav";
+		break; 		
+		case 47: 
+		result ="talk/cardinal/47.wav";
+		break; 		
+		case 48: 
+		result ="talk/cardinal/48.wav";
+		break; 		
+		case 49: 
+		result ="talk/cardinal/49.wav";
+		break; 		 		 		
+				
+		case 50: 
+		result ="talk/cardinal/50.wav"; 
+		break; 
+		case 51: 
+		result ="talk/cardinal/51.wav"; 
+		break; 
+		case 52: 
+		result ="talk/cardinal/52.wav"; 
+		break; 
+		case 53: 
+		result ="talk/cardinal/53.wav"; 
+		break; 
+		case 54: 
+		result ="talk/cardinal/54.wav"; 
+		break; 
+		case 55: 
+		result ="talk/cardinal/55.wav"; 
+		break; 
+		case 56: 
+		result ="talk/cardinal/56.wav"; 
+		break; 
+		case 57: 
+		result ="talk/cardinal/57.wav"; 
+		break; 
+		case 58: 
+		result ="talk/cardinal/58.wav"; 
+		break; 
+		case 59: 
+		result ="talk/cardinal/59.wav"; 
+		break; 
+		
+		default:
+           g_print ("default: min value is: %i\n", min);    
+		 break;
+     } //switch start min
+	 
+	
+	return result;
+	
+}
+
+char* voice_dictionary(char* word_str) {
+	
+ char* word = g_ascii_strdown(word_str, -1); //covert to lower case	
+	
+char* result="";
+	
+	if (g_strcmp0(word,"agent")==0) {
+	result ="talk/a/agent.wav";	
+    }	  
+	
+	 if (g_strcmp0(word,"alert")==0) {		  
+	 result="talk/a/alert.wav"; 
+	 } 
+	  
+	 if (g_strcmp0(word,"allotment")==0) {
+	 result="talk/a/allotment.wav"; 
+	 }
+	   
+	 if (g_strcmp0(word,"anniversary")==0) {
+	result="talk/a/anniversary.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"annual")==0) {
+	 result="talk/a/annual.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"appointment")==0) {
+	 result="talk/a/appointment.wav"; 
+	 }
+	 
+	 //b words
+	 if (g_strcmp0(word,"bank")==0) {
+	 result="talk/b/bank.wav";	  	  
+	 }	  
+	
+	 if (g_strcmp0(word,"bill")==0) {
+	 result="talk/b/bill.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"birthday")==0) {
+	 result="talk/b/birthday.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"book")==0) {
+	 result="talk/b/book.wav";
+	 }
+	
+	 if (g_strcmp0(word,"boxing")==0) {
+	 result="talk/b/boxing.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"breakfast")==0) {
+	 result ="talk/b/breakfast.wav"; 
+	 }
+	
+	 if (g_strcmp0(word,"builder")==0) {
+	 result="talk/b/builder.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"bus")==0) {
+	 result="talk/b/bus.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"business")==0) {
+	 result="talk/b/business.wav";
+	 }
+	 
+	 //c words
+	 if (g_strcmp0(word,"calendar")==0) {
+	 result="talk/c/calendar.wav"; 
+	 }	
+	   
+	 if (g_strcmp0(word,"call")==0) {
+	 result="talk/c/call.wav"; 
+	 }	
+	   
+	 if (g_strcmp0(word,"cancel")==0) {
+	 result="talk/c/cancel.wav";
+	 }
+	 	  
+	 if (g_strcmp0(word,"car")==0) {
+	 result="talk/c/car.wav"; 
+	 }	
+	   
+	 if (g_strcmp0(word,"change")==0) {
+	 result="talk/c/change.wav"; 
+	 }
+	 	  
+	 if (g_strcmp0(word,"check")==0) {
+	 result="talk/c/check.wav";
+	 }	  
+	 
+	 if (g_strcmp0(word,"christmas")==0) {
+	 result="talk/c/christmas.wav"; 
+	 }	  
+	
+	 if (g_strcmp0(word,"church")==0) {
+	 result ="talk/c/church.wav"; 
+	 }
+	 	  
+	 if (g_strcmp0(word,"clean")==0) {
+	 result="talk/c/clean.wav"; 
+	 }	  
+	 
+	 if (g_strcmp0(word,"club")==0) {
+	 result="talk/c/club.wav"; 
+	 }
+	 	  
+	 if (g_strcmp0(word,"code")==0) {
+	 result="talk/c/code.wav";
+	 }	  
+	 
+	 if (g_strcmp0(word,"company")==0) {
+	 result="talk/c/company.wav";
+	 }	
+	   
+	 if (g_strcmp0(word,"conference")==0) {
+	 result="talk/c/conference.wav";
+	 }	  
+	 
+	 if (g_strcmp0(word,"contact")==0) {
+	 result="talk/c/contract.wav";
+	 }	
+	   
+	 if (g_strcmp0(word,"contract")==0) {
+	 result="talk/c/contract.wav"; 
+	 }
+	 
+ 	 	 
+	 //d words
+	 if (g_strcmp0(word,"date")==0) {
+	 result="talk/d/date.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"daughter") ==0) {
+	 result="talk/d/daughter.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"daughters")==0) {
+	 result="talk/d/daughter.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"day")==0) {
+	 result="talk/d/day.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"deadline")==0) {
+	 result="talk/d/deadline.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"decorate")==0) {
+	 result="talk/d/decorate.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"dentist")==0) {
+	 result="talk/d/dentist.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"development")==0) {
+	 result="talk/d/development.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"diary")==0) {
+	 result="talk/d/diary.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"dinner")==0) {
+	 result="talk/d/dinner.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"do")==0) {
+	 result="talk/d/do.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"doctor")==0) {
+	 result="talk/d/doctor.wav"; 
+	 }
+	 	 	 
+	 //e words
+	 if (g_strcmp0(word,"easter")==0) {
+	 result="talk/e/easter.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"engagement")==0) {
+	 result="talk/e/engagement.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"estate")==0) {
+	 result="talk/e/estate.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"event")==0) {
+	 result="talk/e/event.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"events")==0) {
+	 result="talk/e/events.wav"; 
+	 }
+	 	 
+	 //f words
+	 if (g_strcmp0(word,"family")==0) {
+	 result ="talk/f/family.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"fathers")==0) {
+	 result="talk/f/fathers.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"film")==0) {
+	 result="talk/f/film.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"food")==0) {
+	 result="talk/f/food.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"friends")==0) {
+	 result="talk/f/friends.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"funeral")==0) {
+	 result="talk/f/funeral.wav"; 
+	 }
+	 	 
+	 //g words
+	 if (g_strcmp0(word,"gala")==0) {
+	 result="talk/g/gala.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"game")==0) {
+	 result="talk/g/game.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"garden")==0) {
+	 result ="talk/g/garden.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"gas")==0) {
+	 result="talk/g/gas.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"general")==0) {
+	 result="talk/g/general.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"go")==0) {
+	 result="talk/g/go.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"graduation")==0) {
+	 result="talk/g/graduation.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"gym")==0) {
+	 result="talk/g/gym.wav"; 
+	 }
+	 
+	 //h words
+	 if (g_strcmp0(word,"halloween")==0) {
+	 result="talk/h/halloween.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"hello")==0) {
+	 result="talk/h/hello.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"holiday")==0) {
+	 result="talk/h/holiday.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"hospital")==0) {
+	 result="talk/h/hospital.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"house")==0) {
+	 result="talk/h/house.wav";
+	 }
+	 	 
+	 //i words
+	 if (g_strcmp0(word,"interview")==0) {	  
+	 result="talk/i/interview.wav"; 
+	 }
+	 
+	 //l words
+	 if (g_strcmp0(word,"lecture")==0) {
+	 result="talk/l/lecture.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"leisure")==0) {
+	 result="talk/l/leisure.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"lift")==0) {
+	 result="talk/l/lift.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"linux")==0) {
+	 result="talk/l/linux.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"lunch")==0) {
+	 result ="talk/l/lunch.wav";
+	 }
+	 
+	 
+	 //m words
+	 if (g_strcmp0(word,"maintenance")==0) {
+	 result="talk/m/maintenance.wav";
+	 }
+	 if (g_strcmp0(word,"meal")==0) {
+	 result="talk/m/meal.wav";
+	 }
+	
+	 if (g_strcmp0(word,"medical")==0) {
+	 result="talk/m/medical.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"meeting")==0) {
+	 result="talk/m/meeting.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"memo")==0) {
+	 result="talk/m/memo.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"mothers")==0) {
+	 result="talk/m/mothers.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"music")==0) {
+	 result="talk/m/music.wav"; 
+	 }
+	 
+	 //n words
+	 //o words
+	 if (g_strcmp0(word,"online")==0) {
+	 result="talk/o/online.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"order")==0) {
+	 result="talk/o/order.wav";
+	 }
+	
+	 //p words
+	 if (g_strcmp0(word,"party")==0) {
+	 result="talk/p/party.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"payment")==0) {
+	 result="talk/p/payment.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"personal")==0) {
+	 result="talk/p/personal.wav"; 
+	 }  
+	 
+	 if (g_strcmp0(word,"phone")==0) {
+	 result="talk/p/phone.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"picnic")==0) {
+	 result="talk/p/picnic.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"prescription")==0) {
+	 result="talk/p/prescription.wav";
+	 }
+	 if (g_strcmp0(word,"priority")==0) {
+	 result="talk/p/priority.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"project")==0) {
+	 result="talk/p/project.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"pub")==0) {
+	 result="talk/p/pub.wav";
+	 }
+	 
+	 //q words
+	 //r words
+	 
+	 if (g_strcmp0(word,"radio")==0) {
+	 result="talk/r/radio.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"religious")==0) {
+	 result="talk/r/religious.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"reminder")==0) {
+	 result="talk/r/reminder.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"repair")==0) {
+	 result="talk/r/repair.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"repeat")==0) {
+	 result="talk/r/repeat.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"restaurant")==0) {
+	 result="talk/r/restaurant.wav"; 
+	 }
+	 	 
+	 // s words
+	 if (g_strcmp0(word,"school")==0) {
+	 result="talk/s/school.wav";
+	 }
+	 if (g_strcmp0(word,"seminar")==0) {
+	 result="talk/s/seminar.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"service")==0) {
+	 result="talk/s/service.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"shopping")==0) {
+	 result="talk/s/shopping.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"social")==0) {
+	 result="talk/s/social.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"software")==0) {
+	 result="talk/s/software.wav";	 
+	 }
+	 
+	 if (g_strcmp0(word,"son") ==0) {
+	 result="talk/s/son.wav";	 
+	 }
+	 
+	 if (g_strcmp0(word,"sons") ==0) {
+	 result="talk/s/son.wav";	 
+	 }
+	 
+	 if (g_strcmp0(word,"special")==0) {
+	 result="talk/s/special.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"sport")==0) {
+	 result="talk/s/sport.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"spring")==0) {
+	 result="talk/s/spring.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"station")==0) {
+	 result ="talk/s/station.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"subscription")==0) {
+	 result="talk/s/subscription.wav"; 
+	 }
+		 
+	 // t words
+	 if (g_strcmp0(word,"talk")==0) {
+	 result="talk/t/talk.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"teacher")==0) {
+	 result="talk/t/teacher.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"team")==0) {
+	 result="talk/t/team.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"the")==0) {
+	 result="talk/t/the.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"theatre")==0) {	 
+	 result="talk/t/theatre.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"tiki")==0) {
+	 result="talk/t/tiki.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"to")==0) {	 
+	 result="talk/t/to.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"train")==0) {
+	 result="talk/t/train.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"travel")==0) {
+	 result="talk/t/travel.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"tutor")==0) {
+	 result="talk/t/tutor.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"tv")==0) {
+	 result="talk/t/tv.wav"; 
+	 }
+	 	 
+	 // u words
+	 if (g_strcmp0(word,"university")==0) {
+	 result="talk/u/university.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"update")==0) {
+	 result="talk/u/update.wav"; 
+	 }
+	 	 
+	 //v words
+	 if (g_strcmp0(word,"valentine")==0) {
+	 result="talk/v/valentine.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"visit")==0) {
+	 result="talk/v/visit.wav"; 
+	 }
+	 
+	 // w words
+	 if (g_strcmp0(word,"walk")==0) {
+	 result="talk/w/walk.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"wedding")==0) {
+	 result="talk/w/wedding.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"with")==0) {
+	 result="talk/w/with.wav"; 
+	 }
+	 
+	 if (g_strcmp0(word,"work")==0) {
+	 result="talk/w/work.wav";
+	 }
+	 
+	 if (g_strcmp0(word,"world")==0) {
+	 result="talk/w/world.wav";
+	 }
+	 
+	 //y words
+	 if (g_strcmp0(word,"year")==0) {
+	 result="talk/y/year.wav"; 
+	 }	 
+
+
+return result;	
+}
 
 //-----------------------------------------------------------------
 // Speak
@@ -1168,27 +2001,40 @@ static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer use
 //---------------------------------------------------------------
 
 
-static gpointer thread_playwav(gpointer user_data)
+static gpointer thread_aplaywav(gpointer user_data)
 {     
    
     gchar *file_name =user_data;
    	
    	char input[50];		
 	strcpy(input, file_name);
-	wavplay(input);
-   
+	//wavplay(input);
+    gchar* aplay_str ="aplay";        
+    aplay_str=g_strconcat(aplay_str," ",input, NULL);    
+    ////play the sox wav
+    system(aplay_str); 
    
     g_mutex_unlock (&lock); //thread mutex unlock 
     return NULL;   
 }
 
+
+//static gpointer thread_playwav(gpointer user_data)
+//{    
+    //gchar *file_name =user_data;
+   	//char input[50];		
+	//strcpy(input, file_name);
+	//wavplay(input);
+    //g_mutex_unlock (&lock); //thread mutex unlock 
+    //return NULL;   
+//}
+
 static void speak_events() {
 	
 	 if(m_talk==0) return;
 	 
-	 int32_t sample_rate=7200;
-	 gpointer pt_data;
-	 gchar* list_str;
+	 int32_t sample_rate=8000;
+	 
 	 int day_events_number=0;
 	 
 	 //Check for talk directory
@@ -1213,7 +2059,7 @@ static void speak_events() {
 	if (g_file_test(g_build_filename (cur_dir, dow_str, NULL), G_FILE_TEST_IS_REGULAR)) {
 			wavlist = g_list_append(wavlist, g_build_filename (cur_dir, dow_str, NULL));	
 	    } 
-	day_str=convert_day_to_string(m_day);
+	day_str=convert_day_to_ordinal_string(m_day);
 	
 	if (g_file_test(g_build_filename (cur_dir, day_str, NULL), G_FILE_TEST_IS_REGULAR)) {
 			wavlist = g_list_append(wavlist, g_build_filename (cur_dir, day_str, NULL));	
@@ -1265,8 +2111,8 @@ static void speak_events() {
     } //if no events
     else if(event_number ==1){
 		//g_print("one event being added to wavlist\n");
-	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));	
+	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/1.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/1.wav", NULL));	
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
@@ -1274,32 +2120,32 @@ static void speak_events() {
 	} // if 1 event 
 	
 	else if(event_number ==2){
-	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL)); 
+	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/2.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/2.wav", NULL)); 
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL));
 	}     
 	}  
 	else if(event_number ==3){
-	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL));
+	if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/3.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/3.wav", NULL));
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL));
 	}		 
 	}
 	else if(event_number ==4){ 
-	if (g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
+	if (g_build_filename (cur_dir,"talk/cardinal/4.wav", NULL), G_FILE_TEST_IS_REGULAR) {
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/4.wav", NULL));
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL));
 	}
 	}
 	else if(event_number ==5){ 
-	if ( g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
+	if ( g_file_test(g_build_filename (cur_dir,"talk/cardinal/5.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/5.wav", NULL));
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
 	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL));
@@ -1316,10 +2162,9 @@ static void speak_events() {
     
 	
 	gchar* str;
-	gchar** words;
-	//gchar* word;	
+	gchar** words;	
 	gint j=0;
-	GList *event_type_list=NULL;
+	
 	
 	Event day_event;
       
@@ -1327,9 +2172,113 @@ static void speak_events() {
    {
 	   day_event =day_events[i];
 	   
-	  // g_print("day event[%i] title = %s location =%s type =%s\n",i, day_event.title, day_event.location, day_event.type);
+	  // g_print("Get event time\n");
 	  
-	  str=day_event.type;
+	  //check for all day event here
+	  
+	   float start_time =day_event.start_time;
+	   g_print("start_time = %f\n",start_time);
+	   
+	   float integral_part, fractional_part;
+	   fractional_part = modff(day_event.start_time, &integral_part);  
+	   int start_hour =(int) integral_part; //start_hour
+	   fractional_part=round(fractional_part *100);
+	   int start_min=(int) (fractional_part); //start_min
+	   
+	   g_print("start hour =%i\n",start_hour);
+	   g_print("start min = %i\n",start_min);
+	   
+	   char* start_hour_str="";  
+	   char* start_min_str="";
+	   
+	 //Time ----------------------------------------------------------
+	 
+	 
+		if(day_event.is_allday) {
+			//g_print("All day event\n");
+			if (g_file_test(g_build_filename (cur_dir,"talk/a/all.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/all.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/d/day.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/day.wav", NULL));
+	        }
+	        if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+				wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
+	        }			
+			
+		}
+		else {
+	   
+		
+	//AM -------------------------------------------------------------
+		
+	 if(start_hour >=1 && start_hour<=12) {
+		 
+	start_hour_str=convert_hour_to_cardinal_string(start_hour);
+	start_min_str=convert_min_to_cardinal_string(start_min);
+	 
+	 if (g_file_test(g_build_filename (cur_dir, start_hour_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_hour_str, NULL));	
+	 }
+	 	
+	 if(start_min >=1 && start_min <= 9) {
+	  if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));} 
+	  if (g_file_test(g_build_filename (cur_dir, start_min_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+			 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_min_str, NULL));	
+	  }
+     } else {
+		if (g_file_test(g_build_filename (cur_dir, start_min_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+			 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_min_str, NULL));	
+	  } 
+		 
+	 }
+	 
+	 
+
+	  if (g_file_test(g_build_filename (cur_dir,"talk/a/am.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	  wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/am.wav", NULL));
+	  }
+	  }
+	
+	
+	
+	//PM-------------------------------------------
+	
+	if (start_hour >=13 && start_hour<=23) {
+		
+		
+	start_hour_str=convert_hour_to_cardinal_string(start_hour-12);
+	start_min_str=convert_min_to_cardinal_string(start_min);
+	
+	 if (g_file_test(g_build_filename (cur_dir, start_hour_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+			 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_hour_str, NULL));	
+	  }
+	 
+		
+	 if(start_min >=1 && start_min <= 9) {
+	  if (g_file_test(g_build_filename (cur_dir,"talk/o/o.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	     wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/o.wav", NULL));} 
+	  if (g_file_test(g_build_filename (cur_dir, start_min_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+			 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_min_str, NULL));	
+	  }
+     } else {
+		if (g_file_test(g_build_filename (cur_dir, start_min_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+			 wavlist = g_list_append(wavlist, g_build_filename (cur_dir, start_min_str, NULL));	
+	  } 		 
+	 }
+			
+	if (g_file_test(g_build_filename (cur_dir,"talk/p/pm.wav", NULL), G_FILE_TEST_IS_REGULAR)) {				
+	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/pm.wav", NULL));
+	}
+	}	
+	 
+	} //else has AM/PM time
+	 
+	 //now concatenate event type words  
+	  
+	 GList *event_type_list=NULL;
+	 str=day_event.type;
 	  //g_print("type = %s\n",str);
 	  words = g_strsplit (str, " ", 0); //split on space
 	j=0;			   
@@ -1339,777 +2288,39 @@ static void speak_events() {
 	event_type_list = g_list_append(event_type_list, words[j]);
 	j++;
 	} //while loop words	 
-    } //for day events
-
-		
+    
+   	
 	//cycle through the event type word list
 	gpointer pt_event_type_list;
 	gchar* event_type_list_str;
-	gchar* event_type_list_str_lower;
-	
-	//g_print("g_list length = %i\n",g_list_length(event_type_list));
-	
+	//gchar* event_type_list_str_lower;
+		
 	for(int i=0;i <g_list_length(event_type_list);i++)
 	 {	  
 	 pt_event_type_list=g_list_nth_data(event_type_list,i);
 	 event_type_list_str=(gchar *)pt_event_type_list;
-	 event_type_list_str_lower= g_ascii_strdown(event_type_list_str, -1);
-	 
-	 //g_print("event_type_list_str_lower = %s\n",event_type_list_str_lower);
+	// event_type_list_str_lower= g_ascii_strdown(event_type_list_str, -1);
 	
-	 //add event type words to wavlist
-	 
-	  //a words	
-	 if (g_strcmp0(event_type_list_str_lower,"agent")==0) {		  
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/agent.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/agent.wav", NULL));
-	 }	   	  
-	 }  
-	 if (g_strcmp0(event_type_list_str_lower,"alert")==0) {		  
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/alert.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/alert.wav", NULL));	
-	 }  		  
-	 }  
-	 if (g_strcmp0(event_type_list_str_lower,"allotment")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/allotment.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/allotment.wav", NULL));
-	 }   		  
-	 }  
-	 if (g_strcmp0(event_type_list_str_lower,"anniversary")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/anniversary.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/anniversary.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"annual")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/annual.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/annual.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"appointment")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/a/appointment.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/a/appointment.wav", NULL));
-	 }		  
-	 }
-	 
-	 //b words
-	 if (g_strcmp0(event_type_list_str_lower,"bank")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/bank.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/bank.wav", NULL));
-	 }  	  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"bill")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/bill.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/bill.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"birthday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/birthday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/birthday.wav", NULL));
-	 } 	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"book")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/book.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/book.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"boxing")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/boxing.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/boxing.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"breakfast")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/breakfast.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/breakfast.wav", NULL));
-	 } 	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"builder")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/builder.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/builder.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"business")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/b/business.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/b/business.wav", NULL));
-	 }  		  
-	 }
-	 
-	 //c words
-	 if (g_strcmp0(event_type_list_str_lower,"calendar")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/calendar.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/calendar.wav", NULL));
-	 } 		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"call")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/call.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/call.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"cancel")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/cancel.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/cancel.wav", NULL));
-	 } 	  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"car")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/car.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/car.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"change")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/change.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/change.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"check")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/check.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/check.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"christmas")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/christmas.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/christmas.wav", NULL));
-	 } 		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"church")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/church.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/church.wav", NULL));
-	 }   	  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"clean")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/clean.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/clean.wav", NULL));
-	 }   		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"club")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/club.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/club.wav", NULL));
-	 } 		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"code")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/code.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/code.wav", NULL));
-	 }  		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"company")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/company.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/company.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"conference")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/conference.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/conference.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"contact")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/contract.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/contract.wav", NULL));
-	 }		  
-	 }	  
-	 if (g_strcmp0(event_type_list_str_lower,"contract")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/c/contract.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/c/contract.wav", NULL));	  
-	 }  		  
-	 }
- 	 //Cardinal
-	 if (g_strcmp0(event_type_list_str_lower,"one")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/one.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"two")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/two.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"three")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/three.wav", NULL)); 
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"four")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/four.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"five")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/five.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"six")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/six.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"seven")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/seven.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"eight")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eight.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"nine")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/nine.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"ten")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/ten.wav", NULL)); 
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"eleven")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/eleven.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"twelve")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/cardinal/twelve.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/cardinal/twelve.wav", NULL));
-	 }   		  
-	 }
-	 
-	 //d words
-	 if (g_strcmp0(event_type_list_str_lower,"day")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/day.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/day.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"deadline")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/deadline.wav", NULL), G_FILE_TEST_IS_REGULAR)) { 
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/deadline.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"decorate")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/decorate.wav", NULL), G_FILE_TEST_IS_REGULAR)) { 
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/decorate.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"dentist")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/dentist.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/dentist.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"development")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/development.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/development.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"diary")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/diary.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/diary.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"dinner")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/dinner.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/dinner.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"do")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/do.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/do.wav", NULL));
-	 } 	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"doctor")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/d/doctor.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/d/doctor.wav", NULL));
-	 }  	  
-	 }
-	 
-	 //day
-	 if (g_strcmp0(event_type_list_str_lower,"monday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/monday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/monday.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"tuesday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/tuesday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/tuesday.wav", NULL));
-	 }   	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"wednesday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/wednesday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/wednesday.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"thursday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/thursday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/thursday.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"friday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/friday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/friday.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"saturday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/saturday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/saturday.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"sunday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/day/sunday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/day/sunday.wav", NULL));
-	 }  		  
-	 }
-	 	 
-	 //e words
-	 if (g_strcmp0(event_type_list_str_lower,"easter")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/e/easter.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/easter.wav", NULL));
-	 }			  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"engagement")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/e/engagement.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/engagement.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"estate")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/e/estate.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/estate.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"event")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/e/event.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/event.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"events")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/e/events.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/e/events.wav", NULL)); 
-	 }	  
-	 }
-	 	 
-	 //f words
-	 if (g_strcmp0(event_type_list_str_lower,"family")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/f/family.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/family.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"fathers")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/f/fathers.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/fathers.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"film")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/f/film.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/film.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"friends")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/f/friends.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/friends.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"funeral")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/f/funeral.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/f/funeral.wav", NULL));
-	 }		  
-	 }
-	 	 
-	 //g words
-	 if (g_strcmp0(event_type_list_str_lower,"gala")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/gala.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/gala.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"game")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/game.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/game.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"garden")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/garden.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/garden.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"gas")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/gas.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/gas.wav", NULL)); 
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"general")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/general.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/general.wav", NULL)); 
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"go")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/go.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/go.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"graduation")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/graduation.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/graduation.wav", NULL)); 
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"gym")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/g/gym.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/g/gym.wav", NULL));
-	 }  		  
-	 }
-	 
-	 //h words
-	 if (g_strcmp0(event_type_list_str_lower,"halloween")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/h/halloween.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/halloween.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"hello")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/h/hello.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/hello.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"holiday")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/h/holiday.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/holiday.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"hospital")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/h/hospital.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/hospital.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"house")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/h/house.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/h/house.wav", NULL));
-	 }  		  
-	 }
-	 	 
-	 //i words
-	 if (g_strcmp0(event_type_list_str_lower,"interview")==0) {	  
-	 if (g_file_test(g_build_filename (cur_dir,"talk/i/interview.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/i/interview.wav", NULL));	  
-	 }
-	 }
-	 
-	 //l words
-	 if (g_strcmp0(event_type_list_str_lower,"lecture")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/l/lecture.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/lecture.wav", NULL));
-	 }	  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"leisure")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/l/leisure.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/leisure.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"lift")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/l/lift.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/lift.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"linux")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/l/linux.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/linux.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"lunch")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/l/lunch.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/l/lunch.wav", NULL));
-	 }   		  
-	 }
-	 
-	 
-	 //m words
-	 if (g_strcmp0(event_type_list_str_lower,"maintenance")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/maintenance.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/maintenance.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"meal")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/meal.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/meal.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"medical")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/medical.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/medical.wav", NULL)); 
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"meeting")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/meeting.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/meeting.wav", NULL)); 
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"memo")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/memo.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/memo.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"mothers")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/mothers.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/mothers.wav", NULL)); 
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"music")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/m/music.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/m/music.wav", NULL)); 
-	 } 		  
-	 }
-	 //n words
-	 //o words
-	 if (g_strcmp0(event_type_list_str_lower,"order")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/o/order.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/o/order.wav", NULL));  
-	 }  		  
-	 }
-	
-	 //p words
-	 if (g_strcmp0(event_type_list_str_lower,"party")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/party.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/party.wav", NULL));  
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"payment")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/payment.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/payment.wav", NULL));
-	 } 		  
-	 } 
-	 if (g_strcmp0(event_type_list_str_lower,"phone")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/phone.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/phone.wav", NULL));
-	 }	   	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"picnic")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/picnic.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/picnic.wav", NULL));
-	 }  	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"prescription")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/prescription.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/prescription.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"priority")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/priority.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/priority.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"project")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/project.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/project.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"pub")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/p/pub.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/pub.wav", NULL));
-	 }  		  
-	 }
-	 
-	 //q words
-	 //r words
-	 
-	 if (g_strcmp0(event_type_list_str_lower,"radio")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/radio.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/radio.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"religious")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/religious.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/religious.wav", NULL));
-	 }   	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"reminder")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/reminder.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/reminder.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"repair")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/repair.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/repair.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"repeat")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/repeat.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/repeat.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"restaurant")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/r/restaurant.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/r/restaurant.wav", NULL));
-	 } 		  
-	 }
-	 	 
-	 // s words
-	 if (g_strcmp0(event_type_list_str_lower,"school")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/school.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/school.wav", NULL));
-	 }   	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"seminar")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/seminar.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/seminar.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"service")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/service.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/service.wav", NULL));
-	 }   		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"shopping")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/shopping.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/shopping.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"social")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/social.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/social.wav", NULL));
-	 }     
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"software")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/software.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/software.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"sport")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/sport.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/sport.wav", NULL)); 
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"spring")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/spring.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/spring.wav", NULL));
-	 }	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"station")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/station.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/station.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"subscription")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/s/subscription.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/s/subscription.wav", NULL));
-	 } 		  
-	 }
-		 
-	 // t words
-	 if (g_strcmp0(event_type_list_str_lower,"talk")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/talk.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/talk.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"teacher")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/teacher.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/teacher.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"team")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/team.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/team.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"the")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/the.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/the.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"theatre")==0) {	 
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/theatre.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/theatre.wav", NULL)); 
-	 }
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"tiki")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/tiki.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/tiki.wav", NULL));
-	 }  		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"to")==0) {	 
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/to.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/to.wav", NULL));
-	 }		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"train")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/train.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/train.wav", NULL));
-	 } 	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"travel")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/travel.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/travel.wav", NULL));
-	 } 	  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"tutor")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/tutor.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/tutor.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"tv")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/t/tv.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/t/tv.wav", NULL));
-	 } 	  
-	 }
-	 	 
-	 // u words
-	 if (g_strcmp0(event_type_list_str_lower,"university")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/u/university.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/u/university.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"update")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/u/update.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/u/update.wav", NULL));
-	 }	  
-	 }
-	 	 
-	 //v words
-	 if (g_strcmp0(event_type_list_str_lower,"valentine")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/v/valentine.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/v/valentine.wav", NULL));
-	 } 		  
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"visit")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/v/visit.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/v/visit.wav", NULL));
-	 } 		  
-	 }
-	 
-	 // w words
-	 if (g_strcmp0(event_type_list_str_lower,"walk")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/w/walk.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/w/walk.wav", NULL));
-	 } 
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"wedding")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/w/wedding.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/w/wedding.wav", NULL));
-	 }
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"with")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/w/with.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/w/with.wav", NULL));
-	 }
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"work")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/w/work.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/w/work.wav", NULL));
-	 }
-	 }
-	 if (g_strcmp0(event_type_list_str_lower,"world")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/w/world.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/w/world.wav", NULL));
-	 }
-	 }
-	 
-	 //y words
-	 if (g_strcmp0(event_type_list_str_lower,"year")==0) {
-	 if (g_file_test(g_build_filename (cur_dir,"talk/y/year.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/y/year.wav", NULL));
-	 }		  
-	 }	 
-	 	 
+	 //add event type words to wavlist using voice dictionary	 
+	 char* voice_str =voice_dictionary(event_type_list_str);
+	 if (g_file_test(g_build_filename (cur_dir,voice_str, NULL), G_FILE_TEST_IS_REGULAR)) {
+	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,voice_str, NULL));
+	 }	
 	 	  
      }//for_list_length
+    
+     
+    g_list_free(event_type_list); 
+     
+    } //for day events
    		
-	g_list_free(event_type_list); 
-		
-	//To do
+	 
+	//--------------------------------------------------------------
+	//concatenate and talk
+	//--------------------------------------------------------------
+	gpointer pt_data;
+	gchar* list_str;
 	
-	//--------------------------------------------------------------
-	//merge and talk
-	//--------------------------------------------------------------
 	char* merge_file ="/tmp/talkout.wav";
 	int num_files = g_list_length(wavlist);
 	char* file_names[g_list_length(wavlist)];
@@ -2119,6 +2330,7 @@ static void speak_events() {
 	pt_data=g_list_nth_data(wavlist,i);
 	list_str=(char *)pt_data;	
 	file_names[i] = list_str;	//populate char* array
+	//g_print("list_str =%s\n",list_str);
 	//printf("main: locate file_names[%d] = '%s'\n",i,file_names[i]);
 	}
     
@@ -2131,7 +2343,7 @@ static void speak_events() {
 	GThread *thread_audio; 	
 	gchar* wav_file ="/tmp/talkout.wav"; 
 	g_mutex_lock (&lock);
-    thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
+    thread_audio = g_thread_new(NULL, thread_aplaywav, wav_file);  
 	g_thread_unref (thread_audio);	
        
 	//--------------------------------------------------------------
@@ -2287,7 +2499,7 @@ static void callbk_new_event(GtkButton *button, gpointer  user_data){
   entry_location =gtk_entry_new(); 
   gtk_entry_set_max_length(GTK_ENTRY(entry_location),100);
   
-  label_type =gtk_label_new("Event Type"); 
+  label_type =gtk_label_new("Event Type (Speech)"); 
   entry_type =gtk_entry_new(); 
   gtk_entry_set_max_length(GTK_ENTRY(entry_type),100);
   
@@ -2553,7 +2765,7 @@ static void callbk_edit_event(GtkButton *button, gpointer  user_data){
 	buffer_location=gtk_entry_buffer_new(m_location,-1); //show location
 	gtk_entry_set_buffer(GTK_ENTRY(entry_location),buffer_location);
 	
-	label_type =gtk_label_new("Event Type"); 
+	label_type =gtk_label_new("Event Type (Speech)"); 
 	entry_type =gtk_entry_new(); 
 	gtk_entry_set_max_length(GTK_ENTRY(entry_type),100);
 	buffer_type=gtk_entry_buffer_new(m_type,-1); //show  type
@@ -3179,7 +3391,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar Solo");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.0");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.0.1");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Lightweight personal calendar with some speech capability."); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_2_0);
@@ -4020,14 +4232,14 @@ static void callbk_speak_about(GSimpleAction *action,
 	if (g_file_test(g_build_filename (cur_dir,"talk/v/version.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
 		wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/v/version.wav",NULL));
 	}
-	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/one.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
-		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/one.wav",NULL));
+	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/1.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/1.wav",NULL));
 	}
 	if (g_file_test(g_build_filename (cur_dir,"talk/p/point.wav",NULL), G_FILE_TEST_IS_REGULAR)) {
 		wavlist = g_list_append(wavlist, g_build_filename (cur_dir,"talk/p/point.wav",NULL));
 	}
-	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/zero.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
-		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/zero.wav", NULL));
+	if (g_file_test(g_build_filename (cur_dir, "talk/cardinal/0.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
+		wavlist = g_list_append(wavlist, g_build_filename (cur_dir, "talk/cardinal/0.wav", NULL));
 	}
 	
 	if (g_file_test(g_build_filename (cur_dir, "talk/f/fullstop.wav", NULL), G_FILE_TEST_IS_REGULAR)) {
@@ -4059,7 +4271,7 @@ static void callbk_speak_about(GSimpleAction *action,
 	GThread *thread_audio; 	
 	gchar* wav_file ="/tmp/talkout.wav"; 
 	g_mutex_lock (&lock);
-    thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
+    thread_audio = g_thread_new(NULL, thread_aplaywav, wav_file);  
 	g_thread_unref (thread_audio);
 	
 }
