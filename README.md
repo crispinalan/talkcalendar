@@ -18,7 +18,7 @@ Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can
 ./talkcalendar
 ```
 
-Audio output requires that the alsa-utils package (usually installed by default) and the espeak package are installed. For Fedora systems use
+Audio output requires that the alsa-utils package and the espeak speech synthesiser package are installed (the alsa-utils package is usually installed by default). To install espeak with Fedora use
 
 ```
 sudo dnf install espeak
@@ -38,7 +38,7 @@ The database called "eventsdb.csv" is located in the working directory. With Tal
 ```
 Help->Information
 ```
-to show the current working directory where both the speech engine and the events database should be located with the correct permissions.
+to show the current working directory where the events database should be located,
 
 Using the binary image together with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
 
@@ -47,13 +47,8 @@ Using the binary image together with a menu editor is a universal approach for g
 ```
 sudo apt install libgtk-4-1
 ```
-Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
- 
-```
-Help->Information
-```
-to show the current working directory where both the speech engine and the events database should be located with the correct permissions.
+Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
 ## Talk Calendar Usage
 
@@ -68,7 +63,7 @@ to show the current working directory where both the speech engine and the event
 * A colour marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
-![](new-event-dialog1.png)
+![](talkcalendar-new-event.png)
 
 
 ### Editing Existing Event
@@ -76,12 +71,91 @@ to show the current working directory where both the speech engine and the event
 * Select the event in the list view and click the Edit button on the headerbar to edit.
 * Change details as appropriate.
 
-### Preferences
+### Calendar Options
 
-* Use the Preferences section in the hamburger menu to change options such as talk, talk at startup, show public holidays, use adwaita icons etc.
+* Use the Calendar Options dialog in the hamburger menu to change calendar options 
+
+![](calendar-options.png)
+
+### Talk Options
+
+* Use the Talk Options dialog in the hamburger menu to change talk options
+
+![](talk-options.png)
+
+### Talk
+
+* Enable talking in Talk Options
+* Enable "Talk At Startup" in Talk Options to read out the date and event types for the current day when the calendar is started
+* Click on a calendar date with events
+* Press the spacebar to speak or use the speak menu item  to read out event start time, title, location etc.
 
 
-### Font
+### Help
+
+* Use the Information dialog to display current application preferences including the current working directory in which the eventsdb.csv file is stored
+
+
+* Use the About dialog to display current version.
+
+
+### Keyboard Shortcuts
+```
+Speak		Spacebar
+Today		Home Key
+About		<Ctrl>A
+Version		<Ctrl>V
+Quit		<Ctrl>Q
+```
+
+## Startup Applications
+
+Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
+
+With the Gnome desktop use the Gnome "Tweak Tool" to add Talk Calendar to your startup applications.
+
+
+## Build From Source
+
+The C source code for Talk Calendar is provided in the src directory.
+
+You need the Gtk4 development libraries and the gcc compiler. 
+
+With Fedora you need to install the following packages.
+
+```
+sudo dnf install gtk4-devel
+sudo dnf install gtk4-devel-docs
+sudo dnf install glib-devel
+sudo dnf install alsa-lib-devel
+```
+
+With Debian Bookworm you need to install the following packages
+
+```
+apt install build-essential
+apt install libgtk-4-dev
+apt install gtk-4-examples
+apt install libglib2.0-dev
+apt install alsa-utils
+```
+The packages:
+```
+apt install libglib2.0-dev
+apt install alsa-utils
+```
+are needed but should be installed by default
+
+
+I used Geany as the IDE for developing the project as it has an integrated terminal. 
+
+To compile use
+
+```
+gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
+```
+
+### Font Note
 
 With GNOME you change the desktop 'font-name' and 'document-font-name' using gsettings.
 
@@ -117,91 +191,9 @@ gsettings reset org.gnome.desktop.interface text-scaling-factor
 The current system desktop font, the GNOME text scaling factor and the Talk Calendar font size chosen by the user are shown in the information panel in the Help menu section.
 
 
-### Help
-
-* Use the Information dialog to display current application preferences.
-
-![](information-dialog.png)
-
-* Use the About dialog to display current version.
-
-
-### Keyboard Shortcuts
-```
-Speak		Spacebar
-Today		Home Key
-About		<Ctrl>A
-Version		<Ctrl>V
-Quit		<Ctrl>Q
-```
-
-### Talk
-
-* Enable talking in options (use the preferences menu item in the hamburger menu)
-* Enable "Talk At Startup" in preferences to read out the date and event types for the current day when the calendar is started
-* Click on a calendar date with events
-* Press the spacebar to speak or use the speak menu item
-
-
-### Calendar Settings
-
-* Use the Calendar Settings item in the hamburger menu to change colour and border options for the current day (today), event days and holidays
-
-![](calendar-colour-options.png)
-
-![](colour-selector.png)
-
-## Startup Applications
-
-Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
-
-With the Gnome desktop use the Gnome "Tweak Tool" to add Talk Calendar to your startup applications.
-
-
-
-## Build From Source
-
-The C source code for Talk Calendar is provided in the src directory.
-
-You need the Gtk4 development libraries and the gcc compiler. 
-
-With Debian Bookworm you need to install the following packages
-
-```
-apt install build-essential
-apt install libgtk-4-dev
-apt install gtk-4-examples
-apt install libglib2.0-dev
-apt install alsa-utils
-```
-The packages:
-```
-apt install libglib2.0-dev
-apt install alsa-utils
-```
-are needed but should be installed by default
-
-With Fedora you need to install the following packages.
-
-```
-sudo dnf install gtk4-devel
-sudo dnf install gtk4-devel-docs
-sudo dnf install glib-devel
-sudo dnf install alsa-lib-devel
-```
-
-I used Geany as the IDE for developing the project as it has an integrated terminal. 
-
-To compile use
-
-```
-gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
-```
-
-
 ## Wayland
 
-Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayland display compositor and no problems have been detected with Wayland.
+Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayland display compositor and so far no problems have been detected with Wayland.
 
 
 ## Core Features
@@ -210,17 +202,19 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 * event title, location, type, start and end time can be entered and edited
 * bespoke month calendar which allows days with events to be colour marked
 * priority events can be separately colour marked
-* current version uses espeak speech sythensizer
+* current version uses the espeak speech sythensizer
 * bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
 * binary for 64-bit Gtk4 distributions 
 
 
 ## Roadmap
 ```
-fix speech for repeating yearly events
 code refactoring and enhancements
+more speech options
 event overlap alert
-scan for upcoming events
+upcoming events alert
+category colour coding
+packaging
 ```
 
 ## Versioning
@@ -238,7 +232,10 @@ GNU General Public Licence, version 3.
 
 ## License Note
 
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesiser.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). The GPL compatiblity [matrix](https://www.gnu.org/licenses/gpl-faq.en.html#compat-matrix-footnote-9) shows that if you want to use use a library under GPLv3 (i.e. the espeak speech synthesizer) then the combination should be under under GPLv3. As this version of Talk Calendar uses espeak it has been licensed under GPLv3.
+When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesizer.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). The GPL compatiblity [matrix](https://www.gnu.org/licenses/gpl-faq.en.html#compat-matrix-footnote-9) shows that if you want to use  library under GPLv3 (i.e. the espeak speech synthesizer) then the combination should be under GPLv3. As this version of Talk Calendar uses espeak it has been licensed under GPLv3. The internal speech generator has been dropped and replaced with espeak. Other speech synthesizers were investigated did not have a GPL license. 
+
+This is a hobby project. C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch using the [Gtk](https://www.gtk.org/) toolkit. This was a steep learning curve. A good open source alternative to Qt for C++ GUI development is [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license and was considered but the Gtk toolkit is widely available in most Linux distribution repositories. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase).
+
 
 
 ## Acknowledgements
@@ -249,6 +246,10 @@ When you combine software to produce a larger work both licenses should be compa
 
 * [Geany](https://www.geany.org/)
 * Geany is a small and lightweight Integrated Development Environment which only requires the GTK+ runtime libraries. It has features including syntax highlighting, code completion, auto completion of often used constructs (e.g. if, for and while), code folding, embedded terminal emulation and extensibility through plugins. Geany uses the GPLv2 license.
+
+* [eSpeak](http://espeak.sourceforge.net) is a compact open source software speech synthesizer for English and other languages, for Linux and Windows. It uses the GNU General Public License version 3.
+
+
 
 
 
