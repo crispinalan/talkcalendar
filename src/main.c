@@ -112,7 +112,7 @@ static int m_talk_speed = 160; //
 static int  m_talk_gap = 5; // 
 static int m_talk_pitch =30; 
 static int m_talk_capital =10;
-static int m_talk_croak=0;
+static int m_talk_croak=1;
 
 static int m_talk_reset=0;
 
@@ -267,7 +267,7 @@ static void config_load_default()
 	m_talk_gap = 5; 
 	m_talk_pitch =30; 
 	m_talk_capital =10;
-	m_talk_croak=0;
+	m_talk_croak=1;
 	
 	m_startup_notification=0;
 	m_font_size=20; 	
@@ -324,7 +324,7 @@ static void config_read()
 	m_talk_gap = 5; 
     m_talk_pitch =30; 
     m_talk_capital =10;
-    m_talk_croak=0;
+    m_talk_croak=1;
 		
 	m_startup_notification=0;
 	m_font_size=20; 	
@@ -1548,7 +1548,7 @@ static gpointer thread_speak_func(gpointer user_data)
 	else if(m_talk_voice==1) {
 		
 	if(m_talk_croak) {
-	g_print(" with croak\n"); 
+	//g_print(" with croak\n"); 
 	voice_str ="-vcroak";	
 	command_str= g_strconcat(command_str,
 	" '",voice_str,"' ",
@@ -1560,7 +1560,7 @@ static gpointer thread_speak_func(gpointer user_data)
 	"| aplay", NULL);
 	}
 	else {	
-	g_print(" without croak\n"); 	
+	//g_print(" without croak\n"); 	
 	command_str= g_strconcat(command_str,
 	" '",speed_str,"' ",
 	" '",gap_str,"' ",
@@ -2804,6 +2804,43 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 		
 }
 
+//-----------------------------------------------------------------------------------
+// Talk Options
+//----------------------------------------------------------------------------------
+
+static void callbk_check_button_talk_voice_toggled(GtkCheckButton *check_button, gpointer user_data)
+{
+ 	
+ 	GtkWidget *check_button_talk_croak= g_object_get_data(G_OBJECT(user_data), "check-button-talk-croak-key");
+ 	
+    //spins
+    GtkWidget *spin_button_talk_speed= g_object_get_data(G_OBJECT(user_data), "spin-talk-speed-key");
+    GtkWidget *spin_button_talk_gap= g_object_get_data(G_OBJECT(user_data), "spin-talk-gap-key");  
+    GtkWidget *spin_button_talk_pitch= g_object_get_data(G_OBJECT(user_data), "spin-talk-pitch-key"); 
+    GtkWidget *spin_button_talk_capital= g_object_get_data(G_OBJECT(user_data), "spin-talk-capital-key"); 
+    
+ 	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button))){
+ 	
+ 	gtk_widget_set_sensitive(spin_button_talk_speed,TRUE);	
+	gtk_widget_set_sensitive(spin_button_talk_gap,TRUE);
+	gtk_widget_set_sensitive(spin_button_talk_pitch,TRUE);	
+	gtk_widget_set_sensitive(spin_button_talk_capital,TRUE);
+	
+	gtk_widget_set_sensitive(check_button_talk_croak,TRUE);
+	
+	}     
+	else{
+	gtk_widget_set_sensitive(spin_button_talk_speed,FALSE);	
+	gtk_widget_set_sensitive(spin_button_talk_gap,FALSE);
+	gtk_widget_set_sensitive(spin_button_talk_pitch,FALSE);	
+	gtk_widget_set_sensitive(spin_button_talk_capital,FALSE);
+	
+	gtk_widget_set_sensitive(check_button_talk_croak,FALSE);
+	
+	}
+  
+}
+
 void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer  user_data)
 {
 	if(!GTK_IS_DIALOG(dialog)) { 
@@ -2934,7 +2971,9 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
 	check_button_talk_croak = gtk_check_button_new_with_label ("Add Croak");
 	check_button_reset_all = gtk_check_button_new_with_label ("Reset All");
-		
+	
+	
+	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk), m_talk);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_startup), m_talk_at_startup);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_voice), m_talk_voice);
@@ -2949,8 +2988,12 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-times-key",check_button_talk_times);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-priority-key",check_button_talk_priority);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-croak-key",check_button_talk_croak);
-	
 	g_object_set_data(G_OBJECT(dialog), "check-button-reset-all-key",check_button_reset_all);
+	
+	g_signal_connect(GTK_CHECK_BUTTON(check_button_talk_voice), "toggled", 
+					G_CALLBACK (callbk_check_button_talk_voice_toggled), dialog);
+		
+	
 	
 	//talk speed spin    
   label_talk_speed =gtk_label_new("Talk Speed (Words Per Minute) "); 

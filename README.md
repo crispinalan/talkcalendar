@@ -210,10 +210,8 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 ## Roadmap
 ```
 code refactoring and enhancements
-more speech options
 event overlap alert
 upcoming events alert
-category colour coding
 packaging
 ```
 
@@ -228,7 +226,7 @@ packaging
  
 ## License
 
-GNU General Public Licence, version 3. 
+GNU General Public Licence, Version 3. 
 
 ## License Note
 
