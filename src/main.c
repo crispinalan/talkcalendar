@@ -2895,7 +2895,7 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_talk_gap = 5; 
     m_talk_pitch =30; 
     m_talk_capital =10;
-    m_talk_croak=0;
+    m_talk_croak=1;
     m_talk_reset=0; //toggle
 		
 	}
