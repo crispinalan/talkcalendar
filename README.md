@@ -107,6 +107,10 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 Speak		Spacebar
 Today		Home Key
 ```
+### Checking For Overlapping Events
+
+* check the overlap alert option in the Talk Options dialog
+* overlap is detected if any two events either start at the same time or within an interval of another event
 
 ## Startup Applications
 
@@ -210,7 +214,6 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 ## Roadmap
 ```
 code refactoring and enhancements
-event overlap alert
 upcoming events alert
 packaging
 ```

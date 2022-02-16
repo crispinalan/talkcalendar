@@ -32,7 +32,7 @@
 
 
 #define CONFIG_DIRNAME "talkcal-gtk"
-#define CONFIG_FILENAME "talkcal-gtk-config-1-1-2"
+#define CONFIG_FILENAME "talkcal-gtk-config-1-1-4"
 
 static GMutex lock;
 
@@ -94,7 +94,8 @@ static int m_talk =1;
 static int m_talk_at_startup=0; 
 static int m_talk_time=1;
 static int m_talk_priority=0;
-static int m_overlap=0; //to do
+
+static int m_talk_overlap=0;
 
 //espeak options
 //-g word gap inserts a pause between words (value is the length of the pause, in units of 10 mS)
@@ -245,13 +246,14 @@ static GType display_object_get_type (void);
 //------------------------------------------------------------------
 static void config_load_default()
 {		
-	if(!m_talk) m_talk=1;
-	if(!m_talk_at_startup) m_talk_at_startup=1;		
-	if(!m_startup_notification) m_startup_notification=1;
-	if(!m_font_size) m_font_size=14;  	
-	if(!m_holidays) m_holidays=0;
-	if(!m_show_end_time) m_show_end_time=0;	
-	if(!m_use_adwaita_icons) m_use_adwaita_icons=0;
+	m_talk=1;
+	m_talk_at_startup=1;		
+	m_startup_notification=1;
+	m_font_size=20;  	
+	m_holidays=0;
+	m_show_end_time=0;	
+	m_use_adwaita_icons=0;
+	
 	
 	m_talk_time=1;
 	m_talk_priority=0;
@@ -260,6 +262,7 @@ static void config_load_default()
 	m_talk_gap = 5; 
 	m_talk_pitch =30; 
 	m_talk_capital =10;
+	m_talk_overlap=0;
 	m_talk_croak=1;
 	
 	m_startup_notification=0;
@@ -308,22 +311,24 @@ static void config_load_default()
 static void config_read()
 {
 	// Clean up previously loaded configuration values	
-	m_talk = 1;	
-	m_talk_at_startup=1;
-	m_talk_time=1;
-	m_talk_priority=0;
-	m_talk_voice=1;	
-	m_talk_speed=160;
-	m_talk_gap = 5; 
-    m_talk_pitch =30; 
-    m_talk_capital =10;
-    m_talk_croak=1;
-		
-	m_startup_notification=0;
-	m_font_size=20; 	
+	m_talk=1;
+	m_talk_at_startup=1;		
+	m_startup_notification=1;
+	m_font_size=20;  	
 	m_holidays=0;
 	m_show_end_time=0;	
-	m_use_adwaita_icons=0;	
+	m_use_adwaita_icons=0;
+	
+	
+	m_talk_time=1;
+	m_talk_priority=0;
+	m_talk_overlap=0;
+	m_talk_voice=1;
+	m_talk_speed=160;
+	m_talk_gap = 5; 
+	m_talk_pitch =30; 
+	m_talk_capital =10;
+	m_talk_croak=1;
 	
 	m_today_red =0.0;
 	m_today_green =0.0;
@@ -370,11 +375,12 @@ static void config_read()
 	m_font_size=g_key_file_get_integer(kf, "calendar_settings", "font_size", NULL);
 	m_use_adwaita_icons=g_key_file_get_integer(kf, "calendar_settings", "adwaita_icons", NULL);	
 	
-	
 	m_talk = g_key_file_get_integer(kf, "calendar_settings", "talk", NULL);
 	m_talk_at_startup=g_key_file_get_integer(kf, "calendar_settings", "talk_startup", NULL);	
 	m_talk_time=g_key_file_get_integer(kf, "calendar_settings", "talk_time", NULL);;
 	m_talk_priority=g_key_file_get_integer(kf, "calendar_settings", "talk_priority", NULL);;
+	m_talk_overlap = g_key_file_get_integer(kf, "calendar_settings", "talk_overlap", NULL);
+	
 	
 	m_talk_voice=g_key_file_get_integer(kf, "calendar_settings", "talk_voice", NULL); 
 	m_talk_speed = g_key_file_get_integer(kf, "calendar_settings", "talk_speed", NULL);
@@ -433,12 +439,14 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "startup_notification", m_startup_notification);
 	g_key_file_set_integer(kf, "calendar_settings", "font_size", m_font_size);
 	g_key_file_set_integer(kf, "calendar_settings", "adwaita_icons", m_use_adwaita_icons);
+	
 			
 	//talk	
 	g_key_file_set_integer(kf, "calendar_settings", "talk", m_talk);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_startup", m_talk_at_startup);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_time", m_talk_time);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_priority", m_talk_priority);
+	g_key_file_set_integer(kf, "calendar_settings", "talk_overlap", m_talk_overlap);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_voice", m_talk_voice);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_speed", m_talk_speed);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_gap", m_talk_gap);
@@ -1715,7 +1723,7 @@ static void speak_events() {
 		
 	//AM -------------------------------------------------------------
 		
-	 if(start_hour >=1 && start_hour<=12) {
+	 if(start_hour >=1 && start_hour<=11) {
 		 
 	start_hour_str=convert_hour_to_cardinal_string(start_hour);
 	start_min_str=convert_min_to_cardinal_string(start_min);
@@ -1731,7 +1739,26 @@ static void speak_events() {
 	   speak_str= g_strconcat(speak_str, " A. M. ", NULL); 
 	  }
 
-	//PM-------------------------------------------
+	//PM-noon------------------------------------------
+	
+	 if(start_hour >=12 && start_hour<13){
+	 
+	 start_hour_str=convert_hour_to_cardinal_string(start_hour);
+	 start_min_str=convert_min_to_cardinal_string(start_min);
+	 
+     speak_str= g_strconcat(speak_str, start_hour_str," ", NULL); 
+	 	
+	 if(start_min >=1 && start_min <= 9) {		
+		speak_str= g_strconcat(speak_str, " o ",start_min_str," ", NULL); 	 
+     } else {
+		speak_str= g_strconcat(speak_str, start_min_str," ", NULL); 
+	   
+	 }
+	   speak_str= g_strconcat(speak_str, " P. M. ", NULL); 
+	 }
+	  
+   
+	//PM---------------------------------------------
 	
 	if (start_hour >=13 && start_hour<=23) {
 		
@@ -1749,9 +1776,86 @@ static void speak_events() {
 	   		 
 	 }			
 	speak_str= g_strconcat(speak_str, " P. M. ", NULL); 
-	}	
+	} //if
+	
+	//-------------------------------------------------------------------
+	//End time here
+	//------------------------------------------------------------------
 	 
-	} //else has AM/PM time
+	 if(m_show_end_time) {
+	 speak_str= g_strconcat(speak_str, " to ", NULL);
+	 
+	 float end_time =day_event.end_time;
+	   //g_print("start_time = %f\n",start_time);
+	   
+	   float integral_part_end, fractional_part_end;
+	   fractional_part_end = modff(day_event.end_time, &integral_part_end);  
+	   int end_hour =(int) integral_part_end; //end_hour
+	   fractional_part_end=round(fractional_part_end *100);
+	   int end_min=(int) (fractional_part_end); //send_min
+	 
+	   char* end_hour_str="";  
+	   char* end_min_str="";
+	 
+	 if(end_hour >=1 && end_hour<=11) {
+		 
+	end_hour_str=convert_hour_to_cardinal_string(end_hour);
+	end_min_str=convert_min_to_cardinal_string(end_min);
+	 
+    speak_str= g_strconcat(speak_str, end_hour_str," ", NULL); 
+	 	
+	 if(end_min >=1 && end_min <= 9) {		
+		speak_str= g_strconcat(speak_str, " o ",end_min_str," ", NULL); 	 
+     } else {
+		speak_str= g_strconcat(speak_str, end_min_str," ", NULL); 
+	   
+	 }
+	   speak_str= g_strconcat(speak_str, " A. M. ", NULL); 
+	  }
+
+	//PM-noon------------------------------------------
+	
+	 if(end_hour >=12 && end_hour<13){
+	 
+	 end_hour_str=convert_hour_to_cardinal_string(end_hour);
+	 end_min_str=convert_min_to_cardinal_string(end_min);
+	 
+     speak_str= g_strconcat(speak_str, end_hour_str," ", NULL); 
+	 	
+	 if(end_min >=1 && end_min <= 9) {		
+		speak_str= g_strconcat(speak_str, " o ",end_min_str," ", NULL); 	 
+     } else {
+		speak_str= g_strconcat(speak_str, end_min_str," ", NULL); 
+	   
+	 }
+	   speak_str= g_strconcat(speak_str, " P. M. ", NULL); 
+	 }
+	  
+   
+	//PM---------------------------------------------
+	
+	if (end_hour >=13 && end_hour<=23) {
+		
+		
+	end_hour_str=convert_hour_to_cardinal_string(end_hour-12);
+	end_min_str=convert_min_to_cardinal_string(end_min);
+	
+	speak_str= g_strconcat(speak_str, end_hour_str," ", NULL); 
+	 
+		
+	 if(end_min >=1 && end_min <= 9) {
+	  speak_str= g_strconcat(speak_str, " o ",end_min_str," ", NULL); 
+     } else {
+		speak_str= g_strconcat(speak_str, end_min_str," ", NULL); 
+	   		 
+	 }			
+	speak_str= g_strconcat(speak_str, " P. M. ", NULL); 
+	} //if
+	
+     } //if show end time	
+	 //-----------------------------------------------------------------
+	
+	} //else not all day
 	 
 	} //if m_speak_time
 	
@@ -1767,6 +1871,15 @@ static void speak_events() {
 	   
    } //for loop
 		
+	char *str ="";
+   if(m_talk_overlap && check_day_events_for_overlap())
+   {
+   str=" You have overlapping events.  ";
+   
+   speak_str= g_strconcat(speak_str, str,"  ", NULL);
+   }
+	
+	
 	//use thread to read out speak_str
 	
 	GThread *thread_speak;   
@@ -1778,6 +1891,100 @@ static void speak_events() {
 			
 	////--------------------------------------------------------------
 }
+
+//------------------------------------------------------------------
+// Check day for event overlap (include repeating events)
+//-------------------------------------------------------------------
+
+bool overlap(Event event1, Event event2) {
+	
+	//overlap = min(B,D) - max(A,C). 
+    //negative =no overlap. 
+    float A = event1.start_time;
+    float B =event1.end_time;
+    float C =event2.start_time;
+    float D =event2.end_time;
+    
+    float maxAC = fmaxf(A, C);
+    float minBD = fminf(B,D);
+    
+    float overlap =minBD-maxAC;
+    
+    if (overlap<0) return FALSE;
+    else return TRUE;    
+	
+}
+
+
+gboolean check_day_events_for_overlap() {
+	
+	//bool result=FALSE;
+	
+	int day_event_number=0;
+	Event e;  
+	for (int i=0; i<m_db_size; i++)
+	{  
+	e=db_store[i];
+	//normal events
+	if(m_year==e.year && m_month ==e.month && m_day==e.day)
+	{		
+	day_event_number++;
+	}//if		
+	//year repeat events
+	if(m_year!= e.year && m_month ==e.month && m_day==e.day && e.is_yearly==1)
+	{		
+	day_event_number++;
+	}//if	
+	}//for
+	
+	if (day_event_number<=1) return FALSE; //one or zero events
+	
+	//load day events
+	Event day_events[day_event_number];  
+	int jj=0;
+	for (int i=0; i<m_db_size; i++)
+	{  
+	e=db_store[i];
+	//normal events
+	if(m_year==e.year && m_month ==e.month && m_day==e.day)
+	{		
+	day_events[jj] =e;
+	//day_events_number=day_events_number+1;
+	jj++;
+	}//if
+	//year repeat events
+	if(m_year!= e.year && m_month ==e.month && m_day==e.day && e.is_yearly==1)
+	{		
+	day_events[jj] =e;
+	//day_events_number=day_events_number+1;
+	jj++;
+	}//if
+	}//for
+	
+	
+	// Now go through day events checking for overlap  
+	
+	for (int i = 1; i < day_event_number; i++ ) 
+    { 
+        
+        Event a = day_events[i];
+        for (int j = 0; j < i; j++ ) 
+        { 
+          Event b = day_events[j]; 
+          g_print("event a = %s\n", a.title);
+	      g_print("event b =%s\n", b.title);
+		
+	      bool result =overlap(a,b);
+	      g_print ("overlap = %i\n",result);	
+	
+	      if (result) return TRUE; 
+          
+        } //j       
+    } //i	
+	
+	return FALSE;
+}
+//---------------------------------------------------------------------
 
 static void callbk_new_event_response(GtkDialog *dialog, gint response_id,  gpointer  user_data)
 {
@@ -2571,7 +2778,7 @@ static void update_store(int year, int month, int day) {
   fractional_part=round(fractional_part *100);
   int start_min=(int) (fractional_part); //start_min
   
-  if (e.start_time<=12.59) //am
+  if (e.start_time<=11.59) //am
   {    
     starthour_str = g_strdup_printf("%d", start_hour); 
     startmin_str = g_strdup_printf("%d", start_min);  
@@ -2589,8 +2796,28 @@ static void update_store(int year, int month, int day) {
 	 time_str = g_strconcat(time_str, starthour_str,":", startmin_str," am ",NULL);	 
     }
    }
+   
+   else if(e.start_time>11.59 && e.start_time<=12.59){ //noon pm
+	 
+	 starthour_str = g_strdup_printf("%d", start_hour); 
+    startmin_str = g_strdup_printf("%d", start_min);  
     
-   else { //pm 
+    if(start_min==0)
+    {
+    time_str = g_strconcat(time_str, starthour_str," pm ",NULL);
+    }
+    
+    else if (start_min <10){       
+     time_str = g_strconcat(time_str, starthour_str,":0", startmin_str," pm ",NULL);
+    }
+   
+    else {
+	 time_str = g_strconcat(time_str, starthour_str,":", startmin_str," pm ",NULL);	 
+    }  
+	   
+   }
+    
+   else if (e.start_time>12.59) { //pm 
     
     start_hour =start_hour-12;    
     starthour_str = g_strdup_printf("%d", start_hour); 
@@ -2618,7 +2845,7 @@ static void update_store(int year, int month, int day) {
   fractional_part_end=round(fractional_part_end *100);
   int end_min=(int) (fractional_part_end); //start_min
 	 
-  if (e.end_time<=12.59) //am
+  if (e.end_time<=11.59) //am
   {
 
     endhour_str = g_strdup_printf("%d", end_hour); 
@@ -2639,7 +2866,28 @@ static void update_store(int year, int month, int day) {
     }
    }
     
-   else { //pm 
+    else if(e.end_time>11.59 && e.end_time<=12.59){ //noon pm
+	 
+	endhour_str = g_strdup_printf("%d", end_hour); 
+    endmin_str = g_strdup_printf("%d", end_min);  
+    
+    if(end_min==0)
+    {
+    time_str = g_strconcat(time_str, endhour_str," pm ",NULL);
+    }
+    
+    else if (end_min <10){       
+     time_str = g_strconcat(time_str, endhour_str,":0", endmin_str," pm ",NULL);
+    }
+   
+    else {
+	 time_str = g_strconcat(time_str, endhour_str,":", endmin_str," pm ",NULL);	 
+    }  
+	   
+   } 
+    
+    
+     else if (e.end_time>12.59) { //pm 
     
     end_hour =end_hour-12;
     endhour_str = g_strdup_printf("%d", end_hour); 
@@ -2852,6 +3100,8 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
     GtkWidget *check_button_talk_voice= g_object_get_data(G_OBJECT(dialog), "check-button-talk-voice-key");
     GtkWidget *check_button_talk_times= g_object_get_data(G_OBJECT(dialog), "check-button-talk-times-key");
     GtkWidget *check_button_talk_priority= g_object_get_data(G_OBJECT(dialog), "check-button-talk-priority-key");
+    GtkWidget *check_button_talk_overlap= g_object_get_data(G_OBJECT(dialog), "check-button-talk-overlap-key");
+    
     GtkWidget *check_button_talk_croak= g_object_get_data(G_OBJECT(dialog), "check-button-talk-croak-key");
     
     GtkWidget *check_button_reset_all= g_object_get_data(G_OBJECT(dialog), "check-button-reset-all-key");
@@ -2870,6 +3120,8 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_talk_voice=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_voice));
 	m_talk_time=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_times));
 	m_talk_priority=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_priority));
+	m_talk_overlap=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_overlap));
+	
 	m_talk_croak=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_croak));
 	
 	m_talk_speed =gtk_spin_button_get_value (GTK_SPIN_BUTTON(spin_button_talk_speed));
@@ -2925,6 +3177,7 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	GtkWidget *check_button_talk_voice;
 	GtkWidget *check_button_talk_times;
 	GtkWidget *check_button_talk_priority;
+	GtkWidget *check_button_talk_overlap;
 	
 	//Talk speed spin
 	GtkWidget *label_talk_speed;  
@@ -2965,16 +3218,17 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	check_button_talk_voice = gtk_check_button_new_with_label ("Use Voice Parameters");
 	check_button_talk_times = gtk_check_button_new_with_label ("Talk Times");
 	check_button_talk_priority = gtk_check_button_new_with_label ("Talk Priority");
+	check_button_talk_overlap = gtk_check_button_new_with_label ("Overlap Alert");
 	check_button_talk_croak = gtk_check_button_new_with_label ("Add Croak");
 	check_button_reset_all = gtk_check_button_new_with_label ("Reset All");
-	
-	
+		
 	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk), m_talk);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_startup), m_talk_at_startup);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_voice), m_talk_voice);
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_times), m_talk_time);	
-	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_priority), m_talk_priority);	
+	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_priority), m_talk_priority);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_overlap), m_talk_overlap);	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_talk_croak), m_talk_croak);	
 	gtk_check_button_set_active (GTK_CHECK_BUTTON(check_button_reset_all), m_talk_reset);
 	
@@ -2983,6 +3237,8 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-voice-key",check_button_talk_voice);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-times-key",check_button_talk_times);
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-priority-key",check_button_talk_priority);
+	g_object_set_data(G_OBJECT(dialog), "check-button-talk-overlap-key",check_button_talk_overlap);
+	
 	g_object_set_data(G_OBJECT(dialog), "check-button-talk-croak-key",check_button_talk_croak);
 	g_object_set_data(G_OBJECT(dialog), "check-button-reset-all-key",check_button_reset_all);
 	
@@ -3033,6 +3289,7 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	gtk_box_append(GTK_BOX(box), check_button_talk_startup);	
 	gtk_box_append(GTK_BOX(box), check_button_talk_times);	
 	gtk_box_append(GTK_BOX(box), check_button_talk_priority);
+	gtk_box_append(GTK_BOX(box), check_button_talk_overlap);
 	
 	gtk_box_append(GTK_BOX(box), check_button_talk_voice);
 	
@@ -3287,7 +3544,7 @@ static void callbk_calendar_options(GSimpleAction* action, GVariant *parameter,g
 	
 	//General options
 	check_button_holidays = gtk_check_button_new_with_label ("Show UK Public Holidays");
-	check_button_end_time = gtk_check_button_new_with_label ("Display End Time");
+	check_button_end_time = gtk_check_button_new_with_label ("Show End Time");
 	check_button_adwaita_icons = gtk_check_button_new_with_label ("Use Adwaita Button Icons");
 	check_button_startup_notification= gtk_check_button_new_with_label ("Startup Notification");
 	
