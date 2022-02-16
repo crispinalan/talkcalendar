@@ -3033,7 +3033,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.3");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.4");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Lightweight personal calendar with some speech capability."); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -4044,7 +4044,7 @@ static void callbk_speak_about(GSimpleAction *action,
 	
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. Version. 1.1.3.";    
+	gchar* message_speak ="Talk Calendar. Version. 1.1.4.";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);
