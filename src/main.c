@@ -94,7 +94,7 @@ static int m_talk =1;
 static int m_talk_at_startup=0; 
 static int m_talk_time=1;
 static int m_talk_priority=0;
-
+static int m_overlap=0; //to do
 
 //espeak options
 //-g word gap inserts a pause between words (value is the length of the pause, in units of 10 mS)
@@ -202,13 +202,6 @@ int num_priority_dates = 0;
 
 //---------------------------------------------------------------------
 // map menu actions to callbacks ...to be fixed
-//const GActionEntry app_actions[] = { 
-  //{ "speak", callbk_speak },
-  //{ "version", callbk_speak_about},
-  //{ "home", callbk_home},  
-  //{ "about",  callbk_about},
-  //{ "quit",   callbk_quit}
-//};
 
 const GActionEntry app_actions[] = { 
   { "speak", callbk_speak }, 
@@ -2691,19 +2684,22 @@ static void update_store(int year, int month, int day) {
   }
   
   display_str=g_strconcat(display_str, "\n", NULL);
-    
-   start_hour =(int) e.start_time;	
-   double fract1 = round(e.start_time-floor(e.start_time));  	
-   start_min=fract1 *100;
-  start_time = 60 * 60 * start_hour + 60 * start_min; //seconds
   
+  float integral_part_sort, fractional_part_sort;
+  fractional_part_sort = modff(e.start_time, &integral_part_sort);  
+  int start_hour_sort =(int) integral_part_sort; //sort start_hour 
+  fractional_part_sort=round(fractional_part_sort *100);
+  int start_min_sort=(int) (fractional_part_sort); //sort start_min 
+  
+  start_time =start_hour_sort*60*60+60*start_min_sort;
+  
+  //create a g_object for sorting
   obj = g_object_new (display_object_get_type (),
-						//"id",     e.id,
-						"id",     e.id,
-						"label",  display_str, 
-						"starttime", start_time, 
-						
-						NULL); 
+  //"id",     e.id,
+  "id",     e.id,
+  "label",  display_str, 
+  "starttime", start_time,   
+  NULL); 
   
   g_list_store_insert_sorted(m_store, obj, compare_items, NULL); 
   g_object_unref (obj);
@@ -2789,7 +2785,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.2");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.1.3");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Lightweight personal calendar with some speech capability."); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -3791,7 +3787,7 @@ static void callbk_speak_about(GSimpleAction *action,
 	
 	GThread *thread_speak; 
 		
-	gchar* message_speak ="Talk Calendar. Version. 1.1.2.";    
+	gchar* message_speak ="Talk Calendar. Version. 1.1.3.";    
 		
 	if(m_talk) {	
 	g_mutex_lock (&lock);

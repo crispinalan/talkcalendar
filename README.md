@@ -18,6 +18,9 @@ Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can
 ./talkcalendar
 ```
 
+or double click on the talkcalendar file. Make sure it has executable permissions. Right click on it, then select permissions and ensure "Allow executing file as program" is selected.
+
+
 Audio output requires that the alsa-utils package and the espeak speech synthesiser package are installed (the alsa-utils package is usually installed by default). To install espeak with Fedora use
 
 ```
@@ -86,7 +89,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 ### Talk
 
 * Enable talking in Talk Options
-* Enable "Talk At Startup" in Talk Options to read out the date and event types for the current day when the calendar is started
+* Enable "Talk At Startup" in Talk Options to read out the date and event details for the current day when the calendar is started
 * Click on a calendar date with events
 * Press the spacebar to speak or use the speak menu item  to read out event start time, title, location etc.
 
@@ -103,16 +106,13 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 ```
 Speak		Spacebar
 Today		Home Key
-About		<Ctrl>A
-Version		<Ctrl>V
-Quit		<Ctrl>Q
 ```
 
 ## Startup Applications
 
 Add Talk Calendar to your start-up programs to read out events when the computer is switched on.
 
-With the Gnome desktop use the Gnome "Tweak Tool" to add Talk Calendar to your startup applications.
+With the GNOME desktop use the GNOME "Tweak Tool" to add Talk Calendar to your startup applications.
 
 
 ## Build From Source
