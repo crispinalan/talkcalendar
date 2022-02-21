@@ -1,6 +1,8 @@
 # Talk Calendar (Gtk4 Version)
 
-Talk Calendar is a Linux personal desktop calendar with some speech capability.
+## Preamble
+
+Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that had to made to use Gtk4.
 
 
 ![](talkcalendar.png)
@@ -18,23 +20,11 @@ Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can
 ./talkcalendar
 ```
 
-or double click on the talkcalendar file. Make sure it has executable permissions. Right click on it, then select permissions and ensure "Allow executing file as program" is selected.
-
-
-Audio output requires that the alsa-utils package and the espeak speech synthesiser package are installed (the alsa-utils package is usually installed by default). To install espeak with Fedora use
-
-```
-sudo dnf install espeak
-```
-For Debian based systems use
-
-```
-sudo apt install espeak
-```
+or double click on the talkcalendar file. Make sure it has executable permissions. Right click on it, then select permissions and ensure "Allow executing file as program" is selected. Audio output requires that the alsa-utils package is installed (this is usually installed by default).
 
 Use a menu editor such as [MenuLibre](https://github.com/bluesabre/menulibre) to create a launcher for Talk Calendar. MenuLibre allows the working directory to be set as shown below. 
 
-![](menueditor1.png)
+![](menueditor.png)
 
 The database called "eventsdb.csv" is located in the working directory. With Talk Calendar you can use the following menu item
  
@@ -45,8 +35,13 @@ to show the current working directory where the events database should be locate
 
 Using the binary image together with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
 
+### Working Directory 
 
-*With Ubuntu 21.10 the base Gtk4 libraries can be installed using
+Make sure that the **phoneme** wav file directory (this stores the phoneme sound files of short duration) is located in working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
+
+### Ubuntu* 
+
+With Ubuntu 21.10 the base Gtk4 libraries can be installed using
 ```
 sudo apt install libgtk-4-1
 ```
@@ -61,12 +56,44 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 * Click the New button on the headerbar to invoke the "New Event" dialog.
 * Enter the event title.
 * Enter the location.
+* Enter "Speak" word such as "birthday" for the event type
 * Enter start and end times. 
 * Events are sorted by start time when displayed.
 * A colour marker is placed on a day in the calendar which has an event.
 * Navigate through the year using the calendar to add events.
 
 ![](talkcalendar-new-event.png)
+
+## Speech Words For Events 
+
+The current list of dictionary speech words  is:
+
+
+| Letter        | Words and Phrases        |
+| ------------- | ------------- |
+| A words:      | activity, anniversary, appointment, |
+| B words:      | birthday "birthday party"|
+| C words:      | Christmas |
+| D words:      | dentist, doctor, |
+| E words:      | event |
+| F words:      | family, funeral, |
+| G words:      | garden, |
+| H words:      | hello, "hello world", holiday, hospital|
+| I words:      | |
+| L words:      | |
+| M words:      | medical, meeting |
+| O words:      | online "online shopping" |
+| P words:      | party, payment, personal, picnic, priority, project |
+| R words:      | radio, reminder, restaurant, |
+| S words:      | shopping, special, station, subscription |
+| T words:      | theatre, travel, television |
+| U words:      |  |
+| V words:      | valentine, version, visit, |
+| W words:      | walk, wedding, work, |
+| Y words:      |  |
+
+
+More words will be added to the dictionary as the project develops.
 
 
 ### Editing Existing Event
@@ -91,8 +118,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 * Enable talking in Talk Options
 * Enable "Talk At Startup" in Talk Options to read out the date and event details for the current day when the calendar is started
 * Click on a calendar date with events
-* Press the spacebar to speak or use the speak menu item  to read out event start time, title, location etc.
-
+* Press the spacebar to speak or use the speak menu item  to read out selected event details.
 
 ### Help
 
@@ -107,10 +133,6 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 Speak		Spacebar
 Today		Home Key
 ```
-### Checking For Overlapping Events
-
-* check the overlap alert option in the Talk Options dialog
-* overlap is detected if any two events either start at the same time or within an interval of another event
 
 ## Startup Applications
 
@@ -153,11 +175,7 @@ are needed but should be installed by default
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
-To compile use
-
-```
-gcc $(pkg-config --cflags gtk4) -o talkcalendar main.c $(pkg-config --libs gtk4) -lm
-```
+Use the MAKEFILE to compile.
 
 ### Font Note
 
@@ -206,16 +224,66 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 * event title, location, type, start and end time can be entered and edited
 * bespoke month calendar which allows days with events to be colour marked
 * priority events can be separately colour marked
-* current version uses the espeak speech sythensizer
+* internal speech synthesizer
 * bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
 * binary for 64-bit Gtk4 distributions 
+
+### How is speech generated?
+
+Speech is generated using a simple phoneme based speech synthesizer. Words are formed as sequences of elementary speech units known as phonemes. Word to phoneme mapping is carried out using a dictionary based approach. This involves translating words into phoneme text notation. Synthesized speech is then created by concatenating pre-recorded phonemes stored as wav files using the text-to-phoneme description.
+
+The open source online [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) has been used to look up the phoneme pronunciation for the dictionary words. 
+
+## History
+
+This is a hobby project under development. 
+
+C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to look for an alternative GUI toolkit. I found a good open source alternative to Qt called [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license. It was considered but unfortuantely is widely available in most Linux distribution repositories. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase). 
+
+
+I decided to completely re-write the project code from scratch using the open source [Gtk](https://www.gtk.org/) toolkit as it is widely available in most Linux distribution repositories. It seemed to be very unlikely that the Gtk toolkit would change its license to become commercial-only. Moving from Qt to Gtk was a steep learning curve. 
+
+The first iteration of the Talk Calendar project used Gtk3 but then migrated to newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
+
+The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work but it is functional. 
+
+
+## Gtk 4.0 Migration Notes
+
+GTK 4 uses [list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets) such as GtkListBox and porting the Gtk 3 version of Talk Calendar has involved replacing the display of events with a GtkListBox. A significant effort had to be invested into this aspect of the porting. There is an article on scalable lists in gtk4 [here](https://blog.gtk.org/2020/06/07/scalable-lists-in-gtk-4/). Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with [list widgets](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and can be sorted (in this application events are sorted by start time and then displayed). The application workflow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the list. I have used buttons with text labels (New, Edit, Delete) but there is now an option for using Adwaita button icons. 
+
+In Gtk4.0, the function 
+```
+gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+```
+has been depreciated and so has had to be removed from the code. See this [discussion](https://discourse.gnome.org/t/how-to-center-gtkwindows-in-gtk4/3112).
+
+In Gtk 4.0, the function
+```
+gtk_dialog_run() 
+```
+
+has been depreciated. This has been less of an issue as callback functions have been written for the “response” events. See this [discussion](https://discourse.gnome.org/t/how-should-i-replace-a-gtk-dialog-run-in-gtk-4/3501).
+
+I could not place a visual marker on a particular GtkCalendar day using the "gtk_calendar_mark_day()" function. The [GtkInspector](https://wiki.gnome.org/action/show/Projects/GTK/Inspector?action=show&redirect=Projects%2FGTK%2B%2FInspector) debugging tool does not reveal any obvious CSS style theme option that should to be used to do this. Consequently, I have ended up writing a bespoke month calendar which allows days with events to be colour marked. 
+
+The calendar has been developed using the Gtk4 grid layout [manager](https://docs.gtk.org/gtk4/class.Grid.html) which arranges child widgets in rows and columns. In this case the layout manager arranges buttons in a grid. Again a significant effort has had to be invested in this aspect of the porting.
+
+The function "gtk_spin_button_set_text()" has gone. The documented approach for showing spin button [leading zeros](https://people.gnome.org/~ebassi/docs/_build/Gtk/4.0/signal.SpinButton.output.html) doesn't work with gtk4. Consequently, I have had to change the new and edit event dialogs. The spin boxes for the start and end times now accept floating point values which are now stored in the database as floating point values. I have also removed the priority combobox as comboboxes appear to be on the Gtk depreciation hit list (see list widget discussion above) and replaced it with a high prirority check button. 
+
+Other depreciations include "gtk_application_set_app_menu()" as discussed [here](https://wiki.gnome.org/HowDoI/ApplicationMenu). The function "gtk_button_set_image()" has gone. In the context of menu development it can be replaced with "gtk_menu_button_set_icon_name()".
 
 
 ## Roadmap
 ```
+improve word pronunciation 
+use punctuation to alter the delivery of speech
+explore the use of stress to improve tone of voice
+control of pitch and speed settings
+increase number of words in pronouncing dictionary
+improve dictionary mapping
 code refactoring and enhancements
 upcoming events alert
-packaging
 ```
 
 ## Versioning
@@ -233,10 +301,7 @@ GNU General Public Licence, Version 3.
 
 ## License Note
 
-When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with an external speech synthesizer.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html). The GPL compatiblity [matrix](https://www.gnu.org/licenses/gpl-faq.en.html#compat-matrix-footnote-9) shows that if you want to use  library under GPLv3 (i.e. the espeak speech synthesizer) then the combination should be under GPLv3. As this version of Talk Calendar uses espeak it has been licensed under GPLv3. The internal speech generator has been dropped and replaced with espeak. Other speech synthesizers were investigated but did not have a GPL license. 
-
-This is a hobby project. C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to completely re-write the project code from scratch using the [Gtk](https://www.gtk.org/) toolkit. This was a steep learning curve. A good open source alternative to Qt for C++ GUI development is [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license and was considered but the Gtk toolkit is widely available in most Linux distribution repositories. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase).
-
+The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar has been licensed using the GNU  General Public License.
 
 
 ## Acknowledgements
@@ -248,7 +313,7 @@ This is a hobby project. C++ and Qt were used to develop the original calendar p
 * [Geany](https://www.geany.org/)
 * Geany is a small and lightweight Integrated Development Environment which only requires the GTK+ runtime libraries. It has features including syntax highlighting, code completion, auto completion of often used constructs (e.g. if, for and while), code folding, embedded terminal emulation and extensibility through plugins. Geany uses the GPLv2 license.
 
-* [eSpeak](http://espeak.sourceforge.net) is a compact open source software speech synthesizer for English and other languages, for Linux and Windows. eSpeak was written by Jonathan Duddington. It uses the GNU General Public License version 3.
+* [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) can be used to look up the phoneme pronunciation for a word or phrase in CMUdict. The CMU Pronouncing Dictionary is an open-source pronouncing dictionary originally created by the Speech Group at Carnegie Mellon University for use in speech recognition research. License: BSD. 
 
 
 
