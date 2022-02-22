@@ -2,7 +2,7 @@
 
 ## Preamble
 
-Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that had to made to use Gtk4.
+Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that had to make to use Gtk4.
 
 
 ![](talkcalendar.png)
@@ -66,35 +66,40 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 ## Speech Words For Events 
 
-The current list of dictionary speech words  is:
+Talk Calendar has a small built-in dictionary of words which can be converted into speech for reading out the event type. The built-in speech synthesis is used to create a spoken version of the text. The current list of dictionary speech words is:
 
 
-| Letter        | Words and Phrases        |
+| Letter        | Dictionary Words  |
 | ------------- | ------------- |
-| A words:      | activity, anniversary, appointment, |
-| B words:      | birthday "birthday party"|
-| C words:      | Christmas |
-| D words:      | dentist, doctor, |
-| E words:      | event |
-| F words:      | family, funeral, |
-| G words:      | garden, |
-| H words:      | hello, "hello world", holiday, hospital|
-| I words:      | |
-| L words:      | |
-| M words:      | medical, meeting |
-| O words:      | online "online shopping" |
-| P words:      | party, payment, personal, picnic, priority, project |
+| A words:      | activity, allotment, anniversary, appointment, |
+| B words:      | bank, birthday, builder |
+| C words:      | car, calendar, christmas, code, contact |
+| D words:      | day, dentist, doctor |
+| E words:      | easter, event |
+| F words:      | family, film, funeral |
+| G words:      | garden |
+| H words:      | hello, house, holiday, home, hospital|
+| I words:      | interview|
+| L words:      | leisure, lift, linux|
+| M words:      | meal, medical, meeting, memo, music |
+| O words:      | online |
+| P words:      | party, payment, personal, phone, picnic, priority, project |
 | R words:      | radio, reminder, restaurant, |
-| S words:      | shopping, special, station, subscription |
-| T words:      | theatre, travel, television |
-| U words:      |  |
-| V words:      | valentine, version, visit, |
+| S words:      | service, shopping, special, sport, station, subscription |
+| T words:      | tax, theatre, train, training, travel, television |
+| U words:      | update|
+| V words:      | vacation, valentine, valentines, vehicle, visit, |
 | W words:      | walk, wedding, work, |
-| Y words:      |  |
 
 
-More words will be added to the dictionary as the project develops.
-
+You can have a combination of words from the dictionary such as
+```
+birthday party
+online shopping
+train station
+house event
+family visit
+```
 
 ### Editing Existing Event
 
@@ -112,6 +117,8 @@ More words will be added to the dictionary as the project develops.
 * Use the Talk Options dialog in the hamburger menu to change talk options
 
 ![](talk-options.png)
+
+Adjust the talk speaking rate to alter the delivery of the speech.
 
 ### Talk
 
@@ -238,14 +245,14 @@ The open source online [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) h
 
 This is a hobby project under development. 
 
-C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to look for an alternative GUI toolkit. I found a good open source alternative to Qt called [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license. It was considered but unfortuantely is widely available in most Linux distribution repositories. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase). 
+C++ and Qt were used to develop the original calendar project but when the Qt Company announced that the Qt LTS versions and the offline installer were to become commercial-only [Qt licensing changes](https://www.qt.io/blog/qt-offering-changes-2020) I decided to look for an alternative GUI toolkit. I found a good open source alternative to Qt called [CopperSpice](https://www.copperspice.com/). CopperSpice was derived from Qt 4.8 and is under the LGPL 2.1 license. It was considered but unfortuantely it is not widely available in Linux distribution repositories. For more details on the Qt license situation see the article entitled [The Qt Company Is Tomorrow Moving Qt 5.15 To Its Commercial-Only LTS Phase](https://www.phoronix.com/scan.php?page=news_item&px=Qt-5.15-LTS-Commercial-Phase). 
 
 
 I decided to completely re-write the project code from scratch using the open source [Gtk](https://www.gtk.org/) toolkit as it is widely available in most Linux distribution repositories. It seemed to be very unlikely that the Gtk toolkit would change its license to become commercial-only. Moving from Qt to Gtk was a steep learning curve. 
 
 The first iteration of the Talk Calendar project used Gtk3 but then migrated to newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
 
-The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work but it is functional. 
+The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work and is not great but it is functional.
 
 
 ## Gtk 4.0 Migration Notes

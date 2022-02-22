@@ -69,7 +69,7 @@ void write_wav(char * filename, uint32_t num_samples, int16_t * data, uint32_t s
 	num_channels = 1;   // hard wire mono 
 	bytes_per_sample = 2; //16 bits
  
-	if (s_rate<=0) sample_rate = 8000;
+	if (s_rate<=0) sample_rate = 16000;
 	else sample_rate = (uint32_t) s_rate;
  
 	byte_rate = sample_rate*num_channels*bytes_per_sample; 
@@ -151,8 +151,8 @@ void merge_wav_files(char *merge_filename, int num_files, char *filenames[])
 		}
     }	
 	}		
-	uint32_t s_rate=8000; //fix sample rate to talk calendar audio format
-	//uint32_t s_rate=16000;		
+	uint32_t s_rate=16000; //fix sample rate to talk calendar audio format
+	//uint32_t s_rate=8000;		
 	write_wav(merge_filename, merge_size, data_store, s_rate);
 	free(data_store);
 	return;	
@@ -192,7 +192,6 @@ void merge_wav_files2(char *merge_filename, int num_files, char *filenames[],int
 		}
     }	
 	}		
-	//uint32_t s_rate=8000; //fix sample rate to talk calendar audio format
 			
 	write_wav(merge_filename, merge_size, data_store, sample_rate);
 	free(data_store);

@@ -8,11 +8,6 @@
 
 /*
  * Talk Calendar wav file concatenation
- * Assumes talk wav files have the format:
- * 
- * Number of channels: 1 (mono)
- * Sample rate: 8000 -16000
- * Bits per sample: 16
  * 
  * Uses malloc to dynamically allocate data array on heap
  * 
