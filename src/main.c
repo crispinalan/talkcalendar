@@ -1230,7 +1230,7 @@ GList* convert_date_to_weekday_phoneme_list(int day, int month, int year) {
 		break;
 	    }//switch dow
 	    
-	result = g_list_append(result, "dot");
+	//result = g_list_append(result, "dot");
 	return result;
 }
 
@@ -1278,7 +1278,7 @@ GList* convert_month_to_phoneme_list(int month) {
 	default:
 		result =word_to_phonemes("month");
 	}
-	result = g_list_append(result, "dot");
+	//result = g_list_append(result, "dot");
 	return result;
 }
 
@@ -1354,6 +1354,12 @@ GList* convert_day_number_to_phoneme_list(int day_number) {
 		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("second"));		
 		break;
 		case 23:		
+		//GList *concat=NULL;
+		//concat =word_to_phonemes("twenty");
+		//concat =g_list_concat(concat,word_to_phonemes("p1"));
+		//concat =g_list_concat(concat,word_to_phonemes("third"));
+		//concat =g_list_concat(concat,word_to_phonemes("p2"));
+		//result =concat;
 		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("third"));	
 		break;
 		case 24:		
@@ -1385,7 +1391,8 @@ GList* convert_day_number_to_phoneme_list(int day_number) {
 		result =word_to_phonemes("zero");
 		break;		
 	  } //day switch      
-	result = g_list_append(result, "dot"); //wait
+	//result = g_list_append(result, "dot"); //wait
+	result = g_list_append(result, "p2"); //wait
 	return result;	
 	
 }
@@ -1578,8 +1585,8 @@ GList* convert_number_to_phoneme_list(int number) {
 		break;		
 				
 	}
-	result = g_list_append(result, "dot"); //fullstop -wait
-	result = g_list_append(result, "dot"); //wait
+	//result = g_list_append(result, "dot"); //fullstop -wait
+	//result = g_list_append(result, "dot"); //wait
 	return result;
 }
 
@@ -1610,8 +1617,8 @@ GList* get_event_number_phoneme_list(int event_number) {
 	else {
 	result =g_list_concat(word_to_phonemes("many"),word_to_phonemes("events"));
 	}
-	result = g_list_append(result, "dot");
-	result = g_list_append(result, "dot");
+	//result = g_list_append(result, "dot");
+	//result = g_list_append(result, "dot");
 	return result;
 }
 
@@ -1636,6 +1643,12 @@ GList* get_event_type_phoneme_list(char* type) {
 	}
 	else if (g_strcmp0(type_str,"bank")==0){
 		result =word_to_phonemes("bank");
+	}
+	else if (g_strcmp0(type_str,"book")==0){
+		result =word_to_phonemes("book");
+	}
+	else if (g_strcmp0(type_str,"bill")==0){
+		result =word_to_phonemes("bill");
 	}
 	else if (g_strcmp0(type_str,"birthday")==0){
 		result =word_to_phonemes("birthday");
@@ -1663,6 +1676,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"day")==0){
 		result =word_to_phonemes("day");
 	}
+	else if (g_strcmp0(type_str,"delivery")==0){
+		result =word_to_phonemes("delivery");
+	}
 	else if (g_strcmp0(type_str,"dentist")==0){
 		result =word_to_phonemes("dentist");
 	}
@@ -1675,11 +1691,17 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"easter")==0){
 		result =word_to_phonemes("easter");
 	}
+	else if (g_strcmp0(type_str,"energy")==0){
+		result =word_to_phonemes("energy");
+	}
 	else if (g_strcmp0(type_str,"event")==0){
 		result =word_to_phonemes("event");
 	}
 	else if (g_strcmp0(type_str,"family")==0){
 		result =word_to_phonemes("family");
+	}
+	else if (g_strcmp0(type_str,"food")==0){
+		result =word_to_phonemes("food");
 	}
 	else if (g_strcmp0(type_str,"film")==0){
 		result =word_to_phonemes("film");
@@ -1689,6 +1711,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	}
 	else if (g_strcmp0(type_str,"garden")==0){
 		result =word_to_phonemes("garden");
+	}
+	else if (g_strcmp0(type_str,"heating")==0){
+		result =word_to_phonemes("heating");
 	}	
 	else if (g_strcmp0(type_str,"hello")==0){
 		result =word_to_phonemes("hello");
@@ -1705,8 +1730,14 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"hospital")==0){
 		result =word_to_phonemes("hospital");
 	}
+	else if (g_strcmp0(type_str,"insurance")==0){
+		result =word_to_phonemes("insurance");
+	}
 	else if (g_strcmp0(type_str,"interview")==0){
 		result =word_to_phonemes("interview");
+	}
+	else if (g_strcmp0(type_str,"leisure")==0){
+		result =word_to_phonemes("leisure");
 	}
 	else if (g_strcmp0(type_str,"lift")==0){
 		result =word_to_phonemes("lift");
@@ -1762,6 +1793,12 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"radio")==0){
 		result =word_to_phonemes("radio");
 	}
+	else if (g_strcmp0(type_str,"repair")==0){
+		result =word_to_phonemes("repair");
+	}
+	else if (g_strcmp0(type_str,"remember")==0){
+		result =word_to_phonemes("remember");
+	}
 	else if (g_strcmp0(type_str,"reminder")==0){
 		result =word_to_phonemes("reminder");
 	}
@@ -1786,6 +1823,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"subscription")==0){
 		result =word_to_phonemes("subscription");
 	}
+	else if (g_strcmp0(type_str,"system")==0){
+		result =word_to_phonemes("system");
+	}
 	else if (g_strcmp0(type_str,"tax")==0){
 		result =word_to_phonemes("tax");
 	}
@@ -1806,6 +1846,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	}
 	else if (g_strcmp0(type_str,"television")==0){
 		result =word_to_phonemes("television");
+	}
+	else if (g_strcmp0(type_str,"update")==0){
+		result =word_to_phonemes("update");
 	}
 	else if (g_strcmp0(type_str,"vacation")==0){
 		result =word_to_phonemes("vacation");
@@ -1995,9 +2038,7 @@ static void speak_events() {
 	for(int i=0;i<g_list_length(all_phonemes);i++)
 	{
 	 all_phonemes_pointer=g_list_nth_data(all_phonemes,i);
-	 phoneme_str=(gchar *)all_phonemes_pointer;
-	
-	 
+	 phoneme_str=(gchar *)all_phonemes_pointer;	
 	 //Create phoneme wavlist from phonemes	 
 	 char* phone_wav_str =phone_wav(phoneme_str);
 	 if (g_file_test(g_build_filename (cur_dir,phone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {
@@ -2013,21 +2054,24 @@ static void speak_events() {
 	char* merge_file ="/tmp/talkout.wav";	
 	int num_files = g_list_length(wavlist);
 	char* file_names[g_list_length(wavlist)];
-	
-	//g_print("number of talk files =%d\n",num_files);
 		
+	//-----------------------------------------------------------------
+	//prepare for wavcat  
+	//------------------------------------------------------------------
+	
 	for(int i=0;i<g_list_length(wavlist);i++) //iterate through GList wavlist 
 	{	  
 	pt_data=g_list_nth_data(wavlist,i);
 	list_str=(char *)pt_data;		
 	file_names[i] = list_str;	//populate char* array   
 	}
-			
+		
+	
 	merge_wav_files2(merge_file, num_files, file_names, m_talk_sample_rate);
 	
 	//play audio in a thread
 	GThread *thread_audio; 	
-	gchar* wav_file ="/tmp/talkout.wav"; 
+	gchar* wav_file ="/tmp/talkout.wav"; //wavcat way	
 	g_mutex_lock (&lock);
     thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
 	g_thread_unref (thread_audio);
@@ -3108,7 +3152,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar Solo");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.2.1");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.2.2");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Personal calendar using built-in speech synthesizer "); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);

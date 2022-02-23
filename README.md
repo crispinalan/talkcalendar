@@ -2,7 +2,7 @@
 
 ## Preamble
 
-Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that had to make to use Gtk4.
+Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
 
 
 ![](talkcalendar.png)
@@ -37,7 +37,7 @@ Using the binary image together with a menu editor is a universal approach for g
 
 ### Working Directory 
 
-Make sure that the **phoneme** wav file directory (this stores the phoneme sound files of short duration) is located in working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
+Make sure that the **phoneme** wav file directory (this stores the phoneme sound files of short duration) is located in the working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
 
 ### Ubuntu* 
 
@@ -56,7 +56,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 * Click the New button on the headerbar to invoke the "New Event" dialog.
 * Enter the event title.
 * Enter the location.
-* Enter "Speak" word such as "birthday" for the event type
+* Enter "Speak" word or words such as "Birthday Party" for the event type
 * Enter start and end times. 
 * Events are sorted by start time when displayed.
 * A colour marker is placed on a day in the calendar which has an event.
@@ -71,34 +71,35 @@ Talk Calendar has a small built-in dictionary of words which can be converted in
 
 | Letter        | Dictionary Words  |
 | ------------- | ------------- |
-| A words:      | activity, allotment, anniversary, appointment, |
-| B words:      | bank, birthday, builder |
+| A words:      | activity, allotment, anniversary, appointment |
+| B words:      | bank, bill, birthday, book, builder |
 | C words:      | car, calendar, christmas, code, contact |
-| D words:      | day, dentist, doctor |
-| E words:      | easter, event |
-| F words:      | family, film, funeral |
+| D words:      | day, delivery, dentist, development, doctor |
+| E words:      | easter, energy, event |
+| F words:      | family, film, food, funeral |
 | G words:      | garden |
-| H words:      | hello, house, holiday, home, hospital|
-| I words:      | interview|
+| H words:      | heating, hello, house, holiday, home, hospital|
+| I words:      | insurance, interview|
 | L words:      | leisure, lift, linux|
 | M words:      | meal, medical, meeting, memo, music |
 | O words:      | online |
 | P words:      | party, payment, personal, phone, picnic, priority, project |
-| R words:      | radio, reminder, restaurant, |
-| S words:      | service, shopping, special, sport, station, subscription |
-| T words:      | tax, theatre, train, training, travel, television |
+| R words:      | radio, remember, reminder, repair, restaurant |
+| S words:      | service, shopping, special, sport, station, subscription, system|
+| T words:      | tax, talk, theatre, train, training, travel, television |
 | U words:      | update|
-| V words:      | vacation, valentine, valentines, vehicle, visit, |
-| W words:      | walk, wedding, work, |
+| V words:      | vacation, valentine, valentines, vehicle, visit |
+| W words:      | walk, wedding, work, world |
 
 
 You can have a combination of words from the dictionary such as
 ```
 birthday party
-online shopping
+payment reminder
 train station
 house event
 family visit
+car tax payment
 ```
 
 ### Editing Existing Event
@@ -112,13 +113,15 @@ family visit
 
 ![](calendar-options.png)
 
+You can show public holidays on the calendar and event end-times in the list view. You can change the colours and borders of the current day (today), event days and public holidays. Days with high priority events can have a separate colour.
+
 ### Talk Options
 
 * Use the Talk Options dialog in the hamburger menu to change talk options
 
 ![](talk-options.png)
 
-Adjust the talk speaking rate to alter the delivery of the speech.
+Adjust the talk speaking rate to alter the delivery of the speech for best results.
 
 ### Talk
 
@@ -163,7 +166,7 @@ sudo dnf install glib-devel
 sudo dnf install alsa-lib-devel
 ```
 
-With Debian Bookworm you need to install the following packages
+With Debian Bookworm (and Ubuntu) you need to install the following packages
 
 ```
 apt install build-essential
@@ -250,9 +253,9 @@ C++ and Qt were used to develop the original calendar project but when the Qt Co
 
 I decided to completely re-write the project code from scratch using the open source [Gtk](https://www.gtk.org/) toolkit as it is widely available in most Linux distribution repositories. It seemed to be very unlikely that the Gtk toolkit would change its license to become commercial-only. Moving from Qt to Gtk was a steep learning curve. 
 
-The first iteration of the Talk Calendar project used Gtk3 but then migrated to newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
+The first iteration of the Talk Calendar project used Gtk3 but then migrated to the newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
 
-The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work and is not great but it is functional.
+The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work and is not great but it is functional. Adjust the talk speaking rate for best results.
 
 
 ## Gtk 4.0 Migration Notes
@@ -284,7 +287,6 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 ## Roadmap
 ```
 improve word pronunciation 
-use punctuation to alter the delivery of speech
 explore the use of stress to improve tone of voice
 control of pitch and speed settings
 increase number of words in pronouncing dictionary

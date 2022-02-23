@@ -94,12 +94,13 @@ void write_wav(char * filename, uint32_t num_samples, int16_t * data, uint32_t s
 	write_little_endian(bytes_per_sample* num_samples*num_channels, 4, wav_file);
 	
 	uint32_t n_samples; 
+	uint32_t amplification=2;
 	if(num_channels ==1)  n_samples =num_samples/2;   //divide by 2 for mono 
 	else n_samples =num_samples; //for future changes
 	
 	for (uint64_t i=0; i< n_samples; i++)
 	
-	{   write_little_endian((uint32_t)(data[i]),bytes_per_sample, wav_file);
+	{   write_little_endian((uint32_t)(data[i]*amplification),bytes_per_sample, wav_file);
 	}
  
 	fclose(wav_file);
