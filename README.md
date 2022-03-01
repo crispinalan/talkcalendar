@@ -71,25 +71,26 @@ Talk Calendar has a small built-in dictionary of words which can be converted in
 
 | Letter        | Dictionary Words  |
 | ------------- | ------------- |
-| A words:      | activity, allotment, anniversary, appointment |
-| B words:      | bank, bill, birthday, book, builder |
-| C words:      | car, calendar, christmas, code, contact |
+| A words:      | activity, agenda, alert, allotment, airport, and, anniversary, appointment |
+| B words:      | bank, banquet, barbershop, bill, birthday, book, builder, buns|
+| C words:      | cancelled, cake, car, calendar, castle, celebrate, celebration, charity, christmas, code, cooking, contact, cricket, critical, cycle |
 | D words:      | day, delivery, dentist, development, doctor |
-| E words:      | easter, energy, event |
-| F words:      | family, film, food, funeral |
-| G words:      | garden |
-| H words:      | heating, hello, house, holiday, home, hospital|
+| E words:      | easter, energy, estate,  event |
+| F words:      | family, father, fathers, film, food, football, friend, funeral |
+| G words:      | garden, gas, go, good |
+| H words:      | hairdresser, health, heating, hello, high, house, holiday, home, hospital|
 | I words:      | insurance, interview|
-| L words:      | leisure, lift, linux|
-| M words:      | meal, medical, meeting, memo, music |
-| O words:      | online |
-| P words:      | party, payment, personal, phone, picnic, priority, project |
-| R words:      | radio, remember, reminder, repair, restaurant |
-| S words:      | service, shopping, special, sport, station, subscription, system|
-| T words:      | tax, talk, theatre, train, training, travel, television |
+| L words:      | letter, leisure, lift, linux, low, lunch|
+| M words:      | match, meal, medical, meeting, memo, mince, milkman, mother, mothers, move, movie, music |
+| N words:      | netflix |
+| O words:      | online, operation |
+| P words:      | parcel, party, pay, payment, pension, personal, phone, picnic, pies, post, priority, project |
+| R words:      | radio, red, remember, reminder, repair, restaurant |
+| S words:      | seed, service, shop, shopping, show, solicitor, sowing, supermarket,  special, sport, station, subscription, system|
+| T words:      | tax, talk, tea, theatre, to, train, training, travel, television |
 | U words:      | update|
 | V words:      | vacation, valentine, valentines, vehicle, visit |
-| W words:      | walk, wedding, work, world |
+| W words:      | walk, wedding, wind, work, world |
 
 
 You can have a combination of words from the dictionary such as
@@ -288,7 +289,7 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 ```
 improve word pronunciation 
 explore the use of stress to improve tone of voice
-control of pitch and speed settings
+control of pitch, speed, word gap settings
 increase number of words in pronouncing dictionary
 improve dictionary mapping
 code refactoring and enhancements
