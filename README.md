@@ -123,7 +123,7 @@ You can show public holidays on the calendar and event end-times in the list vie
 
 ![](talk-options.png)
 
-Adjust the talk speaking rate and word gap setting to alter the delivery of the speech for best results.
+Speech audio is adjusted using the talk speaking rate and word gap settings. 
 
 ### Talk
 
@@ -257,7 +257,7 @@ I decided to completely re-write the project code from scratch using the open so
 
 The first iteration of the Talk Calendar project used Gtk3 but then migrated to the newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
 
-The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work and is not great but it is functional. Adjust the talk speaking rate for best results.
+The latest version of Talk Calendar has a built-in phoneme systhesizer for speech so that it can be used as a standalone application without the need for an external text-to-speech engine. The internal speech synthesizer definitely needs more work and is not great but it is functional. Adjust the talk speaking rate and word gap for best results.
 
 
 ## Gtk 4.0 Migration Notes
