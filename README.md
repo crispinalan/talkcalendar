@@ -71,7 +71,7 @@ Talk Calendar has a small built-in dictionary of words which can be converted in
 
 | Letter        | Dictionary Words  |
 | ------------- | ------------- |
-| A words:      | activity, agenda, alert, allotment, airport, and, anniversary, appointment |
+| A words:      | accounts, accounting, activity, agenda, alert, allotment, ambulance, airport, and, anniversary, appointment, assessment,assets, awards, away |
 | B words:      | bank, banquet, barbershop, bill, birthday, book, builder, buns|
 | C words:      | cancelled, cake, car, calendar, castle, celebrate, celebration, charity, christmas, code, cooking, contact, cricket, critical, cycle |
 | D words:      | day, delivery, dentist, development, doctor |
@@ -85,12 +85,13 @@ Talk Calendar has a small built-in dictionary of words which can be converted in
 | N words:      | netflix |
 | O words:      | online, operation |
 | P words:      | parcel, party, pay, payment, pension, personal, phone, picnic, pies, post, priority, project |
+| Q words:      | quiz |
 | R words:      | radio, red, remember, reminder, repair, restaurant |
-| S words:      | seed, service, shop, shopping, show, solicitor, sowing, supermarket,  special, sport, station, subscription, system|
+| S words:      | seed, service, shares, shop, shopping, show, solicitor, sowing, special, sport, station, stocks, supermarket, subscription, system|
 | T words:      | tax, talk, tea, theatre, to, train, training, travel, television |
 | U words:      | update|
 | V words:      | vacation, valentine, valentines, vehicle, visit |
-| W words:      | walk, wedding, wind, work, world |
+| W words:      | walk, warning, weather, wedding, wind, work, world |
 
 
 You can have a combination of words from the dictionary such as
@@ -122,7 +123,7 @@ You can show public holidays on the calendar and event end-times in the list vie
 
 ![](talk-options.png)
 
-Adjust the talk speaking rate to alter the delivery of the speech for best results.
+Adjust the talk speaking rate and word gap setting to alter the delivery of the speech for best results.
 
 ### Talk
 

@@ -60,8 +60,10 @@ GList* convert_number_to_phoneme_list(int number);
 GList* get_event_number_phoneme_list(int event_number);
 GList* convert_day_number_to_phoneme_list(int day_number);
 GList* get_event_type_phoneme_list(char* type);
+
 GList* convert_month_to_phoneme_list(int month);
 GList* convert_date_to_weekday_phoneme_list(int day, int month, int year);
+
 
 //Event Dialogs
 static void callbk_check_button_allday_toggled (GtkCheckButton *check_button, gpointer user_data);
@@ -106,6 +108,7 @@ static int m_talk_sample_rate=20000; //sample speed
 static int m_talk_time=1;
 static int m_talk_overlap=0;
 static int m_talk_reset=0;
+static int m_talk_wordgap=0;
 
 static int m_frame =0; //force buttons to have no frame
 
@@ -140,7 +143,7 @@ static float m_priority_green =0.0;
 static float m_priority_blue =0.0;
 static float m_priority_bg_red =1.0;
 static float m_priority_bg_green =0.0;
-static float m_priority_bg_blue =0.0;
+static float m_priority_bg_blue =0.4;
 static int m_priority_frame =1;
 
 static int m_colour_reset =0;
@@ -241,6 +244,7 @@ static void config_load_default()
 	m_talk_overlap=0;
 	m_talk_type=0;
 	m_talk_sample_rate=20000;
+	m_talk_wordgap =0;
 	
 	m_startup_notification=0;
 	m_font_size=20; 	
@@ -276,8 +280,8 @@ static void config_load_default()
 	m_priority_green =0.0;
 	m_priority_blue =0.0;
 	m_priority_bg_red =1.0;
-	m_priority_bg_green =1.0;
-	m_priority_bg_blue =0.7;
+	m_priority_bg_green =0.0;
+	m_priority_bg_blue =0.4;
 	m_priority_frame =1;
 	
 	m_colour_reset =0; 
@@ -293,6 +297,7 @@ static void config_read()
 	m_talk_time=0;	
 	m_talk_overlap=0;
 	m_talk_sample_rate=20000;
+	m_talk_wordgap =0;
 	
 	m_startup_notification=0;
 	m_font_size=20; 	
@@ -328,8 +333,8 @@ static void config_read()
 	m_priority_green =0.0;
 	m_priority_blue =0.0;
 	m_priority_bg_red =1.0;
-	m_priority_bg_green =1.0;
-	m_priority_bg_blue =0.7;
+	m_priority_bg_green =0.0;
+	m_priority_bg_blue =0.4;
 	m_priority_frame =1;
 	
 	m_colour_reset =0; 
@@ -340,12 +345,14 @@ static void config_read()
 	//talk
 	m_talk = g_key_file_get_integer(kf, "calendar_settings", "talk", NULL);
 	m_talk_at_startup=g_key_file_get_integer(kf, "calendar_settings", "talk_startup", NULL);
-	m_talk_event_number=g_key_file_get_integer(kf, "calendar_settings", "talk_event_number", NULL);
-	
+	m_talk_event_number=g_key_file_get_integer(kf, "calendar_settings", "talk_event_number", NULL);	
 	m_talk_type=g_key_file_get_integer(kf, "calendar_settings", "talk_type", NULL);	
 	m_talk_time=g_key_file_get_integer(kf, "calendar_settings", "talk_time", NULL);	
 	m_talk_overlap = g_key_file_get_integer(kf, "calendar_settings", "talk_overlap", NULL);
 	m_talk_sample_rate = g_key_file_get_integer(kf, "calendar_settings", "talk_sample_rate", NULL);
+	m_talk_wordgap = g_key_file_get_integer(kf, "calendar_settings", "talk_wordgap", NULL);
+		
+	
 	//calendar
 	m_holidays = g_key_file_get_integer(kf, "calendar_settings", "holidays", NULL);	
 	m_show_end_time = g_key_file_get_integer(kf, "calendar_settings", "show_end_time", NULL);				
@@ -406,6 +413,8 @@ void config_write()
 	g_key_file_set_integer(kf, "calendar_settings", "talk_type", m_talk_type);		
 	g_key_file_set_integer(kf, "calendar_settings", "talk_overlap", m_talk_overlap);
 	g_key_file_set_integer(kf, "calendar_settings", "talk_sample_rate", m_talk_sample_rate);
+	g_key_file_set_integer(kf, "calendar_settings", "talk_wordgap", m_talk_wordgap);
+	
 	//calendar
 	g_key_file_set_integer(kf, "calendar_settings", "holidays", m_holidays);
 	g_key_file_set_integer(kf, "calendar_settings", "show_end_time", m_show_end_time);	
@@ -1005,6 +1014,20 @@ char* phone_wav(char* phoneme_str) {
 	result="phones/b.wav"; 
 	}
 	
+	
+	if (g_strcmp0(phone_str,"silence250")==0) {		  
+	result ="phones/silence250.wav";
+	}
+	if (g_strcmp0(phone_str,"silence500")==0) {		  
+	result ="phones/silence500.wav";
+	}
+	if (g_strcmp0(phone_str,"silence750")==0) {		  
+	result ="phones/silence750.wav";
+	}	
+	if (g_strcmp0(phone_str,"silence1000")==0) {		  
+	result ="phones/silence1000.wav";
+	}
+		
 	if (g_strcmp0(phone_str,"ch")==0) {	
 	result="phones/ch.wav";
 	} 
@@ -1016,11 +1039,7 @@ char* phone_wav(char* phoneme_str) {
 	if (g_strcmp0(phone_str,"dh")==0) {
 	result ="phones/dh.wav"; 
 	}
-	
-	if (g_strcmp0(phone_str,"dot")==0) {		  
-	result ="phones/dot.wav";
-	}
-	
+			
 	if (g_strcmp0(phone_str,"eh")==0) {		  
 	result="phones/eh.wav"; 
 	}
@@ -1090,15 +1109,19 @@ char* phone_wav(char* phoneme_str) {
 	}
 	
 	if (g_strcmp0(phone_str,"pause0")==0) {		  
-	result="phones/p0.wav";
+	result="phones/p25.wav";
 	}
 	
 	if (g_strcmp0(phone_str,"pause1")==0) {		  
-	result="phones/p1.wav";
+	result="phones/p50.wav";
 	}
 	
 	if (g_strcmp0(phone_str,"pause2")==0) {		  
-	result="phones/p2.wav";
+	result="phones/p75.wav";
+	}
+	
+	if (g_strcmp0(phone_str,"pause3")==0) {		  
+	result="phones/p100.wav";
 	}
 	
 	if (g_strcmp0(phone_str,"r")==0) {		  
@@ -1204,33 +1227,32 @@ GList* convert_date_to_weekday_phoneme_list(int day, int month, int year) {
 	
 	 switch (weekday) {
 		case G_DATE_MONDAY:		
-		result =word_to_phonemes("monday");	
+		result =word_to_phonemes("monday",m_talk_wordgap);	
 		break;
 		case G_DATE_TUESDAY:		
-		result =word_to_phonemes("tuesday");	
+		result =word_to_phonemes("tuesday",m_talk_wordgap);	
 		break;
 		case G_DATE_WEDNESDAY:		
-		result =word_to_phonemes("wednesday");	
+		result =word_to_phonemes("wednesday",m_talk_wordgap);	
 		break;
 		case G_DATE_THURSDAY:		
-		result =word_to_phonemes("thursday");	
+		result =word_to_phonemes("thursday",m_talk_wordgap);	
 		break;
 		case G_DATE_FRIDAY:		
-		result =word_to_phonemes("friday");	
+		result =word_to_phonemes("friday",m_talk_wordgap);	
 		break;
 		case G_DATE_SATURDAY:	
-		result =word_to_phonemes("saturday");	
+		result =word_to_phonemes("saturday",m_talk_wordgap);	
 		break;
 		case G_DATE_SUNDAY:	
-		result =word_to_phonemes("sunday");	
+		result =word_to_phonemes("sunday",m_talk_wordgap);	
 		break;
 		default:
 		//Unknown day of week		
-		result =word_to_phonemes("day");	
+		result =word_to_phonemes("day",m_talk_wordgap);	
 		break;
 	    }//switch dow
-	    
-	//result = g_list_append(result, "dot");
+	
 	return result;
 }
 
@@ -1240,45 +1262,45 @@ GList* convert_month_to_phoneme_list(int month) {
 	
 	switch(month) {
 	case 1:		
-		result =word_to_phonemes("january");
+		result =word_to_phonemes("january",m_talk_wordgap);
 		break;
 	case 2:			
-		result =word_to_phonemes("february");	
+		result =word_to_phonemes("february",m_talk_wordgap);	
 		break;
 	case 3:		
-		result =word_to_phonemes("march");
+		result =word_to_phonemes("march",m_talk_wordgap);
 		break; 
 	case 4:
-		result =word_to_phonemes("april");
+		result =word_to_phonemes("april",m_talk_wordgap);
 		break; 
 	case 5:		
-		result =word_to_phonemes("may");
+		result =word_to_phonemes("may",m_talk_wordgap);
 		break;
 	case 6:		
-		result =word_to_phonemes("june");
+		result =word_to_phonemes("june",m_talk_wordgap);
 		break; 
 	case 7:		
-		result =word_to_phonemes("july");
+		result =word_to_phonemes("july",m_talk_wordgap);
 		break;
 	case 8:		
-		result =word_to_phonemes("august");
+		result =word_to_phonemes("august",m_talk_wordgap);
 		break;
 	case 9:		
-		result =word_to_phonemes("september");
+		result =word_to_phonemes("september",m_talk_wordgap);
 		break;
 	case 10:		
-		result =word_to_phonemes("october");
+		result =word_to_phonemes("october",m_talk_wordgap);
 		break;
 	case 11:		
-		result =word_to_phonemes("november");
+		result =word_to_phonemes("november",m_talk_wordgap);
 		break; 
 	case 12:		
-		result =word_to_phonemes("december");
+		result =word_to_phonemes("december",m_talk_wordgap);
 		break; 
 	default:
-		result =word_to_phonemes("month");
+		result =word_to_phonemes("month",m_talk_wordgap);
 	}
-	//result = g_list_append(result, "dot");
+
 	return result;
 }
 
@@ -1288,112 +1310,106 @@ GList* convert_day_number_to_phoneme_list(int day_number) {
 	
 	switch (day_number) {
 		case 1:
-		result =word_to_phonemes("first");
+		result =word_to_phonemes("first",m_talk_wordgap);
 		break;		
 		case 2:
-		result =word_to_phonemes("second");
+		result =word_to_phonemes("second",m_talk_wordgap);
 		break;
 		case 3:
-		result =word_to_phonemes("third");
+		result =word_to_phonemes("third",m_talk_wordgap);
 		break;
 		case 4:
-		result =word_to_phonemes("fourth");
+		result =word_to_phonemes("fourth",m_talk_wordgap);
 		break;
 		case 5:
-		result =word_to_phonemes("fifth");
+		result =word_to_phonemes("fifth",m_talk_wordgap);
 		break;
 		case 6:
-		result =word_to_phonemes("sixth");
+		result =word_to_phonemes("sixth",m_talk_wordgap);
 		break;
 		case 7:
-		result =word_to_phonemes("seventh");
+		result =word_to_phonemes("seventh",m_talk_wordgap);
 		break;
 		case 8:
-		result =word_to_phonemes("eighth");
+		result =word_to_phonemes("eighth",m_talk_wordgap);
 		break;
 		case 9:
-		result =word_to_phonemes("ninth");
+		result =word_to_phonemes("ninth",m_talk_wordgap);
 		break;
 		case 10:
-		result =word_to_phonemes("tenth");
+		result =word_to_phonemes("tenth",m_talk_wordgap);
 		break;
 		case 11:
-		result =word_to_phonemes("eleventh");
+		result =word_to_phonemes("eleventh",m_talk_wordgap);
 		break;
 		case 12:		
-		result =word_to_phonemes("twelvth");	
+		result =word_to_phonemes("twelvth",m_talk_wordgap);	
 		break;
 		case 13:		
-		result =word_to_phonemes("thirteenth");
+		result =word_to_phonemes("thirteenth",m_talk_wordgap);
 		break;
 		case 14:			
-		result =word_to_phonemes("fourteenth");	
+		result =word_to_phonemes("fourteenth",m_talk_wordgap);	
 		break;
 		case 15:		
-		result =word_to_phonemes("fifteenth");
+		result =word_to_phonemes("fifteenth",m_talk_wordgap);
 		break;
 		case 16:		
-		result =word_to_phonemes("sixteenth");
+		result =word_to_phonemes("sixteenth",m_talk_wordgap);
 		break;
 		case 17:		
-		result =word_to_phonemes("seventeenth");
+		result =word_to_phonemes("seventeenth",m_talk_wordgap);
 		break;
 		case 18:		
-		result =word_to_phonemes("eighteenth");
+		result =word_to_phonemes("eighteenth",m_talk_wordgap);
 		break;
 		case 19:		
-		result =word_to_phonemes("nineteenth");
+		result =word_to_phonemes("nineteenth",m_talk_wordgap);
 		break;
 		case 20:		
-		result =word_to_phonemes("twentieth");
+		result =word_to_phonemes("twentieth",m_talk_wordgap);
 		break;
 		case 21:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("first"));				
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("first",m_talk_wordgap));				
 		break;
 		case 22:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("second"));		
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("second",m_talk_wordgap));		
 		break;
-		case 23:		
-		//GList *concat=NULL;
-		//concat =word_to_phonemes("twenty");
-		//concat =g_list_concat(concat,word_to_phonemes("p1"));
-		//concat =g_list_concat(concat,word_to_phonemes("third"));
-		//concat =g_list_concat(concat,word_to_phonemes("p2"));
-		//result =concat;
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("third"));	
+		case 23:
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("third",m_talk_wordgap));	
 		break;
 		case 24:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("fourth"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("fourth",m_talk_wordgap));
 		break;
 		case 25:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("fifth"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("fifth",m_talk_wordgap));
 		break;
 		case 26:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("sixth"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("sixth",m_talk_wordgap));
 		break;
 		case 27:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("seventh"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("seventh",m_talk_wordgap));
 		break;
 		case 28:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("eighth"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("eighth",m_talk_wordgap));
 		break;
 		case 29:		
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("ninth"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("ninth",m_talk_wordgap));
 		break;
 		case 30:		
-		result =word_to_phonemes("thirtieth");
+		result =word_to_phonemes("thirtieth",m_talk_wordgap);
 		break;
 		case 31:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("first"));		
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("first",m_talk_wordgap));		
 		break;
 		default:
 		//Unknown ordinal
-		result =word_to_phonemes("zero");
+		result =word_to_phonemes("zero",m_talk_wordgap);
 		break;		
 	  } //day switch      
-	//result = g_list_append(result, "dot"); //wait
-	result = g_list_append(result, "p2"); //wait
-	return result;	
+	
+	
+	return result;
 	
 }
 
@@ -1403,190 +1419,189 @@ GList* convert_number_to_phoneme_list(int number) {
 	
 	switch (number) {		
 		case 1:
-		result =word_to_phonemes("one");
+		result =word_to_phonemes("one",m_talk_wordgap);
 		break;		
 		case 2:
-		result =word_to_phonemes("two");
+		result =word_to_phonemes("two",m_talk_wordgap);
 		break;
 		case 3:
-		result =word_to_phonemes("three");
+		result =word_to_phonemes("three",m_talk_wordgap);
 		break;
 		case 4:
-		result =word_to_phonemes("four");
+		result =word_to_phonemes("four",m_talk_wordgap);
 		break;
 		case 5:
-		result =word_to_phonemes("five");
+		result =word_to_phonemes("five",m_talk_wordgap);
 		break;
 		case 6:
-		result =word_to_phonemes("six");
+		result =word_to_phonemes("six",m_talk_wordgap);
 		break;
 		case 7:
-		result =word_to_phonemes("seven");
+		result =word_to_phonemes("seven",m_talk_wordgap);
 		break;
 		case 8:
-		result =word_to_phonemes("eight");
+		result =word_to_phonemes("eight",m_talk_wordgap);
 		break;
 		case 9:
-		result =word_to_phonemes("nine");
+		result =word_to_phonemes("nine",m_talk_wordgap);
 		break;
 		case 10:
-		result =word_to_phonemes("ten");
+		result =word_to_phonemes("ten",m_talk_wordgap);
 		break;
 		case 11:
-		result =word_to_phonemes("eleven");
+		result =word_to_phonemes("eleven",m_talk_wordgap);
 		break;
 		case 12:
-		result =word_to_phonemes("twelve");
+		result =word_to_phonemes("twelve",m_talk_wordgap);
 		break;
 		case 13:
-		result =word_to_phonemes("thirteen");
+		result =word_to_phonemes("thirteen",m_talk_wordgap);
 		break;
 		case 14:
-		result =word_to_phonemes("fourteen");
+		result =word_to_phonemes("fourteen",m_talk_wordgap);
 		break;
 		case 15:
-		result =word_to_phonemes("fifteen");
+		result =word_to_phonemes("fifteen",m_talk_wordgap);
 		break;
 		case 16:
-		result =word_to_phonemes("sixteen");
+		result =word_to_phonemes("sixteen",m_talk_wordgap);
 		break;
 		case 17:
-		result =word_to_phonemes("seventeen");
+		result =word_to_phonemes("seventeen",m_talk_wordgap);
 		break;
 		case 18:
-		result =word_to_phonemes("eighteen");
+		result =word_to_phonemes("eighteen",m_talk_wordgap);
 		break;
 		case 19:
-		result =word_to_phonemes("nineteen");
+		result =word_to_phonemes("nineteen",m_talk_wordgap);
 		break;
 		case 20:
-		result =word_to_phonemes("twenty");
+		result =word_to_phonemes("twenty",m_talk_wordgap);
 		break;
 		case 21:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("one"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("one",m_talk_wordgap));
 		break;
 		case 22:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("two"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("two",m_talk_wordgap));
 		break;
 		case 23:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("three"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("three",m_talk_wordgap));
 		break;
 		case 24:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("four"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("four",m_talk_wordgap));
 		break;
 		case 25:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("five"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("five",m_talk_wordgap));
 		break;
 		case 26:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("six"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("six",m_talk_wordgap));
 		break;
 		case 27:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("seven"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("seven",m_talk_wordgap));
 		break;
 		case 28:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("eight"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("eight",m_talk_wordgap));
 		break;
 		case 29:
-		result =g_list_concat(word_to_phonemes("twenty"),word_to_phonemes("nine"));
+		result =g_list_concat(word_to_phonemes("twenty",m_talk_wordgap),word_to_phonemes("nine",m_talk_wordgap));
 		break;
 		case 30:
-		result =word_to_phonemes("thirty");
+		result =word_to_phonemes("thirty",m_talk_wordgap);
 		break;
 		case 31:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("one"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("one",m_talk_wordgap));
 		break;
 		case 32:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("two"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("two",m_talk_wordgap));
 		break;
 		case 33:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("three"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("three",m_talk_wordgap));
 		break;
 		case 34:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("four"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("four",m_talk_wordgap));
 		break;
 		case 35:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("five"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("five",m_talk_wordgap));
 		break;
 		case 36:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("six"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("six",m_talk_wordgap));
 		break;
 		case 37:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("seven"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("seven",m_talk_wordgap));
 		break;
 		case 38:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("eight"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("eight",m_talk_wordgap));
 		break;
 		case 39:
-		result =g_list_concat(word_to_phonemes("thirty"),word_to_phonemes("nine"));
+		result =g_list_concat(word_to_phonemes("thirty",m_talk_wordgap),word_to_phonemes("nine", m_talk_wordgap));
 		break;
 		case 40:
-		result =word_to_phonemes("forty");
+		result =word_to_phonemes("forty",m_talk_wordgap);
 		break;
 		case 41:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("one"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("one",m_talk_wordgap));
 		break;
 		case 42:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("two"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("two",m_talk_wordgap));
 		break;
 		case 43:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("three"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("three",m_talk_wordgap));
 		break;
 		case 44:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("four"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("four",m_talk_wordgap));
 		break;
 		case 45:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("five"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("five",m_talk_wordgap));
 		break;
 		case 46:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("six"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("six",m_talk_wordgap));
 		break;
 		case 47:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("seven"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("seven",m_talk_wordgap));
 		break;
 		case 48:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("eight"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("eight",m_talk_wordgap));
 		break;
 		case 49:
-		result =g_list_concat(word_to_phonemes("forty"),word_to_phonemes("nine"));
+		result =g_list_concat(word_to_phonemes("forty",m_talk_wordgap),word_to_phonemes("nine",m_talk_wordgap));
 		break;
 		case 50:
-		result =word_to_phonemes("fifty");
+		result =word_to_phonemes("fifty",m_talk_wordgap);
 		break;
 		case 51:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("one"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("one",m_talk_wordgap));
 		break;
 		case 52:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("two"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("two",m_talk_wordgap));
 		break;
 		case 53:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("three"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("three",m_talk_wordgap));
 		break;
 		case 54:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("four"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("four",m_talk_wordgap));
 		break;
 		case 55:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("five"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("five",m_talk_wordgap));
 		break;
 		case 56:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("six"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("six",m_talk_wordgap));
 		break;
 		case 57:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("seven"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("seven",m_talk_wordgap));
 		break;
 		case 58:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("eight"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("eight",m_talk_wordgap));
 		break;
 		case 59:
-		result =g_list_concat(word_to_phonemes("fifty"),word_to_phonemes("nine"));
+		result =g_list_concat(word_to_phonemes("fifty",m_talk_wordgap),word_to_phonemes("nine",m_talk_wordgap));
 		break;
 		
 		default:		
-		result =word_to_phonemes("zero");
+		result =word_to_phonemes("zero",m_talk_wordgap);
 		break;		
 				
 	}
-	//result = g_list_append(result, "dot"); //fullstop -wait
-	//result = g_list_append(result, "dot"); //wait
+		
 	return result;
 }
 
@@ -1596,34 +1611,32 @@ GList* get_event_number_phoneme_list(int event_number) {
 	
 	if (event_number ==0) {	
 	GList *noevents_list=NULL;    
-	noevents_list = word_to_phonemes("no");   
-	noevents_list = g_list_concat(noevents_list,word_to_phonemes("events")); 
-	noevents_list = g_list_concat(noevents_list,word_to_phonemes("today")); 
-	result =noevents_list;
-	//result =g_list_concat(word_to_phonemes("no"),word_to_phonemes("events"));
+	noevents_list = word_to_phonemes("no", m_talk_wordgap);   
+	noevents_list = g_list_concat(noevents_list,word_to_phonemes("events",m_talk_wordgap)); 
+	noevents_list = g_list_concat(noevents_list,word_to_phonemes("today",m_talk_wordgap)); 
+	result =noevents_list;	
 	} //if
 	
 	else if(event_number ==1){		
-		result =g_list_concat(word_to_phonemes("one"),word_to_phonemes("event"));
+		result =g_list_concat(word_to_phonemes("one",m_talk_wordgap),word_to_phonemes("event",m_talk_wordgap));
 	}
 	else if(event_number ==2){		
-		result =g_list_concat(word_to_phonemes("two"),word_to_phonemes("events"));
+		result =g_list_concat(word_to_phonemes("two",m_talk_wordgap),word_to_phonemes("events",m_talk_wordgap));
 	}
 	else if(event_number ==3){
-		 result =g_list_concat(word_to_phonemes("three"),word_to_phonemes("events")); 
+		 result =g_list_concat(word_to_phonemes("three",m_talk_wordgap),word_to_phonemes("events",m_talk_wordgap)); 
 	}
 	else if(event_number ==4){
-		result =g_list_concat(word_to_phonemes("four"),word_to_phonemes("events")); 
+		result =g_list_concat(word_to_phonemes("four",m_talk_wordgap),word_to_phonemes("events",m_talk_wordgap)); 
 	}
 	else if(event_number ==5){ 
-		result =g_list_concat(word_to_phonemes("five"),word_to_phonemes("events"));
+		result =g_list_concat(word_to_phonemes("five",m_talk_wordgap),word_to_phonemes("events",m_talk_wordgap));
 	
 	}		
 	else {
-	result =g_list_concat(word_to_phonemes("many"),word_to_phonemes("events"));
+	result =g_list_concat(word_to_phonemes("many",m_talk_wordgap),word_to_phonemes("events",m_talk_wordgap));
 	}
-	//result = g_list_append(result, "dot");
-	//result = g_list_append(result, "dot");
+	
 	return result;
 }
 
@@ -1635,445 +1648,480 @@ GList* get_event_type_phoneme_list(char* type) {
 	char* type_str = g_ascii_strdown(type, -1); //convert to lower case
 		
 	if (g_strcmp0(type_str,"anniversary")==0) {
-		result =word_to_phonemes("anniversary");
+		result =word_to_phonemes("anniversary",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"accounts")==0){
+		result =word_to_phonemes("accounts",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"accounting")==0){
+		result =word_to_phonemes("accounting",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"and")==0){
-		result =word_to_phonemes("and");
+		result =word_to_phonemes("and",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"alert")==0){
-		result =word_to_phonemes("alert");
+		result =word_to_phonemes("alert",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"allotment")==0){
-		result =word_to_phonemes("allotment");
+		result =word_to_phonemes("allotment",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"activity")==0){
-		result =word_to_phonemes("activity");
+		result =word_to_phonemes("activity",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"agenda")==0){
-		result =word_to_phonemes("agenda");
+		result =word_to_phonemes("agenda",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"agent")==0){
-		result =word_to_phonemes("agent");
+		result =word_to_phonemes("agent",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"appointment")==0){
-		result =word_to_phonemes("appointment");
+		result =word_to_phonemes("appointment",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"attend")==0){
-		result =word_to_phonemes("attend");
+		result =word_to_phonemes("attend",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"airport")==0){
-		result =word_to_phonemes("airport");
+		result =word_to_phonemes("airport",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"ambulance")==0){
+		result =word_to_phonemes("ambulance",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"assessment")==0){
+		result =word_to_phonemes("assessment",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"assets")==0){
+		result =word_to_phonemes("assets",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"awards")==0){
+		result =word_to_phonemes("awards",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"away")==0){
+		result =word_to_phonemes("away",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"bank")==0){
-		result =word_to_phonemes("bank");
+		result =word_to_phonemes("bank",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"banquet")==0){
-		result =word_to_phonemes("banquet");
+		result =word_to_phonemes("banquet",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"barbershop")==0){
-		result =word_to_phonemes("barbershop");
+		result =word_to_phonemes("barbershop",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"book")==0){
-		result =word_to_phonemes("book");
+		result =word_to_phonemes("book",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"bill")==0){
-		result =word_to_phonemes("bill");
+		result =word_to_phonemes("bill",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"birthday")==0){
-		result =word_to_phonemes("birthday");
+		result =word_to_phonemes("birthday",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"builder")==0){
-		result =word_to_phonemes("builder");
+		result =word_to_phonemes("builder",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"buns")==0){
-		result =word_to_phonemes("buns");
+		result =word_to_phonemes("buns",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"cancelled")==0){
-		result =word_to_phonemes("cancelled");
+		result =word_to_phonemes("cancelled",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"cake")==0){
-		result =word_to_phonemes("cake");	
+		result =word_to_phonemes("cake",m_talk_wordgap);	
 	}
 	else if (g_strcmp0(type_str,"car")==0){
-		result =word_to_phonemes("car");	
+		result =word_to_phonemes("car",m_talk_wordgap);	
 	}
 		
 	else if (g_strcmp0(type_str,"calendar")==0){
-		result =word_to_phonemes("calendar");	
+		result =word_to_phonemes("calendar",m_talk_wordgap);	
 	}	
 	else if (g_strcmp0(type_str,"castle")==0){
-		result =word_to_phonemes("castle");	
+		result =word_to_phonemes("castle",m_talk_wordgap);	
 	}
 	else if (g_strcmp0(type_str,"celebrate")==0){
-		result =word_to_phonemes("celebrate");	
+		result =word_to_phonemes("celebrate",m_talk_wordgap);	
 	}
 	else if (g_strcmp0(type_str,"celebration")==0){
-		result =word_to_phonemes("celebration");	
+		result =word_to_phonemes("celebration",m_talk_wordgap);	
 	}		
 	else if (g_strcmp0(type_str,"christmas")==0){
-		result =word_to_phonemes("christmas");
+		result =word_to_phonemes("christmas",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"clinic")==0){
-		result =word_to_phonemes("clinic");
+		result =word_to_phonemes("clinic",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"charity")==0){
-		result =word_to_phonemes("charity");
+		result =word_to_phonemes("charity",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"cricket")==0){
-		result =word_to_phonemes("cricket");
+		result =word_to_phonemes("cricket",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"code")==0){
-		result =word_to_phonemes("code");
+		result =word_to_phonemes("code",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"contact")==0){
-		result =word_to_phonemes("contact");
+		result =word_to_phonemes("contact",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"cooking")==0){
-		result =word_to_phonemes("cooking");
+		result =word_to_phonemes("cooking",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"critical")==0){
-		result =word_to_phonemes("critical");
+		result =word_to_phonemes("critical",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"cycle")==0){
-		result =word_to_phonemes("cycle");
+		result =word_to_phonemes("cycle",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"day")==0){
-		result =word_to_phonemes("day");
+		result =word_to_phonemes("day",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"delivery")==0){
-		result =word_to_phonemes("delivery");
+		result =word_to_phonemes("delivery",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"dentist")==0){
-		result =word_to_phonemes("dentist");
+		result =word_to_phonemes("dentist",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"development")==0){
-		result =word_to_phonemes("development");
+		result =word_to_phonemes("development",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"doctor")==0){
-		result =word_to_phonemes("doctor");
+		result =word_to_phonemes("doctor",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"easter")==0){
-		result =word_to_phonemes("easter");
+		result =word_to_phonemes("easter",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"energy")==0){
-		result =word_to_phonemes("energy");
+		result =word_to_phonemes("energy",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"estate")==0){
-		result =word_to_phonemes("estate");
+		result =word_to_phonemes("estate",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"event")==0){
-		result =word_to_phonemes("event");
+		result =word_to_phonemes("event",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"family")==0){
-		result =word_to_phonemes("family");
+		result =word_to_phonemes("family",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"father")==0){
-		result =word_to_phonemes("father");
+		result =word_to_phonemes("father",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"fathers")==0){
-		result =word_to_phonemes("fathers");
+		result =word_to_phonemes("fathers",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"food")==0){
-		result =word_to_phonemes("food");
+		result =word_to_phonemes("food",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"football")==0){
-		result =word_to_phonemes("football");
+		result =word_to_phonemes("football",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"film")==0){
-		result =word_to_phonemes("film");
+		result =word_to_phonemes("film",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"friend")==0){
-		result =word_to_phonemes("friend");
+		result =word_to_phonemes("friend",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"funeral")==0){
-		result =word_to_phonemes("funeral");
+		result =word_to_phonemes("funeral",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"garden")==0){
-		result =word_to_phonemes("garden");
+		result =word_to_phonemes("garden",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"good")==0){
-		result =word_to_phonemes("good");
+		result =word_to_phonemes("good",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"gas")==0){
-		result =word_to_phonemes("gas");
+		result =word_to_phonemes("gas",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"go")==0){
-		result =word_to_phonemes("go");
+		result =word_to_phonemes("go",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"hairdresser")==0){
-		result =word_to_phonemes("hairdresser");
+		result =word_to_phonemes("hairdresser",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"health")==0){
-		result =word_to_phonemes("health");
+		result =word_to_phonemes("health",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"heating")==0){
-		result =word_to_phonemes("heating");
+		result =word_to_phonemes("heating",m_talk_wordgap);
 	}	
 	else if (g_strcmp0(type_str,"hello")==0){
-		result =word_to_phonemes("hello");
+		result =word_to_phonemes("hello",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"high")==0){
-		result =word_to_phonemes("high");
+		result =word_to_phonemes("high",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"house")==0){
-		result =word_to_phonemes("house");
+		result =word_to_phonemes("house",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"holiday")==0){
-		result =word_to_phonemes("holiday");
+		result =word_to_phonemes("holiday",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"home")==0){
-		result =word_to_phonemes("home");
+		result =word_to_phonemes("home",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"hospital")==0){
-		result =word_to_phonemes("hospital");
+		result =word_to_phonemes("hospital",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"insurance")==0){
-		result =word_to_phonemes("insurance");
+		result =word_to_phonemes("insurance",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"interview")==0){
-		result =word_to_phonemes("interview");
+		result =word_to_phonemes("interview",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"letter")==0){
-		result =word_to_phonemes("letter");
+		result =word_to_phonemes("letter",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"leisure")==0){
-		result =word_to_phonemes("leisure");
+		result =word_to_phonemes("leisure",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"lift")==0){
-		result =word_to_phonemes("lift");
+		result =word_to_phonemes("lift",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"linux")==0){
-		result =word_to_phonemes("linux");
+		result =word_to_phonemes("linux",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"low")==0){
-		result =word_to_phonemes("low");
+		result =word_to_phonemes("low",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"lunch")==0){
-		result =word_to_phonemes("lunch");
+		result =word_to_phonemes("lunch",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"match")==0){
-		result =word_to_phonemes("match");
+		result =word_to_phonemes("match",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"meal")==0){
-		result =word_to_phonemes("meal");
+		result =word_to_phonemes("meal",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"medical")==0){
-		result =word_to_phonemes("medical");
+		result =word_to_phonemes("medical",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"meeting")==0){
-		result =word_to_phonemes("meeting");
+		result =word_to_phonemes("meeting",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"memo")==0){
-		result =word_to_phonemes("memo");
+		result =word_to_phonemes("memo",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"mince")==0){
-		result =word_to_phonemes("mince");
+		result =word_to_phonemes("mince",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"milkman")==0){
-		result =word_to_phonemes("milkman");
+		result =word_to_phonemes("milkman",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"mother")==0){
-		result =word_to_phonemes("mother");
+		result =word_to_phonemes("mother",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"mothers")==0){
-		result =word_to_phonemes("mothers");
+		result =word_to_phonemes("mothers",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"move")==0){
-		result =word_to_phonemes("move");
+		result =word_to_phonemes("move",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"movie")==0){
-		result =word_to_phonemes("movie");
+		result =word_to_phonemes("movie",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"music")==0){
-		result =word_to_phonemes("music");
+		result =word_to_phonemes("music",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"mystic")==0){
-		result =word_to_phonemes("mystic");
+		result =word_to_phonemes("mystic",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"netflix")==0){
-		result =word_to_phonemes("netflix");
+		result =word_to_phonemes("netflix",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"online")==0){
-		result =word_to_phonemes("online");
+		result =word_to_phonemes("online",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"operation")==0){
-		result =word_to_phonemes("operation");
+		result =word_to_phonemes("operation",m_talk_wordgap);
 	}
-	
-	else if (g_strcmp0(type_str,"pause")==0){ //word break
-		result =word_to_phonemes("pause");
-	}
+		
 	else if (g_strcmp0(type_str,"parcel")==0){
-		result =word_to_phonemes("parcel");
+		result =word_to_phonemes("parcel",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"party")==0){
-		result =word_to_phonemes("party");
+		result =word_to_phonemes("party",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"pay")==0){
-		result =word_to_phonemes("pay");
+		result =word_to_phonemes("pay",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"payment")==0){
-		result =word_to_phonemes("payment");
+		result =word_to_phonemes("payment",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"pension")==0){
-		result =word_to_phonemes("pension");
+		result =word_to_phonemes("pension",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"personal")==0){
-		result =word_to_phonemes("personal");
+		result =word_to_phonemes("personal",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"phone")==0){
-		result =word_to_phonemes("phone");
+		result =word_to_phonemes("phone",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"picnic")==0){
-		result =word_to_phonemes("picnic");
+		result =word_to_phonemes("picnic",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"pie")==0){
-		result =word_to_phonemes("pie");
+		result =word_to_phonemes("pie",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"pies")==0){
-		result =word_to_phonemes("pies");
+		result =word_to_phonemes("pies",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"post")==0){
-		result =word_to_phonemes("post");
+		result =word_to_phonemes("post",m_talk_wordgap);
 	}
 		
 	else if (g_strcmp0(type_str,"priority")==0){
-		result =word_to_phonemes("priority");
+		result =word_to_phonemes("priority",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"project")==0){
-		result =word_to_phonemes("project");
+		result =word_to_phonemes("project",m_talk_wordgap);
+	}
+	
+	else if (g_strcmp0(type_str,"quiz")==0){
+		result =word_to_phonemes("quiz",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"radio")==0){
-		result =word_to_phonemes("radio");
+		result =word_to_phonemes("radio",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"red")==0){
-		result =word_to_phonemes("red");
+		result =word_to_phonemes("red",m_talk_wordgap);
 	}
 	
 	else if (g_strcmp0(type_str,"remember")==0){
-		result =word_to_phonemes("remember");
+		result =word_to_phonemes("remember",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"reminder")==0){
-		result =word_to_phonemes("reminder");
+		result =word_to_phonemes("reminder",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"repair")==0){
-		result =word_to_phonemes("repair");
+		result =word_to_phonemes("repair",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"restaurant")==0){
-		result =word_to_phonemes("restaurant");
+		result =word_to_phonemes("restaurant",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"seed")==0){
-		result =word_to_phonemes("seed");
+		result =word_to_phonemes("seed",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"service")==0){
-		result =word_to_phonemes("service");
+		result =word_to_phonemes("service",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"shares")==0){
+		result =word_to_phonemes("shares",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"stocks")==0){
+		result =word_to_phonemes("stocks",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"shop")==0){
-		result =word_to_phonemes("shop");
+		result =word_to_phonemes("shop",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"shopping")==0){
-		result =word_to_phonemes("shopping");
+		result =word_to_phonemes("shopping",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"show")==0){
-		result =word_to_phonemes("show");
+		result =word_to_phonemes("show",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"solicitor")==0){
-		result =word_to_phonemes("solicitor");
+		result =word_to_phonemes("solicitor",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"sowing")==0){
-		result =word_to_phonemes("sowing");
+		result =word_to_phonemes("sowing",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"supermarket")==0){
-		result =word_to_phonemes("supermarket");
+		result =word_to_phonemes("supermarket",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"special")==0){
-		result =word_to_phonemes("special");
+		result =word_to_phonemes("special",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"sport")==0){
-		result =word_to_phonemes("sport");
+		result =word_to_phonemes("sport",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"station")==0){
-		result =word_to_phonemes("station");
+		result =word_to_phonemes("station",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"subscription")==0){
-		result =word_to_phonemes("subscription");
+		result =word_to_phonemes("subscription",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"system")==0){
-		result =word_to_phonemes("system");
+		result =word_to_phonemes("system",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"tax")==0){
-		result =word_to_phonemes("tax");
+		result =word_to_phonemes("tax",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"talk")==0){
-		result =word_to_phonemes("talk");
+		result =word_to_phonemes("talk",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"tea")==0){
-		result =word_to_phonemes("tea");
+		result =word_to_phonemes("tea",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"theatre")==0){
-		result =word_to_phonemes("theatre");
+		result =word_to_phonemes("theatre",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"to")==0){
-	result =word_to_phonemes("to");
+	result =word_to_phonemes("to",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"train")==0){
-		result =word_to_phonemes("train");
+		result =word_to_phonemes("train",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"training")==0){
-		result =word_to_phonemes("training");
+		result =word_to_phonemes("training",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"travel")==0){
-		result =word_to_phonemes("travel");
+		result =word_to_phonemes("travel",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"television")==0){
-		result =word_to_phonemes("television");
+		result =word_to_phonemes("television",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"update")==0){
-		result =word_to_phonemes("update");
+		result =word_to_phonemes("update",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"vacation")==0){
-		result =word_to_phonemes("vacation");
+		result =word_to_phonemes("vacation",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"valentine")==0){
-		result =word_to_phonemes("valentine");
+		result =word_to_phonemes("valentine",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"valentines")==0){
-		result =word_to_phonemes("valentines");
+		result =word_to_phonemes("valentines",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"vehicle")==0){
-		result =word_to_phonemes("vehicle");
+		result =word_to_phonemes("vehicle",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"visit")==0){
-		result =word_to_phonemes("visit");
+		result =word_to_phonemes("visit",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"walk")==0){
-		result =word_to_phonemes("walk");
+		result =word_to_phonemes("walk",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"warning")==0){
+		result =word_to_phonemes("warning",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"weather")==0){
+		result =word_to_phonemes("weather",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"wedding")==0){
-		result =word_to_phonemes("wedding");
+		result =word_to_phonemes("wedding",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"wind")==0){
-		result =word_to_phonemes("wind");
+		result =word_to_phonemes("wind",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"work")==0){
-		result =word_to_phonemes("work");
+		result =word_to_phonemes("work",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"world")==0){
-		result =word_to_phonemes("world");
+		result =word_to_phonemes("world",m_talk_wordgap);
 	}	
 	else {		
 		
 		result = g_list_append(result, "pause0");
 	}
 		
-	result = g_list_append(result, "pause2");
+	
 	return result;
 }
+
 
 static void speak_events() {
 	
@@ -2163,7 +2211,7 @@ static void speak_events() {
 	 GList* time_list=NULL;
 	 
 		if(day_event.is_allday) {			
-		time_list =g_list_concat(word_to_phonemes("allday"),word_to_phonemes("event")); 
+		time_list =g_list_concat(word_to_phonemes("allday",m_talk_wordgap),word_to_phonemes("event",m_talk_wordgap)); 
 		
 		}
 		else {
@@ -2188,9 +2236,11 @@ static void speak_events() {
 	 
 	} //else 
 	
+		
+	all_phonemes =g_list_concat(all_phonemes,time_list);
 	
-	time_list =g_list_concat(time_list,get_event_type_phoneme_list("pause"));	
-	all_phonemes =g_list_concat(all_phonemes,time_list);	
+	//add silence	
+	all_phonemes = g_list_append(all_phonemes, "silence250");
 		
 	} //talk time
     //------------------------------------------------------------------
@@ -2202,8 +2252,7 @@ static void speak_events() {
 	words = g_strsplit (str, " ", 0); //split on space
 	int j=0;			   
 	while(words[j] != NULL)
-	{
-	//g_print("while loop: word = %s\n",words[j]);
+	{	
 	event_type_list=get_event_type_phoneme_list(words[j]);
 	all_phonemes =g_list_concat(all_phonemes,event_type_list);	
 	j++;
@@ -2217,9 +2266,9 @@ static void speak_events() {
 	GList* overlap_list=NULL;
 	if(m_talk_overlap && check_day_events_for_overlap())
 	{
-	overlap_list =g_list_concat(word_to_phonemes("you"),word_to_phonemes("have")); 
-	overlap_list =g_list_concat(overlap_list,word_to_phonemes("overlapping")); 
-	overlap_list =g_list_concat(overlap_list,word_to_phonemes("events")); 	 
+	overlap_list =g_list_concat(word_to_phonemes("you",m_talk_wordgap),word_to_phonemes("have",m_talk_wordgap)); 
+	overlap_list =g_list_concat(overlap_list,word_to_phonemes("overlapping",m_talk_wordgap)); 
+	overlap_list =g_list_concat(overlap_list,word_to_phonemes("events",m_talk_wordgap)); 	 
 	all_phonemes =g_list_concat(all_phonemes,overlap_list);
 	}
 
@@ -2274,9 +2323,7 @@ static void speak_events() {
 //-------------------------------------------------------------------
 
 bool overlap(Event event1, Event event2) {
-	
-	//overlap = min(B,D) - max(A,C). 
-    //negative =no overlap. 
+		 
     float A = event1.start_time;
     float B =event1.end_time;
     float C =event2.start_time;
@@ -2345,12 +2392,7 @@ gboolean check_day_events_for_overlap() {
         for (int j = 0; j < i; j++ ) 
         { 
           Event b = day_events[j]; 
-          g_print("event a = %s\n", a.title);
-	      g_print("event b =%s\n", b.title);
-		
 	      bool result =overlap(a,b);
-	      g_print ("overlap = %i\n",result);	
-	
 	      if (result) return TRUE; 
           
         } //j       
@@ -3340,7 +3382,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar Solo");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.2.3");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.2.4");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Personal calendar using built-in speech synthesizer "); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -3497,7 +3539,8 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
     GtkWidget *check_button_talk_overlap= g_object_get_data(G_OBJECT(dialog), "check-button-talk-overlap-key");
     GtkWidget *check_button_reset_all= g_object_get_data(G_OBJECT(dialog), "check-button-reset-all-key");
     
-     GtkWidget *spin_button_talk_speed= g_object_get_data(G_OBJECT(dialog), "spin-talk-speed-key");
+    GtkWidget *spin_button_talk_speed= g_object_get_data(G_OBJECT(dialog), "spin-talk-speed-key");
+    GtkWidget *spin_button_talk_wordgap= g_object_get_data(G_OBJECT(dialog), "spin-talk-wordgap-key");
    
     
     if(response_id==GTK_RESPONSE_OK)
@@ -3510,7 +3553,9 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_talk_overlap=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_talk_overlap));
 	
 	m_talk_sample_rate=gtk_spin_button_get_value (GTK_SPIN_BUTTON(spin_button_talk_speed));
+	m_talk_wordgap=gtk_spin_button_get_value (GTK_SPIN_BUTTON(spin_button_talk_wordgap));
 	
+	g_print("m_talk_wordgap = %i\n", m_talk_wordgap);
 	
 	m_talk_reset=gtk_check_button_get_active(GTK_CHECK_BUTTON(check_button_reset_all));
 	
@@ -3522,7 +3567,8 @@ void callbk_talkoptions_response(GtkDialog *dialog, gint response_id,  gpointer 
 	m_talk_time=0;
 	m_talk_type=0;
 	m_talk_sample_rate=20000;	
-	m_talk_overlap=0;	
+	m_talk_overlap=0;
+	m_talk_wordgap=0;	
     m_talk_reset=0; //toggle
 		
 	}
@@ -3565,6 +3611,11 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	GtkWidget *spin_button_talk_speed;  
 	GtkWidget *box_talk_speed;
 		
+	//Talk wordgap spin
+	GtkWidget *label_talk_wordgap;  
+	GtkWidget *spin_button_talk_wordgap;  
+	GtkWidget *box_talk_wordgap;
+	
 	
 	dialog = gtk_dialog_new_with_buttons ("Talk Options", GTK_WINDOW(window),   
 	GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT|GTK_DIALOG_USE_HEADER_BAR,
@@ -3612,6 +3663,18 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	gtk_box_append (GTK_BOX(box_talk_speed),spin_button_talk_speed);  
 	
 	g_object_set_data(G_OBJECT(dialog), "spin-talk-speed-key",spin_button_talk_speed); 
+	
+	
+	//talk wordgap    
+	label_talk_wordgap =gtk_label_new("Word Gap (ms)"); 
+	spin_button_talk_wordgap = gtk_spin_button_new_with_range(0.0,1000,250.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button_talk_wordgap),m_talk_wordgap);	 
+	box_talk_wordgap=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,1);
+	gtk_box_append (GTK_BOX(box_talk_wordgap),label_talk_wordgap);
+	gtk_box_append (GTK_BOX(box_talk_wordgap),spin_button_talk_wordgap);  
+	
+	g_object_set_data(G_OBJECT(dialog), "spin-talk-wordgap-key",spin_button_talk_wordgap); 
+	
 
 	gtk_box_append(GTK_BOX(box), check_button_talk);
 	gtk_box_append(GTK_BOX(box), check_button_talk_startup);
@@ -3620,6 +3683,7 @@ static void callbk_talkoptions(GSimpleAction* action, GVariant *parameter,gpoint
 	gtk_box_append(GTK_BOX(box), check_button_talk_type);
 	gtk_box_append(GTK_BOX(box), check_button_talk_overlap);
 	gtk_box_append(GTK_BOX(box), box_talk_speed);
+	gtk_box_append(GTK_BOX(box), box_talk_wordgap);
 	gtk_box_append(GTK_BOX(box), check_button_reset_all);
 	
 	
@@ -3775,7 +3839,7 @@ void callbk_calendar_options_response(GtkDialog *dialog, gint response_id,  gpoi
    m_priority_blue =0.0;
    m_priority_bg_red =1.0;
    m_priority_bg_green =0.0;
-   m_priority_bg_blue =0.0;
+   m_priority_bg_blue =0.4;
    m_priority_frame =1;
    
    m_colour_reset =0; 
@@ -4347,38 +4411,23 @@ static void callbk_speak_about(GSimpleAction *action,
 	//GList* dot_list=NULL;
 	gpointer version_list_pointer;	
 	gchar* phoneme_str="";
-	
-	//dot_list = g_list_append(dot_list, "dot");
-	version_list =word_to_phonemes("hello");	
-	version_list =g_list_concat(version_list,word_to_phonemes("pause"));
 		
-	//version_list =word_to_phonemes("good");
-	//version_list =g_list_concat(version_list,word_to_phonemes("pause"));
-	//version_list =g_list_concat(version_list,word_to_phonemes("day"));
-	//version_list =g_list_concat(version_list,word_to_phonemes("pause"));
-	//version_list =g_list_concat(version_list,word_to_phonemes("pause"));
+	version_list =word_to_phonemes("hello",m_talk_wordgap);	
+	version_list =g_list_concat(version_list,word_to_phonemes("i",m_talk_wordgap));
+	version_list =g_list_concat(version_list,word_to_phonemes("am",m_talk_wordgap)); 		
+	version_list =g_list_concat(version_list,word_to_phonemes("talk",m_talk_wordgap)); 
+	version_list =g_list_concat(version_list,word_to_phonemes("calendar",m_talk_wordgap));	
+	version_list =g_list_concat(version_list,word_to_phonemes("version",m_talk_wordgap));
 	
-	
-	version_list =g_list_concat(version_list,word_to_phonemes("Talk")); 
-	version_list =g_list_concat(version_list,word_to_phonemes("Calendar"));
-	version_list =g_list_concat(version_list,word_to_phonemes("pause"));
-	version_list =g_list_concat(version_list,word_to_phonemes("version"));
-		
 	version_list =g_list_concat(version_list,convert_number_to_phoneme_list(1));
-	version_list =g_list_concat(version_list,word_to_phonemes("pause"));
-	version_list =g_list_concat(version_list,word_to_phonemes("point"));
-	version_list =g_list_concat(version_list,word_to_phonemes("pause")); 		
+	version_list =g_list_concat(version_list,word_to_phonemes("point",m_talk_wordgap));			
 	version_list =g_list_concat(version_list,convert_number_to_phoneme_list(2));
-	//version_list =g_list_concat(version_list,word_to_phonemes("pause"));
-	//version_list =g_list_concat(version_list,word_to_phonemes("goodbye"));
 	
 	for(int i=0;i<g_list_length(version_list);i++)
 	{
 	 version_list_pointer=g_list_nth_data(version_list,i);
 	 phoneme_str=(gchar *)version_list_pointer;
-	 g_print("speak version: phoneme = %s\n",phoneme_str);
-	 
-	 //Create phoneme wavlist from phonemes
+	 //g_print("speak version: phoneme = %s\n",phoneme_str);		
 	 
 	 char* phone_wav_str =phone_wav(phoneme_str);
 	 if (g_file_test(g_build_filename (cur_dir,phone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {

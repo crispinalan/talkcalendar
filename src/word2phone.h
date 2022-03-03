@@ -7,6 +7,6 @@
 #ifndef WORD2PHONE_H
 #define WORD2PHONE_H
 
-GList* word_to_phonemes(const char* word_str); 
+GList* word_to_phonemes(const char* word_str, int wordgap); 
 
 #endif//WORD2PHONE_H
