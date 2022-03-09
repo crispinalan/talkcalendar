@@ -354,7 +354,9 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	phone_list = g_list_append(phone_list, "er");
 	phone_list = g_list_append(phone_list, "pause1");	
 	phone_list = g_list_append(phone_list, "th");
+	phone_list = g_list_append(phone_list, "pause1");
 	phone_list = g_list_append(phone_list, "d");  
+	phone_list = g_list_append(phone_list, "ey");
 	phone_list = g_list_append(phone_list, "ey");
 	phone_list = g_list_append(phone_list, "pause2");     
     }
@@ -370,6 +372,17 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	//C words
 	//------------------------------------------------------------------
 	
+	
+	if (g_strcmp0(word,"cancel")==0) {
+	phone_list = g_list_append(phone_list, "k");
+	phone_list = g_list_append(phone_list, "ae");
+	phone_list = g_list_append(phone_list, "pause1");
+	phone_list = g_list_append(phone_list, "n");
+	phone_list = g_list_append(phone_list, "s");
+	phone_list = g_list_append(phone_list, "ah"); 
+	phone_list = g_list_append(phone_list, "pause0"); 
+	phone_list = g_list_append(phone_list, "l");
+     }
 	
 	if (g_strcmp0(word,"cancelled")==0) {
 	phone_list = g_list_append(phone_list, "k");
@@ -648,6 +661,7 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	phone_list = g_list_append(phone_list, "eh");
 	phone_list = g_list_append(phone_list, "pause1");
 	phone_list = g_list_append(phone_list, "n");
+	phone_list = g_list_append(phone_list, "t"); 
 	phone_list = g_list_append(phone_list, "t"); 	     
     }
            
@@ -658,6 +672,7 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	phone_list = g_list_append(phone_list, "eh");
 	phone_list = g_list_append(phone_list, "pause1");
 	phone_list = g_list_append(phone_list, "n");
+	phone_list = g_list_append(phone_list, "t");
 	phone_list = g_list_append(phone_list, "t"); 
 	phone_list = g_list_append(phone_list, "s"); 	    
     }
@@ -896,6 +911,7 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	phone_list = g_list_append(phone_list, "pause1");
 	phone_list = g_list_append(phone_list, "d");
 	phone_list = g_list_append(phone_list, "iy");
+	phone_list = g_list_append(phone_list, "iy");
 	phone_list = g_list_append(phone_list, "pause0");     
     }
 	
@@ -1103,7 +1119,7 @@ GList* word_to_phonemes(const char* word_str, int wordgap) {
 	if (g_strcmp0(word,"hospital")==0) {
 	phone_list = g_list_append(phone_list, "hh");
 	phone_list = g_list_append(phone_list, "aa");
-	phone_list = g_list_append(phone_list, "pause1");
+	phone_list = g_list_append(phone_list, "pause2");
 	phone_list = g_list_append(phone_list, "s");
 	phone_list = g_list_append(phone_list, "p");
 	phone_list = g_list_append(phone_list, "ih");

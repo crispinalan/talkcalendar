@@ -2,7 +2,7 @@
 
 ## Preamble
 
-Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
+Talk Calendar is a Linux personal desktop calendar with some speech capability. With this solo version the dependency on an external text-to-speech engine has been removed and replaced with a built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
 
 
 ![](talkcalendar.png)
@@ -12,7 +12,7 @@ Talk Calendar is a Linux personal desktop calendar with some speech capability. 
 
 ### Binary Image
 
-A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Fedora 35, Debian Bookworm (in testing) and Ubuntu 21.10* etc. 
+A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Fedora 35, Ubuntu 21.10 and Debian Bookworm (in testing) etc. 
 
 Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can be run from the terminal using: 
 
@@ -37,16 +37,7 @@ Using the binary image together with a menu editor is a universal approach for g
 
 ### Working Directory 
 
-Make sure that the **phoneme** wav file directory (this stores the phoneme sound files of short duration) is located in the working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
-
-### Ubuntu* 
-
-With Ubuntu 21.10 the base Gtk4 libraries can be installed using
-```
-sudo apt install libgtk-4-1
-```
-
-Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
+Make sure that the **phoneme** wav file directory called phones (this stores the phoneme sound files of short duration) is located in the working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
 
 ## Talk Calendar Usage
 
@@ -64,16 +55,16 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 ![](talkcalendar-new-event.png)
 
-## Speech Words For Events 
+## Speech Dictionary
 
-Talk Calendar has a small built-in dictionary of words which can be converted into speech for reading out the event type. The built-in speech synthesis is used to create a spoken version of the text. The current list of dictionary speech words is:
+Talk Calendar has a small built-in speech dictionary used for reading out information about an event type such as birthday, anniversary etc. The integral speech synthesizer is used to create a spoken version of the text. The current list of dictionary speech words is:
 
 
 | Letter        | Dictionary Words  |
 | ------------- | ------------- |
 | A words:      | accounts, accounting, activity, agenda, alert, allotment, ambulance, airport, and, anniversary, appointment, assessment,assets, awards, away |
 | B words:      | bank, banquet, barbershop, bill, birthday, book, builder, buns|
-| C words:      | cancelled, cake, car, calendar, castle, celebrate, celebration, charity, christmas, code, cooking, contact, cricket, critical, cycle |
+| C words:      | cancel, cancelled, cake, car, calendar, castle, celebrate, celebration, charity, christmas, code, cooking, contact, cricket, critical, cycle |
 | D words:      | day, delivery, dentist, development, doctor |
 | E words:      | easter, energy, estate,  event |
 | F words:      | family, father, fathers, film, food, football, friend, funeral |
@@ -94,7 +85,7 @@ Talk Calendar has a small built-in dictionary of words which can be converted in
 | W words:      | walk, warning, weather, wedding, wind, work, world |
 
 
-You can have a combination of words from the dictionary such as
+You can have a combination of words from the speech dictionary such as
 ```
 birthday party
 payment reminder
@@ -159,6 +150,8 @@ The C source code for Talk Calendar is provided in the src directory.
 
 You need the Gtk4 development libraries and the gcc compiler. 
 
+### Fedora
+
 With Fedora you need to install the following packages.
 
 ```
@@ -168,7 +161,14 @@ sudo dnf install glib-devel
 sudo dnf install alsa-lib-devel
 ```
 
-With Debian Bookworm (and Ubuntu) you need to install the following packages
+### Ubuntu (Debian Bookworm Testing) 
+
+With Ubuntu 21.10 the base Gtk4 libraries are installed by default but if not check with
+```
+sudo apt install libgtk-4-1
+```
+
+To build from source you with both Ubuntu 21.10 and Debian Bookworm (in testing) and you need to install the following packages
 
 ```
 apt install build-essential

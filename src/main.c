@@ -1722,6 +1722,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	else if (g_strcmp0(type_str,"buns")==0){
 		result =word_to_phonemes("buns",m_talk_wordgap);
 	}
+	else if (g_strcmp0(type_str,"cancel")==0){
+		result =word_to_phonemes("cancel",m_talk_wordgap);
+	}
 	else if (g_strcmp0(type_str,"cancelled")==0){
 		result =word_to_phonemes("cancelled",m_talk_wordgap);
 	}
@@ -1798,6 +1801,9 @@ GList* get_event_type_phoneme_list(char* type) {
 	}
 	else if (g_strcmp0(type_str,"event")==0){
 		result =word_to_phonemes("event",m_talk_wordgap);
+	}
+	else if (g_strcmp0(type_str,"events")==0){
+		result =word_to_phonemes("events",m_talk_wordgap);
 	}
 	else if (g_strcmp0(type_str,"family")==0){
 		result =word_to_phonemes("family",m_talk_wordgap);
