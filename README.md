@@ -2,7 +2,7 @@
 
 ## Preamble
 
-Talk Calendar is a Linux personal desktop calendar with some speech capability. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
+Talk Calendar is a Linux personal desktop calendar with some speech capability. This version uses a basic built-in self contained speech synthesizer. This means that Talk Calendar can be run as a standalone application. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
 
 
 ![](talkcalendar.png)
@@ -12,7 +12,7 @@ Talk Calendar is a Linux personal desktop calendar with some speech capability. 
 
 ### Binary Image
 
-A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Fedora 35, Ubuntu 21.10 and Debian Bookworm (in testing) etc. 
+A 64 bit binary image is available and can be downloaded from [bin-packages](https://github.com/crispinalan/talkcalendar/tree/main/bin-packages) and can be used with Linux distributions that have Gtk4 in their repositories such as Fedora 35, Debian Bookworm (in testing) and Ubuntu 21.10* etc. 
 
 Assuming that the Gtk4 base libraries are installed the Talk Calendar binary can be run from the terminal using: 
 
@@ -37,7 +37,9 @@ Using the binary image together with a menu editor is a universal approach for g
 
 ### Working Directory 
 
-Make sure that the pre-compiled Flite speech synthesizer file called ***flite*** is located in the working directory. This is included when downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
+Make sure that the **phoneme** wav file directory (this stores the phoneme sound files of short duration) is located in the working directory. The phoneme directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
+
+Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
 ## Talk Calendar Usage
 
@@ -47,6 +49,7 @@ Make sure that the pre-compiled Flite speech synthesizer file called ***flite***
 * Click the New button on the headerbar to invoke the "New Event" dialog.
 * Enter the event title.
 * Enter the location.
+* Enter "Speak" word or words such as "Birthday Party" for the event type
 * Enter start and end times. 
 * Events are sorted by start time when displayed.
 * A colour marker is placed on a day in the calendar which has an event.
@@ -54,6 +57,45 @@ Make sure that the pre-compiled Flite speech synthesizer file called ***flite***
 
 ![](talkcalendar-new-event.png)
 
+## Speech Words For Events 
+
+Talk Calendar has a small built-in dictionary of words which can be converted into speech for reading out the event type. The built-in speech synthesis is used to create a spoken version of the text. The current list of dictionary speech words is:
+
+
+| Letter        | Dictionary Words  |
+| ------------- | ------------- |
+| A words:      | accounts, accounting, activity, agenda, alert, allotment, ambulance, airport, and, anniversary, appointment, assessment,assets, awards, away |
+| B words:      | bank, banquet, barbershop, bill, birthday, book, builder, buns|
+| C words:      | cancel, cancelled, cake, car, calendar, castle, celebrate, celebration, charity, christmas, code, cooking, contact, cricket, critical, cycle |
+| D words:      | day, delivery, dentist, development, doctor |
+| E words:      | easter, energy, estate,  event |
+| F words:      | family, father, fathers, film, food, football, friend, funeral |
+| G words:      | garden, gas, go, good |
+| H words:      | hairdresser, health, heating, hello, high, house, holiday, home, hospital|
+| I words:      | insurance, interview|
+| L words:      | letter, leisure, lift, linux, low, lunch|
+| M words:      | match, meal, medical, meeting, memo, mince, milkman, mother, mothers, move, movie, music |
+| N words:      | netflix |
+| O words:      | online, operation |
+| P words:      | parcel, party, pay, payment, pension, personal, phone, picnic, pies, post, priority, project |
+| Q words:      | quiz |
+| R words:      | radio, red, remember, reminder, repair, restaurant |
+| S words:      | seed, service, shares, shop, shopping, show, solicitor, sowing, special, sport, station, stocks, supermarket, subscription, system|
+| T words:      | tax, talk, tea, theatre, to, train, training, travel, television |
+| U words:      | update|
+| V words:      | vacation, valentine, valentines, vehicle, visit |
+| W words:      | walk, warning, weather, wedding, wind, work, world |
+
+
+You can have a combination of words from the dictionary such as
+```
+birthday party
+payment reminder
+train station
+house event
+family visit
+car tax payment
+```
 
 ### Editing Existing Event
 
@@ -74,14 +116,14 @@ You can show public holidays on the calendar and event end-times in the list vie
 
 ![](talk-options.png)
 
-You can choose what you want to speak out. 
+Adjust the talk speaking rate and word gap setting to alter the delivery of the speech for best results.
 
-### Talking
+### Talk
 
 * Enable talking in Talk Options
 * Enable "Talk At Startup" in Talk Options to read out the date and event details for the current day when the calendar is started
 * Click on a calendar date with events
-* Press the spacebar to speak or use the speak menu item to read out selected event details.
+* Press the spacebar to speak or use the speak menu item  to read out selected event details.
 
 ### Help
 
@@ -138,7 +180,9 @@ The packages:
 apt install libglib2.0-dev
 apt install alsa-utils
 ```
-are needed but should be installed by default. With Ubuntu 21.10 the base Gtk4 libraries should be installed by default but if install with
+are needed but should be installed by default. 
+
+When I last checked the base Gtk4 libraries were installed by default with Ubuntu 21.10. With other Ubuntu spins you may have to install the base Gtk libraries to test out the Talk Calendar binary. These can be installed using the following command. 
 ```
 sudo apt install libgtk-4-1
 ```
@@ -146,7 +190,6 @@ sudo apt install libgtk-4-1
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
 Use the MAKEFILE to compile.
-
 ### Font Note
 
 With GNOME you change the desktop 'font-name' and 'document-font-name' using gsettings.
@@ -194,10 +237,15 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 * event title, location, type, start and end time can be entered and edited
 * bespoke month calendar which allows days with events to be colour marked
 * priority events can be separately colour marked
-* local speech synthesizer
+* integral speech synthesizer
 * bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
 * binary for 64-bit Gtk4 distributions 
 
+### How is speech generated?
+
+Speech is generated using a simple phoneme based speech synthesizer. Words are formed as sequences of elementary speech units known as phonemes. Word to phoneme mapping is carried out using a dictionary based approach. This involves translating words into phoneme text notation. Synthesized speech is then created by concatenating pre-recorded phonemes stored as wav files using the text-to-phoneme description.
+
+The open source online [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) has been used to look up the phoneme pronunciation for the dictionary words. 
 
 ## History
 
@@ -210,10 +258,17 @@ I decided to completely re-write the project code from scratch using the open so
 
 The first iteration of the Talk Calendar project used Gtk3 but then migrated to the newer Gtk4 toolkit. See my migration notes below which may help if your are migrating a Gtk3 project to Gtk4. The Gtk4 Talk Calendar version uses a new bespoke flat-file csv database (rather than sqlite) with memory dynamically allocated for up to 5000 records. The database called "eventsdb.csv" should be located in the current working directory. 
 
-The second version of Talk Calendar used a built-in phoneme synthesizer for speech.  Words were formed as sequences of elementary speech units known as phonemes. Word to phoneme mapping was carried out using a dictionary based approach. This involved translating words into phoneme text notation. Synthesized speech was then created by concatenating pre-recorded phonemes stored as wav files using the text-to-phoneme description. The open source online [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) was used to look up the phoneme pronunciation for the dictionary words but unfortunately this now appears to be no longer available. The phoneme speech synthesizer definitely needed more work but was functional. I experimented with a [Klatt](https://github.com/rhdunn/klatt) speech synthesizer by writing code to generate formant frames from text but did not get statisfactory results. I also developed a word concatenation speech synthesizer which played back pre-recorded wav files of words (e.g. monday.wav, fourteenth.wav, march.wav) and this worked well in terms of audible speech but was not practical due to the number of wav files which would need to be stored unless just using a limited number of words for reading out the date, event number for that day and the event types.
+I have experimented with different approaches for speech synthesis. These are listed below:
 
-The current version of Talk Calendar uses a pre-compiled version of the Flite speech synthesizer which should be located in the current working directory. The big issue with using the Flite speech synthesizer such was that different Linux distributions were using different versions of Flite i.e. some were using version 1.3 while others were using version 2.2 etc.. Using a local pre-compiled version of Flite speech synthesizer gets around this issue. To compile Flite for yourself you should use the C source code which can can be downloaded from [github](https://github.com/festvox/flite). The Talk Calendar binary image zip file includes a copy of the pre-compiled Flite synthesizer. This enables Talk Calendar to be used as a stand alone application. Make sure that the pre-compiled Flite speech synthesizer file is located in the working directory.
+(i) using a pre-compiled version of the Flite speech synthesizer located in the current working directory. Flite (festival-lite) is a small fast portable speech synthesis system. The core Flite library was originally developed by Alan W Black and the history of the project together with other contributors can be found [here](https://github.com/festvox/flite). The big issue with using the Flite speech synthesizer was that different Linux distributions were using different versions of Flite i.e. some were using version 1.3 while others were using version 2.2 etc.. So my thought was to use a local pre-compiled version of Flite speech synthesizer to get around this issue and use it from the current working directory. Flite can be compiled using the C source code downloaded from [github](https://github.com/festvox/flite). Flite is free software and the core code has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). However, when you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining this software with Flite.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).  Surprisingly some open source licences are just not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together (e.g. the Apache 2.0 license is not compatible with the GPLv2 licenses). 
 
+(ii) using a phoneme speech synthesizer.  With this approach words are formed as sequences of elementary speech units known as phonemes. Word to phoneme mapping can be carried out using a dictionary based approach. This involved translating words into phoneme text notation. Synthesized speech can than be created by concatenating pre-recorded phonemes stored as wav files using the phoneme description of a word. The open source online [cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict) can be used to look up the phoneme pronunciation for  words although there are other online resources. A functional phoneme speech synthesizer has been developed but definitely needs more work. This approach could be extended to read out any word which could be converted into its phoneme representation.
+
+(iii) I experimented with a [Klatt](https://github.com/rhdunn/klatt) speech synthesizer by writing code to generate formant frames from text but did not get statisfactory results. This was dissapointing given the time spent on this approach.
+
+(iv) I also developed a word concatenation speech synthesizer which played back pre-recorded wav files of words (e.g. monday.wav, fourteenth.wav, march.wav) and this worked well in terms of audible speech but was less practical due to the number of wav files which would need to be stored unless just using a limited number of words for reading out the date, event number for that day and the event types. I guess this approach could be combined with the phoneme speech synthesizer.
+
+The current version of Talk Calendar uses the phoneme speech systhesizer that I have developed to avoid any potential license compatibility issues with using an external speech synthesizer.
 
 
 ## Gtk 4.0 Migration Notes
@@ -243,11 +298,14 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 
 
 ## Roadmap
-
 ```
-code refactoring  
-feature enhancements
-fix bugs when found
+improve word pronunciation 
+explore the use of stress to improve tone of voice
+control of pitch, speed, word gap settings
+increase number of words in pronouncing dictionary
+improve dictionary mapping
+code refactoring and enhancements
+upcoming events alert
 ```
 
 ## Versioning
@@ -277,8 +335,6 @@ The Gtk4.0 GUI toolkit is licensed using LGPLv2.1.  Consequently, Talk Calendar 
 * [Geany](https://www.geany.org/)
 * Geany is a small and lightweight Integrated Development Environment which only requires the GTK+ runtime libraries. It has features including syntax highlighting, code completion, auto completion of often used constructs (e.g. if, for and while), code folding, embedded terminal emulation and extensibility through plugins. Geany uses the GPLv2 license.
 
-* [Flite](http://www.festvox.org/flite/)
-* Flite (festival-lite) is a small fast portable speech synthesis system. The core Flite library was originally developed by Alan W Black and the history of the project together with other contributors can be found [here](https://github.com/festvox/flite). Flite is free software and the core code has a BSD-like [license](https://github.com/festvox/flite/blob/master/COPYING). It is an official Debian package and labelled [DFGS free](https://blends.debian.org/accessibility/tasks/speechsynthesis). Because different distributions are using different versions of Flite the latest version 2.2 has been compiled from source and is used locally by Talk Calendar. Should you wish to do this for yourself the latest C source code can be downloaded from [github](https://github.com/festvox/flite). 
 
 
 
