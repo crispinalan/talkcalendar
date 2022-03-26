@@ -3,7 +3,7 @@ PKGCONFIG = $(shell which pkg-config)
 CFLAGS = $(shell $(PKGCONFIG) --cflags gtk4)
 LIBS = $(shell $(PKGCONFIG) --libs gtk4) -lm 
 
-SRC = main.c wavcat.c word2phone.c
+SRC = main.c diphone.c wavcat.c dictionary.c
 
 OBJS = $(SRC:.c=.o)
 
