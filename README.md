@@ -261,16 +261,16 @@ The first iteration of the Talk Calendar project used Gtk3 but then migrated to 
 
 Early versions of Talk Calendar used speech synthesizers available in Linux distributions (e.g. Flite and espeak) and installed using package managers. The big issue with using these external speech synthesizers was that different Linux distributions were using different versions. When you combine software to produce a larger work both licenses should be compatible. This is relevant with regard to combining Talk Calendar with an external speech synthesizer.  Open source licenses and their compatibility is discussed in this [article](https://janelia-flyem.github.io/licenses.html) and [here](https://www.gnu.org/licenses/gpl-faq.en.html).  Unbelievably, some open source licences are just not compatible with each other as discussed in this video [Compatibility in Open Source Licenses](https://www.youtube.com/watch?v=B0aMYeMv-8I) and so cannot be used together (e.g. the Apache 2.0 license is not compatible with the GPLv2 licenses). Talk Calendar now uses it own Gtk-based speech engine.
 
-Talk Calendar version 1.2 used a built-in phoneme speech systhesis to create an artificial voice by means of concatenating phoneme wav files. A phoneme is the smallest unit of sound that distinguishes one word from another word and there are 44 phonemes in the English language.
+Talk Calendar version 1.2 used a built-in phoneme speech synthesizer to create an artificial voice by means of concatenating phoneme wav files. A phoneme is the smallest unit of sound that distinguishes one word from another word and there are 44 phonemes in the English language.
 
-With Talk Calendar 1.3 I experimented with a formant speech synthesiser but I could not get get statisfactory results in terms of audible speech. Consequently, I abandoned this whole approach. For anyone interested in formant speech synthesis I have put the development code on [github](https://github.com/crispinalan/formant-synthesizer).
+With Talk Calendar 1.3 I experimented with a formant speech synthesiser but I could not get get satisfactory results in terms of audible speech. Consequently, I abandoned this whole approach. This was disappointing given the time and effort researching this approach to speech synthesis. For anyone interested in formant speech synthesis I have put the development code on github [formant speech synthesizer](https://github.com/crispinalan/formant-synthesizer).
 
-Talk Calendar version 1.4 uses diphone speech synthesis vocalising speech by means of concatenating diphones. A diphone is a sound unit composed of two adjacent partial phonemes i.e. the second half of the first phoneme and the first half of the second phoneme.
+Talk Calendar version 1.4 uses a Gtk-based diphone speech synthesizer which vocalises speech by means of concatenating diphone wav files. A diphone is a sound unit composed of two adjacent partial phonemes i.e. the second half of the first phoneme and the first half of the second phoneme.
 
 
 ## Gtk 4.0 Migration Notes
 
-GTK 4 uses [list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets) such as GtkListBox and porting the Gtk 3 version of Talk Calendar has involved replacing the display of events with a GtkListBox. A significant effort had to be invested into this aspect of the porting. There is an article on scalable lists in gtk4 [here](https://blog.gtk.org/2020/06/07/scalable-lists-in-gtk-4/). Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with [list widgets](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and can be sorted (in this application events are sorted by start time and then displayed). The application workflow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the list. I have used buttons with text labels (New, Edit, Delete) but there is now an option for using Adwaita button icons. 
+GTK 4 uses [list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets) such as GtkListBox and porting the Gtk 3 version of Talk Calendar has involved replacing the display of events with a GtkListBox. A significant effort had to be invested into this aspect of the porting. There is an article on scalable lists in gtk4 [here](https://blog.gtk.org/2020/06/07/scalable-lists-in-gtk-4/). Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with [list widgets](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and can be sorted (in this application events are sorted by start time and then displayed). The application work flow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the list. I have used buttons with text labels (New, Edit, Delete) but there is now an option for using Adwaita button icons. 
 
 In Gtk4.0, the function 
 ```
@@ -300,7 +300,7 @@ rewrite dictionary mapping code
 increase number of words in speech dictionary
 feature enhancements
 categories
-code refactoring
+code re-factoring
 upcoming events alert
 ```
 

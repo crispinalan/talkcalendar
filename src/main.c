@@ -1476,9 +1476,7 @@ static void speak_events() {
 	GList *all_diphones=NULL;
 	gpointer all_diphones_pointer;
 	gchar *diphone_str;
-	
-	
-	
+
 	GList *weekday_list=convert_date_to_weekday_diphone_list(m_day, m_month, m_year);
 	GList *day_number_list =convert_day_number_to_diphone_list(m_day);
 	GList *month_list=convert_month_to_diphone_list(m_month);
@@ -1550,11 +1548,7 @@ static void speak_events() {
 	time_list =g_list_concat(time_list, word_to_diphones("pau"));	
 	all_diphones =g_list_concat(all_diphones,time_list);
 	
-	//add silence	
 	
-	//word_to_diphones(" ",m_talk_wordgap));
-	//all_diphones = g_list_append(all_diphones,word_to_diphones(" ",m_talk_wordgap) );
-		
 	} //talk time
     //------------------------------------------------------------------
     if(m_talk_title) {
@@ -1570,19 +1564,12 @@ static void speak_events() {
 	all_diphones =g_list_concat(all_diphones,event_title_list);	
 	j++;
 	} //while loop words
-    
-    //g_print("event_title_list length = %i\n",g_list_length(event_title_list));
-    //if no dictionary words detected add the word event
-    if(g_list_length(event_title_list) ==0){
-		//g_print("entering if zero\n");
-		//event_title_list =g_list_concat(event_title_list,word_to_diphones("unknown",m_talk_wordgap));
-		//event_title_list=word_to_diphones("calendar");
+   
+    if(g_list_length(event_title_list) ==0){		
 		event_title_list=g_list_concat(event_title_list,word_to_diphones("calendar"));
-		event_title_list=g_list_concat(event_title_list,word_to_diphones("entry"));
-		//event_title_list=g_list_concat(event_title_list,word_to_diphones("activity"));
+		event_title_list=g_list_concat(event_title_list,word_to_diphones("entry"));		
 		all_diphones =g_list_concat(all_diphones,event_title_list);
-	}    
-    //if(g_list_length(event_title_list) ==0)
+	}
     all_diphones =g_list_concat(all_diphones, word_to_diphones("pau"));
     } //if talking title   
     
@@ -1590,7 +1577,17 @@ static void speak_events() {
 	//end cycle through day events ---------------------------------------
 	
 	
-	
+	//overlap check
+	GList* overlap_list=NULL;
+	if(m_talk_overlap && check_day_events_for_overlap())
+	{
+	//g_print("events are overlapping\n");	
+	overlap_list =word_to_diphones("you");
+	overlap_list =g_list_concat(overlap_list,word_to_diphones("have")); 
+	overlap_list =g_list_concat(overlap_list,word_to_diphones("overlapping")); 
+	overlap_list =g_list_concat(overlap_list,word_to_diphones("events")); 	 
+	all_diphones =g_list_concat(all_diphones,overlap_list);
+	}
 	
 	
 	
@@ -1601,10 +1598,8 @@ static void speak_events() {
 	for(int i=0;i<g_list_length(all_diphones);i++)
 	{
 	 all_diphones_pointer=g_list_nth_data(all_diphones,i);
-	 diphone_str=(gchar *)all_diphones_pointer;	
-	 //Create phoneme wavlist from phonemes	 
-	 char* diphone_wav_str =get_diphone_wav_path(diphone_str);
-	 
+	 diphone_str=(gchar *)all_diphones_pointer;		 
+	 char* diphone_wav_str =get_diphone_wav_path(diphone_str);	 
 	 if (g_file_test(g_build_filename (cur_dir,diphone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {
 	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,diphone_wav_str, NULL));
 	 }   
@@ -1626,12 +1621,10 @@ static void speak_events() {
 	for(int i=0;i<g_list_length(wavlist);i++) //iterate through GList wavlist 
 	{	  
 	pt_data=g_list_nth_data(wavlist,i);
-	list_str=(char *)pt_data;
-	g_print("diphone = %s\n",list_str);		
+	list_str=(char *)pt_data;			
 	file_names[i] = list_str;	//populate char* array   
 	}
 		
-	
 	merge_wav_files2(merge_file, num_files, file_names, m_talk_sample_rate);
 	
 	//play audio in a thread
@@ -1688,23 +1681,14 @@ static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer use
 
 static gpointer thread_playwav(gpointer user_data)
 {   
-    gchar *wav_path =user_data;
-    g_print("speaking wav file %s\n", wav_path);
-    gchar * command_str ="aplay";
-    
+    gchar *wav_path =user_data;   
+    gchar * command_str ="aplay";    
     gchar *m_sample_rate_str = g_strdup_printf("%i", m_talk_sample_rate); 
     gchar *sample_rate_str ="-r ";    
     sample_rate_str= g_strconcat(sample_rate_str,m_sample_rate_str, NULL); 
-    g_print("sample rate %s\n", m_sample_rate_str);    
-    //gchar *file_name =user_data;   	
-   	
    	char input[50];		
-	strcpy(input, wav_path);	
-    //gchar* aplay_str ="aplay";        
-    //aplay_str=g_strconcat(aplay_str," ",input, NULL); 
+	strcpy(input, wav_path);	  
     command_str =g_strconcat(command_str," ",sample_rate_str, " ", input, NULL); 
-    g_print("command_str= %s\n",command_str);    
-    
     system(command_str);    
     g_mutex_unlock (&lock); //thread mutex unlock 
     return NULL; 
@@ -2755,7 +2739,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.4.0");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.4.1");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Personal calendar with built-in speech synthesizer "); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -3756,13 +3740,10 @@ static void callbk_speak_about(GSimpleAction *action,
 	GList *wavlist=NULL;
 	gchar *cur_dir;
 	cur_dir = g_get_current_dir ();
-	//int32_t sample_rate=22050;
-	
-	GList* word_list=NULL;
-	//GList* dot_list=NULL;
+		
+	GList* word_list=NULL;	
 	gpointer word_list_pointer;	
 	gchar* diphone_str="";
-		
 	
 	word_list =word_to_diphones("talk");	
 	word_list =g_list_concat(word_list,word_to_diphones("calendar"));
@@ -3771,13 +3752,13 @@ static void callbk_speak_about(GSimpleAction *action,
 	word_list =g_list_concat(word_list,word_to_diphones("one"));
 	word_list =g_list_concat(word_list,word_to_diphones("point"));
 	word_list =g_list_concat(word_list,word_to_diphones("four"));
+	word_list =g_list_concat(word_list,word_to_diphones("point"));
+	word_list =g_list_concat(word_list,word_to_diphones("one"));
 			
 	for(int i=0;i<g_list_length(word_list);i++)
 	{
 	 word_list_pointer=g_list_nth_data(word_list,i);
-	 diphone_str=(gchar *)word_list_pointer;
-	 g_print("diphone_str = %s\n",diphone_str);		
-	 
+	 diphone_str=(gchar *)word_list_pointer;	
 	 char* diphone_wav_str =get_diphone_wav_path(diphone_str);
 	 if (g_file_test(g_build_filename (cur_dir,diphone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {
 	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,diphone_wav_str, NULL));
@@ -3794,26 +3775,14 @@ static void callbk_speak_about(GSimpleAction *action,
 	int num_files = g_list_length(wavlist);
 	char* file_names[g_list_length(wavlist)];
 	
-	//g_print("number of talk files =%d\n",num_files);
-	
 	
 	for(int i=0;i<g_list_length(wavlist);i++) //iterate through GList wavlist 
 	{	  
 	pt_data=g_list_nth_data(wavlist,i);
 	list_str=(char *)pt_data;
-	//g_print("talk list_str = %s\n",list_str);	
 	file_names[i] = list_str;	//populate char* array
-    //g_print("file_name[%d] = %s\n",i,file_names[i]);
 	}
 	
-	g_print("file_names merge array\n");
-	
-	for(int i=0;i<num_files;i++) //iterate through GList wavlist 
-	{
-		g_print("file_name[%d] = %s\n",i,file_names[i]);
-	}
-	
-	//merge_wav_files2(merge_file, num_files, file_names, 16000);
 	merge_wav_files2(merge_file, num_files, file_names, m_talk_sample_rate);
 	
 	//clean up  lists
@@ -3826,19 +3795,8 @@ static void callbk_speak_about(GSimpleAction *action,
 	gchar* wav_file ="/tmp/talkout.wav"; 
 	g_mutex_lock (&lock);
     thread_audio = g_thread_new(NULL, thread_playwav, wav_file);  
-	g_thread_unref (thread_audio);
-	
-	//version_list =g_list_concat(version_list,word_to_phonemes("am",m_talk_wordgap)); 		
-	//version_list =g_list_concat(version_list,word_to_phonemes("talk",m_talk_wordgap)); 
-	//version_list =g_list_concat(version_list,word_to_phonemes("calendar",m_talk_wordgap));	
-	//version_list =g_list_concat(version_list,word_to_phonemes("version",m_talk_wordgap));
-	
-	//version_list =g_list_concat(version_list,convert_number_to_phoneme_list(1));
-	//version_list =g_list_concat(version_list,word_to_phonemes("point",m_talk_wordgap));			
-	//version_list =g_list_concat(version_list,convert_number_to_phoneme_list(4));
-	
-	
-	
+	g_thread_unref (thread_audio);	
+		
 }
 
 //---------------------------------------------------------------------

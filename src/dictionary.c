@@ -1356,6 +1356,12 @@ GList* word_to_diphones(const char* word_str) {
 	diphone_list = g_list_append(diphone_list, "r-z");		    
     }	
     
+    //have HH_AE AE_V
+    if (g_strcmp0(word,"have")==0) {	
+	diphone_list = g_list_append(diphone_list, "hh-ae");
+	diphone_list = g_list_append(diphone_list, "ae-v");
+    }
+    
     //health HH_EH EH_L L_TH
     if (g_strcmp0(word,"health")==0) {	
 	diphone_list = g_list_append(diphone_list, "hh-eh");
@@ -1810,6 +1816,19 @@ GList* word_to_diphones(const char* word_str) {
 	diphone_list = g_list_append(diphone_list, "iy-sh");			
 	diphone_list = g_list_append(diphone_list, "sh-ah");
 	diphone_list = g_list_append(diphone_list, "ah-n");	    
+    }	
+    
+    //overlapping AO_UH UH_V V_UH UH_R R_L L_AE AE_P P_IH IH_NG
+    if (g_strcmp0(word,"overlapping")==0) {	
+	diphone_list = g_list_append(diphone_list, "ao-uh");
+	diphone_list = g_list_append(diphone_list, "uh-v");
+	diphone_list = g_list_append(diphone_list, "v-uh");
+	diphone_list = g_list_append(diphone_list, "uh-r");			
+	diphone_list = g_list_append(diphone_list, "r-l");	
+	diphone_list = g_list_append(diphone_list, "l-ae");			
+	diphone_list = g_list_append(diphone_list, "ae-p");	
+	diphone_list = g_list_append(diphone_list, "p-ih");
+	diphone_list = g_list_append(diphone_list, "ih-ng");    
     }	
     
     //------------------------------------------------------------------
@@ -2607,6 +2626,12 @@ GList* word_to_diphones(const char* word_str) {
 	//diphone_list = g_list_append(diphone_list, "");			
 	//diphone_list = g_list_append(diphone_list, "");	    
     //}	
+    
+    //you Y_UW
+    if (g_strcmp0(word,"you")==0) {	
+	diphone_list = g_list_append(diphone_list, "y-uw");
+    }
+    
 	//------------------------------------------------------------------
     // Z Words
     //------------------------------------------------------------------ 
