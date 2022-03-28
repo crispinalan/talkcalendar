@@ -625,11 +625,32 @@ static char* remove_semicolons (const char *text)
 	if ( cp != ';' ){ //do not allow semicolons into database
 	g_string_append_unichar (str, *p);           
 	}//if
+	
 	++p;
 	}
 	
 	return g_string_free (str, FALSE);
 }
+
+static char* remove_commas(const char *text)
+{
+	GString *str;
+	const char *p;	
+	str = g_string_new ("");	
+	p = text;
+	while (*p)
+	{
+	gunichar cp = g_utf8_get_char(p);	
+	if ( cp != ',' ){ //csv separated so remove 
+	g_string_append_unichar (str, *p);           
+	}//if
+	
+	++p;
+	}
+	
+	return g_string_free (str, FALSE);
+}
+
 
 static char* remove_punctuations(const char *text)
 {
@@ -1794,11 +1815,13 @@ static void callbk_new_event_response(GtkDialog *dialog, gint response_id,  gpoi
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
 	m_title= gtk_entry_buffer_get_text (buffer_title);	
 		
+	m_title =remove_commas(m_title);
 	m_title =remove_semicolons(m_title);
 	//m_title =remove_punctuations(m_title);
 			
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);	
+	m_location =remove_commas(m_location);
 	m_location =remove_semicolons(m_location);
 		
 	//buffer_type = gtk_entry_get_buffer (GTK_ENTRY(entry_type));	
@@ -2018,10 +2041,12 @@ void callbk_edit_event_response(GtkDialog *dialog, gint response_id,  gpointer  
 	//set data
 	buffer_title = gtk_entry_get_buffer (GTK_ENTRY(entry_title));	
 	m_title= gtk_entry_buffer_get_text (buffer_title);
+	m_title =remove_commas(m_title);
 	m_title =remove_semicolons(m_title);	
 	
 	buffer_location = gtk_entry_get_buffer (GTK_ENTRY(entry_location));	
 	m_location= gtk_entry_buffer_get_text (buffer_location);
+	m_location =remove_commas(m_location);
 	m_location =remove_semicolons(m_location);
 		
 	//buffer_type = gtk_entry_get_buffer (GTK_ENTRY(entry_type));	
@@ -2628,7 +2653,8 @@ static void update_store(int year, int month, int day) {
 	display_str = g_strconcat(display_str,time_str,title_str,".\n", NULL);  
   }
   else { 
-   display_str = g_strconcat(display_str,time_str,title_str, " ",e.location, ".", NULL);
+   //display_str = g_strconcat(display_str,time_str,title_str, " ",e.location, ". ", NULL); //add full stop
+   display_str = g_strconcat(display_str,time_str,title_str, " ",e.location, " ", NULL);
   }
   
   if(e.priority) {	  
