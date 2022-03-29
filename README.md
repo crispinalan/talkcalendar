@@ -56,47 +56,11 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 ![](talkcalendar-new-event.png)
 
-## Event Title Speech 
+## Speech Dictionary
 
-Talk Calendar has a small dictionary of event orientated words which can be converted into speech for reading out the event title. The built-in speech synthesizer is used to create a spoken version of the title text. The current list of dictionary speech words is:
+Talk Calendar has a small dictionary of approximately 56,600 english words.
 
-
-| Letter        | Dictionary Words  |
-| ------------- | ------------- |
-| A words:      | accounts, action, activity, agenda, agent, alert, allotment, ambulance, airport, and, anniversary, appointment, assessment, assets, assistant, award, away |
-| B words:      | bank, banquet, barber, bill, birthday, book, builder, brother|
-| C words:      | cancel, cancelled, car, calendar, caravan, card, celebrate, celebration, cermony, charity, check, christmas, clinic, code, computer,  cook, cooking, contact, credit, cricket, critical, cycle |
-| D words:      | date, day, deadline, delivery, dentist, development, doctor |
-| E words:      | easter, energy, entry, estate,  event, events |
-| F words:      | family, father, fathers, film, food, football, friend, funeral |
-| G words:      | garden, gas, go, good, grow |
-| H words:      | hairdressers, health, heating, hello, high, house, holiday, home, hospital|
-| I words:      | insurance, interview, investment, investments, invoice|
-| J words:      | journey |
-| L words:      | lecture, legal, letter, leisure, library, license, lift, linux, low, lunch|
-| M words:      | many, match, meal, medical, meet, meeting, meetings, memo, memorandum,  milkman, mother, mothers, move, movie, music |
-| N words:      | no, netflix |
-| O words:      | online, occurrence, operation |
-| P words:      | parcel, party, pay, payment, pension, personal, phone, picnic, plan, planning, plant, point, police, post, priority, project |
-| Q words:      | quiz |
-| R words:      | radio, red, remember, remembrance,  reminder, repair, restaurant |
-| S words:      | seed, seeds, service, shares, shop, shopping, show, solicitor, sow, sowing, sister,  special, sport, station, stocks, supermarket, subscription, system|
-| T words:      | tax, talk, tea, tearoom,  theatre, to, today, train, training, travel, television |
-| U words:      | unknown, urgent|
-| V words:      | vacation, vaccination, valentine, valentines, vehicle, virus, visa, visit, visitor, visitors |
-| W words:      | walk, warning, weather, wedding, wibblewobble, wife, wind, work, workman,  world |
-| Z words:      | zoo |
-
-Combination of words from the dictionary are read out such as
-```
-birthday party
-payment reminder
-train station
-house event
-family visit
-car tax payment
-```
-If a word is not recognised by the dictionary it is skipped over. For example, a title such as  "Tiki Birthday Party" would be read out as "birthday party". If none of the words in the event title are recognised then Talk Calendar reads outs "calendar entry". The speech dictionary will be expanded in future iterations of the project.
+If a word is not recognised by the dictionary it is skipped over. For example, a title such as  "Tiki Birthday Party" would be read out as "birthday party". If none of the words in the event title are recognised then Talk Calendar reads outs "calendar entry".
 
 
 ### Editing Existing Event
@@ -248,6 +212,24 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 
 Speech is generated using a diphone speech synthesizer. Words are formed as sequences of elementary speech units known as diphones (see history below).
 
+## Known Issues
+
+* Corrupted database
+
+If the database file called eventsdb.csv stored in the working directory becomes corrupted then Talk Calendar will launch with a message "Database Corrupted Restart" or fail to launch. The CSV database is just a text file. If opened by another application it may insert hidden characters or unwanted space which will corrupt the database. Regularly backup the eventsdb.csv database by copying and pasting into another folder (directory). 
+
+To check if the events.csv file is corrupted open it with a plain text editor such as gedit. Check that each line of text has the correct number of commas, there are no hidden characters, no non-printable unicode characters and no space inserted at the end of the file. If cleaning up the CSV file does not work then either rename and backup or delete the events database file and then re-launch Talk Calendar. This will create a new events.csv file when closed again.
+
+* Missing speech words
+
+The speech synthesiser has a relatively small number of speech words in its dictionary. If a word in the text to be spoken is not found in the dictionary then it will be skipped. If it is a word with an apostrophe then try using a word combination without apostrophes. An apostrophe represents missing letters. Most of the common words with apostrophes are in the dictionary such as he'd (he would), I've (I have), they're (they are) and can't (cannot) but others are not.  The dictionary will be expanded in future versions and more character checks added. There is no spell checking and so mis spelt words will not be spoken or corrected.
+
+* Unknown characters
+
+Inserting an unknown character will cause the application to close. Restart Talk Calendar to reset.
+
+
+
 ## History
 
 This is a hobby project under development. 
@@ -263,9 +245,9 @@ Early versions of Talk Calendar used speech synthesizers available in Linux dist
 
 Talk Calendar version 1.2 used a built-in phoneme speech synthesizer to create an artificial voice by means of concatenating phoneme wav files. A phoneme is the smallest unit of sound that distinguishes one word from another word and there are 44 phonemes in the English language.
 
-With Talk Calendar 1.3 I experimented with a formant speech synthesiser but I could not get get satisfactory results in terms of audible speech. Consequently, I abandoned this whole approach. This was disappointing given the time and effort researching this approach to speech synthesis. For anyone interested in formant speech synthesis I have put the development code on github [formant speech synthesizer](https://github.com/crispinalan/formant-synthesizer).
+With Talk Calendar 1.3 I experimented with a formant speech synthesiser but I could not get satisfactory results in terms of audible speech. Consequently, I abandoned this whole approach. This was disappointing given the time and effort researching this approach to speech synthesis. For anyone interested in formant speech synthesis I have put the development code on github [formant speech synthesizer](https://github.com/crispinalan/formant-synthesizer).
 
-Talk Calendar version 1.4 uses a Gtk-based diphone speech synthesizer which vocalises speech by means of concatenating diphone wav files. A diphone is a sound unit composed of two adjacent partial phonemes i.e. the second half of the first phoneme and the first half of the second phoneme.
+Talk Calendar version 1.4 uses a Gtk-based diphone speech synthesizer which vocalises speech by means of concatenating diphone wav files. A diphone is a sound unit composed of two adjacent partial phonemes i.e. the second half of the first phoneme and the first half of the second phoneme. The Talk Calendar 1.4 series uses a different database structure to previous versions as it stores event notes up to 200 characters. This is not compatible with the previous database structure.
 
 
 ## Gtk 4.0 Migration Notes
@@ -296,12 +278,11 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 
 ## Roadmap
 ```
-rewrite dictionary mapping code
-increase number of words in speech dictionary
+enlarge speech dictionary
+expand error checking
 feature enhancements
-categories
-code re-factoring
 upcoming events alert
+code refactoring
 ```
 
 ## Versioning

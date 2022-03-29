@@ -10,7 +10,7 @@ OBJS = $(SRC:.c=.o)
 all: talkcalendar
 
 %.o: %.c
-	$(CC) -c -o $(@F) $(CFLAGS) $<
+	$(CC) -c -o $(@F) $(CFLAGS) -Wall $<
 
 
 talkcalendar: $(OBJS)

@@ -8,5 +8,5 @@
 #define DICTIONARY_H
 
 GList* word_to_diphones(const char* word_str); 
-
+ 
 #endif//DICTIONARY_H
