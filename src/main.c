@@ -1452,8 +1452,7 @@ GList* convert_number_to_diphone_list(int number) {
 static void speak_events() {
 	
 	if(m_talk==0) return;
-	//g_print("speak events");
-	
+		
 	//get day events and sort -----------------------------------------
 	int day_event_number=0;
 	Event e;  
@@ -1498,7 +1497,7 @@ static void speak_events() {
 	//----------------------------------------------------------
 		
 	GList *wavlist=NULL;
-	gchar *cur_dir;
+	//gchar *cur_dir;
 	GList *all_diphones=NULL;
 	
 
@@ -1647,19 +1646,18 @@ static void speak_events() {
 	
 	//speak diphones
 	
-	cur_dir = g_get_current_dir();
-	
 	//iterate over GList
 	GList *l;
     for (l = all_diphones; l != NULL; l = l->next) {    
-    char *str = l->data;
-    //g_print("diphone str=%s\n",str);    
-    char* diphone_wav_str =get_diphone_wav_path(str);
-    //g_print("diphone_wav_str =%s\n",diphone_wav_str);	
-	if (g_file_test(g_build_filename (cur_dir,diphone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {
-	wavlist = g_list_append(wavlist, g_build_filename (cur_dir,diphone_wav_str, NULL));
-	}    
+    char *str = l->data;       
+    char* diphone_wav_str =get_diphone_wav_path(str);   
     
+     if (g_file_test(diphone_wav_str, G_FILE_TEST_IS_REGULAR)) {
+	  wavlist = g_list_append(wavlist,diphone_wav_str);
+	 }
+	 else {
+		 g_print("diphone_wav_str = %s NOT found\n",diphone_wav_str);
+	 }  
     } //for-loop
 	
 	
@@ -1692,9 +1690,7 @@ static void speak_events() {
 	
 	//clean up 
 	g_list_free(wavlist);
-	g_free (cur_dir);		
-	//g_list_free(weekday_list);
-	//g_list_free(all_diphones);
+	
 		
 }
 
@@ -1737,7 +1733,8 @@ static void callbk_speak(GSimpleAction* action, GVariant *parameter,gpointer use
 
 static gpointer thread_playwav(gpointer user_data)
 {   
-    gchar *wav_path =user_data;   
+    gchar *wav_path =user_data; 
+    g_print("thread_playwav: speaking wav file %s\n", wav_path);  
     gchar * command_str ="aplay";    
     gchar *m_sample_rate_str = g_strdup_printf("%i", m_talk_sample_rate); 
     gchar *sample_rate_str ="-r ";    
@@ -1745,6 +1742,7 @@ static gpointer thread_playwav(gpointer user_data)
    	char input[50];		
 	strcpy(input, wav_path);	  
     command_str =g_strconcat(command_str," ",sample_rate_str, " ", input, NULL); 
+     g_print("thread_playwav: command_str= %s\n",command_str);  
     system(command_str);    
     g_mutex_unlock (&lock); //thread mutex unlock 
     return NULL; 
@@ -2802,7 +2800,7 @@ static void callbk_about(GSimpleAction * action, GVariant *parameter, gpointer u
 	gtk_widget_set_size_request(about_dialog, 200,200);
     gtk_window_set_modal(GTK_WINDOW(about_dialog),TRUE);	
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), " Talk Calendar");
-	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.4.2");
+	gtk_about_dialog_set_version (GTK_ABOUT_DIALOG(about_dialog), "Version 1.4.3");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about_dialog),"Copyright © 2022");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),"Personal calendar with built-in speech synthesizer "); 
 	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG(about_dialog), GTK_LICENSE_GPL_3_0);
@@ -3675,9 +3673,7 @@ static void callbk_speak_about(GSimpleAction *action,
 							  gpointer       user_data){
 		
 	GList *wavlist=NULL;
-	gchar *cur_dir;
-	cur_dir = g_get_current_dir ();
-		
+			
 	GList* word_list=NULL;	
 	
 	word_list =word_to_diphones("talk");	
@@ -3688,20 +3684,24 @@ static void callbk_speak_about(GSimpleAction *action,
 	word_list =g_list_concat(word_list,word_to_diphones("point"));
 	word_list =g_list_concat(word_list,word_to_diphones("four"));
 	word_list =g_list_concat(word_list,word_to_diphones("point"));
-	word_list =g_list_concat(word_list,word_to_diphones("two"));
+	word_list =g_list_concat(word_list,word_to_diphones("three"));
 	
 	
 	//iterate over GList
 	GList *l;
     for (l = word_list; l != NULL; l = l->next) {    
     char *str = l->data;
-    //g_print("diphone str=%s\n",str);    
+     
     char* diphone_wav_str =get_diphone_wav_path(str);
-    //g_print("diphone_wav_str =%s\n",diphone_wav_str);	 
-	 if (g_file_test(g_build_filename (cur_dir,diphone_wav_str, NULL), G_FILE_TEST_IS_REGULAR)) {
-	 wavlist = g_list_append(wavlist, g_build_filename (cur_dir,diphone_wav_str, NULL));
+   	 
+	 if (g_file_test(diphone_wav_str, G_FILE_TEST_IS_REGULAR)) {
+	  wavlist = g_list_append(wavlist,diphone_wav_str);
+	 }
+	 else {
+		 g_print("diphone_wav_str = %s NOT found\n",diphone_wav_str);
 	 }    
-    } //for-loop
+     
+     } //for-loop
 	
 	  
 	char* merge_file ="/tmp/talkout.wav";	
@@ -3712,6 +3712,7 @@ static void callbk_speak_about(GSimpleAction *action,
 	int i=0; 
     for (wl = wavlist; wl != NULL; wl = wl->next) {    
     char *wstr = wl->data;
+    //g_print("wavlist_str =%s\n",wstr);
     file_names[i] = wstr;	//populate char* array
     i=i+1;    
     } //for-loop
@@ -3721,7 +3722,7 @@ static void callbk_speak_about(GSimpleAction *action,
 	//clean up  lists
 	g_list_free(word_list);
 	g_list_free(wavlist);
-	g_free (cur_dir);	
+	
 	
 	//play audio in a thread
 	GThread *thread_audio; 	
@@ -3748,7 +3749,7 @@ int file_exists(const char *file_name)
 
 static void startup (GtkApplication *app)
 {
-	
+	create_diphones();
 	//g_print("Allocating memory of size %d bytes\n",max_records*sizeof(Event));	
 	db_store=malloc(max_records*sizeof(Event));
 	

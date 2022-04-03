@@ -2,7 +2,7 @@
 
 ## Preamble
 
-Talk Calendar is a Linux personal desktop calendar with a tiny built-in speech synthesizer. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html). My migration notes below outline the code changes that I had to make to use Gtk4.
+Talk Calendar is a Linux personal desktop calendar with a tiny built-in speech synthesizer. This is the Gtk4 version of Talk Calendar and it will not compile against the Gtk3 libraries as there are many depreciations and other changes as outlined in the Gtk's migrating from 3 to 4 [article](https://docs.gtk.org/gtk4/migrating-3to4.html).
 
 
 ![](talkcalendar.png)
@@ -31,13 +31,9 @@ The database called "eventsdb.csv" is located in the working directory. With Tal
 ```
 Help->Information
 ```
-to show the current working directory where the events database should be located,
+to show the current working directory where the events database should be located.
 
 Using the binary image together with a menu editor is a universal approach for getting Talk Calendar installed on most Gtk4 distros.
-
-### Working Directory 
-
-Make sure that the **diphone** wav file directory (this stores the diphone sound files of short duration) is located in the working directory. The diphone directory can be found by downloading the binary image. If you do not set the a working directory it will most likely be your home directory. The database called "eventsdb.csv" will be located in the working directory.
 
 Alternatively, Talk Calendar can be built from source using the code in this repository. See notes below which explain how to do this.
 
@@ -60,7 +56,7 @@ Alternatively, Talk Calendar can be built from source using the code in this rep
 
 Talk Calendar has a small dictionary of approximately 56,600 english words.
 
-If a word is not recognised by the dictionary it is skipped over. For example, a title such as  "Tiki Birthday Party" would be read out as "birthday party". If none of the words in the event title are recognised then Talk Calendar reads outs "calendar entry".
+If a word is not recognised by the dictionary it is skipped over. For example, a title such as  "Tiki Birthday Party" would be read out as "birthday party". 
 
 
 ### Editing Existing Event
@@ -153,9 +149,9 @@ The base Gtk4 libraries are installed by default with Ubuntu 21.10. With other U
 sudo apt install libgtk-4-1
 ```
 
-I used Geany as the IDE for developing the project as it has an integrated terminal. 
+Copy diphones into the scr directory and use the MAKEFILE to compile.
 
-Use the MAKEFILE to compile.
+I used Geany as the IDE for developing the project as it has an integrated terminal. 
 
 ### Font Note
 
@@ -204,7 +200,7 @@ Talk Calendar is being developed and tested using Fedora 35 GNOME using the Wayl
 * event title, location, type, start and end time can be entered and edited
 * bespoke month calendar which allows days with events to be colour marked
 * priority events can be separately colour marked
-* integral speech synthesizer
+* embedded speech synthesizer
 * bespoke flat-file csv database with memory dynamically allocated for up to 5000 records
 * binary for 64-bit Gtk4 distributions 
 
@@ -229,7 +225,6 @@ The speech synthesiser has a relatively small number of speech words in its dict
 Inserting an unknown character will cause the application to close. Restart Talk Calendar to reset.
 
 
-
 ## History
 
 This is a hobby project under development. 
@@ -251,6 +246,8 @@ Talk Calendar version 1.4 uses a Gtk-based diphone speech synthesizer which voca
 
 
 ## Gtk 4.0 Migration Notes
+
+These notes may be of help if your are migrating a C Gtk3 project to Gtk4.
 
 GTK 4 uses [list widgets](https://docs.gtk.org/gtk4/migrating-3to4.html#consider-porting-to-the-new-list-widgets) such as GtkListBox and porting the Gtk 3 version of Talk Calendar has involved replacing the display of events with a GtkListBox. A significant effort had to be invested into this aspect of the porting. There is an article on scalable lists in gtk4 [here](https://blog.gtk.org/2020/06/07/scalable-lists-in-gtk-4/). Gtk have said [publically](https://www.youtube.com/watch?v=qjF-VotgfeY&t=824s) that it is their intention to eventually replace GtkTreeView and GtkComboBox with [list widgets](https://blog.gtk.org/2020/06/08/more-on-lists-in-gtk-4/). The GtkListBox widget provides a vertical list and can be sorted (in this application events are sorted by start time and then displayed). The application work flow has had to be changed as headerbar buttons are now used to create a new event, edit and delete a selected event in the list. I have used buttons with text labels (New, Edit, Delete) but there is now an option for using Adwaita button icons. 
 
@@ -278,11 +275,11 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 
 ## Roadmap
 ```
-enlarge speech dictionary
-expand error checking
+expand internal error checking
+code refactoring
 feature enhancements
 upcoming events alert
-code refactoring
+packaging options
 ```
 
 ## Versioning
