@@ -99,6 +99,8 @@ Adjust the talk speaking rate to alter the delivery of the speech for best resul
 ```
 Speak		Spacebar
 Today		Home Key
+F1		Help
+F12		Information
 ```
 
 ## Startup Applications
@@ -149,9 +151,11 @@ The base Gtk4 libraries are installed by default with Ubuntu 21.10. With other U
 sudo apt install libgtk-4-1
 ```
 
-Copy diphones into the scr directory and use the MAKEFILE to compile.
+Unzip and copy the diphones into the scr directory and then use the MAKEFILE to compile. With Ubuntu 21.10 you need to use the fPIC flag but this is not required with Fedora 35. The flag fPIC stands for force Position Independent Code.
 
 I used Geany as the IDE for developing the project as it has an integrated terminal. 
+
+Will also compile with clang.
 
 ### Font Note
 
@@ -276,10 +280,10 @@ Other depreciations include "gtk_application_set_app_menu()" as discussed [here]
 ## Roadmap
 ```
 expand internal error checking
+expand speech dictionary
 code refactoring
 feature enhancements
 upcoming events alert
-packaging options
 ```
 
 ## Versioning

@@ -3,7 +3,7 @@
 # Copy diphones into src directory
 CC ?= gcc
 PKGCONFIG = $(shell which pkg-config)
-CFLAGS = $(shell $(PKGCONFIG) --cflags gtk4) -Wall
+CFLAGS = $(shell $(PKGCONFIG) --cflags gtk4) -Wall -fPIC
 LIBS = $(shell $(PKGCONFIG) --libs gtk4) -lm 
 
 SRC = main.c  diphone.c wavcat.c dictionary.c
